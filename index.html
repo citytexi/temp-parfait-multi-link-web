@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Parfait 다운로드</title>
+  <meta name="description" content="Parfait 안드로이드 앱 다운로드">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Parfait">
+  <meta property="og:description" content="Google Play에서 Parfait 받기">
+  <meta property="og:url" content="https://citytexi.github.io/temp-parfait-multi-link-web/">
+  <meta property="og:image" content="https://citytexi.github.io/temp-parfait-multi-link-web/icon-512.png">
+  <link rel="icon" type="image/png" href="icon-512.png">
+  <link rel="apple-touch-icon" href="icon-512.png">
+  <style>
+    :root {
+      --bg: #fafafa;
+      --card: #ffffff;
+      --text: #1a1a1a;
+      --sub: #666666;
+      --accent: #e3123a;
+      --accent-text: #ffffff;
+      --line: #e6e6e6;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #141414;
+        --card: #1f1f1f;
+        --text: #f2f2f2;
+        --sub: #a3a3a3;
+        --accent: #e3123a;
+        --accent-text: #ffffff;
+        --line: #333333;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, "Pretendard", "Noto Sans KR", Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+    main {
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+    .logo {
+      display: block;
+      width: 104px;
+      height: 104px;
+      margin: 0 auto 16px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+    }
+    h1 { margin: 0 0 6px; font-size: 26px; }
+    p.lead { margin: 0 0 28px; color: var(--sub); font-size: 15px; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      margin-bottom: 12px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--text);
+    }
+    .btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-text);
+    }
+    .btn:active { opacity: .85; }
+    .hint {
+      margin-top: 20px;
+      padding: 14px;
+      border-radius: 12px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 1.6;
+      text-align: left;
+    }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <img class="logo" src="icon-512.png" alt="" width="104" height="104">
+    <h1>Parfait</h1>
+    <p class="lead">Google Play에서 받아보세요</p>
+
+    <a id="store" class="btn primary" href="https://play.google.com/store/apps/details?id=com.teamyg.parfait">
+      Google Play에서 다운로드
+    </a>
+    <a id="external" class="btn" href="#" hidden>외부 브라우저로 열기</a>
+
+    <div id="inapp-hint" class="hint" hidden>
+      스토어가 열리지 않으면 오른쪽 위 <b>⋮</b> 메뉴에서
+      <b>외부 브라우저에서 열기</b>를 눌러주세요.
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var PACKAGE = "com.teamyg.parfait";
+      var WEB_URL = "https://play.google.com/store/apps/details?id=" + PACKAGE;
+
+      var ua = navigator.userAgent || "";
+      var isAndroid = /Android/i.test(ua);
+      var isKakao = /KAKAOTALK/i.test(ua);
+      var isInApp = /Instagram|FBAN|FBAV|FB_IAB|KAKAOTALK|NAVER|Line\/|Threads/i.test(ua);
+
+      if (!isAndroid) return; // iOS·데스크톱은 기본 Play 웹 링크 그대로 둔다
+
+      var store = document.getElementById("store");
+      var external = document.getElementById("external");
+      var hint = document.getElementById("inapp-hint");
+
+      // Play 스토어 앱을 직접 여는 intent. 스토어 앱이 없으면 Play 웹으로 폴백한다.
+      store.href =
+        "intent://details?id=" + PACKAGE +
+        "#Intent;scheme=market;package=com.android.vending;" +
+        "S.browser_fallback_url=" + encodeURIComponent(WEB_URL) + ";end";
+
+      if (!isInApp) {
+        // 일반 브라우저: 바로 스토어로 보낸다.
+        location.replace(store.href);
+        return;
+      }
+
+      // 인앱 브라우저: 자동 이동은 막히므로 사용자 탭으로만 이동시킨다.
+      // #fragment가 있으면 intent의 #Intent 구분자와 섞이므로 떼어낸다.
+      var url = location.href.split("#")[0];
+      var here = url.replace(/^https?:\/\//, "");
+      external.href = isKakao
+        ? "kakaotalk://web/openExternal?url=" + encodeURIComponent(url)
+        : "intent://" + here + "#Intent;scheme=https;package=com.android.chrome;" +
+          "S.browser_fallback_url=" + encodeURIComponent(url) + ";end";
+      external.hidden = false;
+      hint.hidden = false;
+    })();
+  </script>
+</body>
+</html>
