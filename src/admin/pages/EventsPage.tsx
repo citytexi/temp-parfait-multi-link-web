@@ -17,7 +17,7 @@ const UNREGISTERED = '이름 미등록'
 const COLUMNS = [
   { key: 'name', header: '행동' },
   { key: 'count', header: '횟수', align: 'right' as const },
-  { key: 'users', header: '한 사람 이상 한 수', align: 'right' as const },
+  { key: 'users', header: '사람 수', align: 'right' as const },
   { key: 'delta', header: '직전 기간 대비', align: 'right' as const },
 ]
 

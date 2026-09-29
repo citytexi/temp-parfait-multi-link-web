@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { cloneElement, isValidElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GaError } from '../ga/errors'
@@ -20,6 +21,12 @@ const h = vi.hoisted(() => ({
     batchRunReports: ReturnType<typeof vi.fn>
     runRealtimeReport: ReturnType<typeof vi.fn>
   },
+  downloadCsv: vi.fn(),
+}))
+
+vi.mock('../lib/csv', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/csv')>()),
+  downloadCsv: h.downloadCsv,
 }))
 
 const ranges = {
@@ -59,6 +66,7 @@ function card(title: string): HTMLElement {
 }
 
 beforeEach(() => {
+  h.downloadCsv.mockClear()
   h.client = {
     runReport: vi.fn(async () => ({})),
     batchRunReports: vi.fn(async () => ({ reports: [totals, trend] })),
@@ -117,6 +125,21 @@ describe('EventsPage', () => {
     expect(chart.querySelector('svg')).not.toBeNull()
     expect(chart.querySelector('[tabindex="0"], [role="application"]')).toBeNull()
     expect(h.client.runReport).toHaveBeenCalledTimes(1)
+  })
+
+  it('labels the user column 사람 수 in the table and the CSV', async () => {
+    h.client.runReport.mockResolvedValue(eventsRes)
+    renderPage(<EventsPage />)
+    const table = await screen.findByRole('table')
+    expect(within(table).getAllByRole('columnheader').map((c) => c.textContent)).toEqual([
+      '행동',
+      '횟수',
+      '사람 수',
+      '직전 기간 대비',
+    ])
+    await userEvent.click(screen.getByRole('button', { name: 'CSV 받기' }))
+    const [, csv] = h.downloadCsv.mock.calls[0]
+    expect(csv.split('\r\n')[0]).toBe('\ufeff행동,횟수,사람 수,직전 기간 대비')
   })
 })
 
