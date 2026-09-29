@@ -13,6 +13,7 @@ const h = vi.hoisted(() => ({
   auth: {} as {
     status: string
     loginError: string | null
+    authErrorDetail: string | null
     login: ReturnType<typeof vi.fn>
     logout: ReturnType<typeof vi.fn>
     getToken: ReturnType<typeof vi.fn>
@@ -55,10 +56,11 @@ vi.mock('./pages/OverviewPage', async (importOriginal) => {
 import { App } from './App'
 import { useGa } from './hooks/useGa'
 
-function setAuth(status: AuthStatus, loginError: string | null = null) {
+function setAuth(status: AuthStatus, loginError: string | null = null, authErrorDetail: string | null = null) {
   h.auth = {
     status,
     loginError,
+    authErrorDetail,
     login: vi.fn(),
     logout: vi.fn(async () => {}),
     getToken: vi.fn(() => 'token'),
@@ -115,6 +117,7 @@ describe('App gates', () => {
     expect(screen.getByText('팀 Google 계정으로 로그인해 주세요.')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Google 계정으로 로그인' }))
     expect(h.auth.login).toHaveBeenCalledTimes(1)
+    expect(h.auth.login).toHaveBeenCalledWith()
   })
 
   it('shows the login error as an alert', () => {
@@ -129,6 +132,7 @@ describe('App gates', () => {
     expect(screen.getByRole('heading', { name: '로그인이 만료됐어요' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: '다시 로그인' }))
     expect(h.auth.login).toHaveBeenCalledTimes(1)
+    expect(h.auth.login).toHaveBeenCalledWith()
   })
 
   it('shows the forbidden screen with guidance and another-account login', async () => {
@@ -140,6 +144,20 @@ describe('App gates', () => {
     expect(screen.getByText(/관리자에게 GA 속성 뷰어 권한을 요청해 주세요/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: '다른 계정으로 로그인' }))
     expect(h.auth.login).toHaveBeenCalledTimes(1)
+    expect(h.auth.login).toHaveBeenCalledWith({ selectAccount: true })
+  })
+
+  it('shows the GA error message as a secondary detail on the forbidden screen', () => {
+    setAuth('forbidden', null, 'Google Analytics Data API has not been used in project 123')
+    render(<App />)
+    const detail = screen.getByText('Google Analytics Data API has not been used in project 123')
+    expect(detail).toHaveClass('adm-fullscreen__detail')
+  })
+
+  it('shows no detail on the forbidden screen when GA gave no message', () => {
+    setAuth('forbidden')
+    const { container } = render(<App />)
+    expect(container.querySelector('.adm-fullscreen__detail')).toBeNull()
   })
 })
 
@@ -202,7 +220,7 @@ describe('Signed-in shell', () => {
     h.client.runReport.mockRejectedValue(new GaError('auth', 'expired', 401))
     h.page = () => <ProbePage />
     render(<App />)
-    await waitFor(() => expect(h.auth.reportAuthError).toHaveBeenCalledWith('auth'))
+    await waitFor(() => expect(h.auth.reportAuthError).toHaveBeenCalledWith('auth', 'expired'))
     expect(h.client.runReport).toHaveBeenCalledTimes(1) // auth errors are not retried
   })
 
@@ -210,7 +228,7 @@ describe('Signed-in shell', () => {
     h.client.runReport.mockRejectedValue(new GaError('forbidden', 'no access', 403))
     h.page = () => <ProbePage />
     render(<App />)
-    await waitFor(() => expect(h.auth.reportAuthError).toHaveBeenCalledWith('forbidden'))
+    await waitFor(() => expect(h.auth.reportAuthError).toHaveBeenCalledWith('forbidden', 'no access'))
   })
 
   it('stops polling and drops the dashboard when the token expires', async () => {

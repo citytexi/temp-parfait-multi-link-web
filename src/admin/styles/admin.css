@@ -352,6 +352,13 @@ body {
   white-space: pre-line;
 }
 
+.adm-fullscreen__detail {
+  margin: var(--adm-space-2) 0 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-3);
+  overflow-wrap: anywhere;
+}
+
 .adm-fullscreen__actions {
   display: flex;
   flex-direction: column;

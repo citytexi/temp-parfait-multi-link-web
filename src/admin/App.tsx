@@ -11,12 +11,12 @@ const SETUP_BODY =
   'src/admin/config.ts에 GA 속성 ID와 OAuth 클라이언트 ID를 넣어 주세요.\n자세한 방법은 README의 "어드민 대시보드 설정"을 봐 주세요.'
 
 export function App() {
-  const { status, login, loginError } = useAuth()
+  const { status, login, loginError, authErrorDetail } = useAuth()
 
   if (!isConfigured()) return <FullScreenState title="설정이 필요해요" body={SETUP_BODY} />
 
-  const loginButton = (label: string) => (
-    <button type="button" className="adm-button adm-button--primary" onClick={login}>
+  const loginButton = (label: string, opts?: { selectAccount: true }) => (
+    <button type="button" className="adm-button adm-button--primary" onClick={() => (opts ? login(opts) : login())}>
       {label}
     </button>
   )
@@ -48,7 +48,8 @@ export function App() {
         <FullScreenState
           title="이 계정은 파르페 GA를 볼 권한이 없어요"
           body="관리자에게 GA 속성 뷰어 권한을 요청해 주세요. (GA 관리 → 속성 액세스 관리)"
-          actions={loginButton('다른 계정으로 로그인')}
+          detail={authErrorDetail}
+          actions={loginButton('다른 계정으로 로그인', { selectAccount: true })}
         />
       )
     case 'signedIn':
@@ -67,7 +68,7 @@ function SignedInApp() {
       new QueryClient({
         queryCache: new QueryCache({
           onError: (e) => {
-            if (e instanceof GaError && (e.kind === 'auth' || e.kind === 'forbidden')) reportAuthError(e.kind)
+            if (e instanceof GaError && (e.kind === 'auth' || e.kind === 'forbidden')) reportAuthError(e.kind, e.message)
           },
         }),
         defaultOptions: { queries: gaQueryDefaults },

@@ -49,7 +49,7 @@ export function createTokenClient(opts: {
   clientId: string
   onToken: (t: { accessToken: string; expiresIn: number }) => void
   onError: (kind: GisErrorKind) => void
-}): { request(): void } {
+}): { request(opts?: { selectAccount?: boolean }): void } {
   const oauth2 = getOauth2()
   if (!oauth2) throw new Error('GIS not loaded')
   const client = oauth2.initTokenClient({
@@ -76,7 +76,10 @@ export function createTokenClient(opts: {
       else opts.onError('unknown')
     },
   })
-  return { request: () => client.requestAccessToken() }
+  return {
+    request: (opts) =>
+      opts?.selectAccount ? client.requestAccessToken({ prompt: 'select_account' }) : client.requestAccessToken(),
+  }
 }
 
 export function revokeToken(token: string): Promise<void> {

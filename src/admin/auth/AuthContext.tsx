@@ -7,10 +7,12 @@ interface AuthValue {
   status: AuthStatus
   token: string | null
   loginError: string | null
-  login(): void
+  /** GA's own error message behind a forbidden status (e.g. API disabled, wrong property). */
+  authErrorDetail: string | null
+  login(opts?: { selectAccount?: boolean }): void
   logout(): Promise<void>
   getToken(): string | null
-  reportAuthError(kind: 'auth' | 'forbidden'): void
+  reportAuthError(kind: 'auth' | 'forbidden', message?: string): void
 }
 
 const LOGIN_ERRORS: Record<GisErrorKind, string> = {
@@ -36,9 +38,10 @@ export function AuthProvider({
   const [status, setStatus] = useState<AuthStatus>('loading')
   const [token, setToken] = useState<string | null>(null)
   const [loginError, setLoginError] = useState<string | null>(null)
+  const [authErrorDetail, setAuthErrorDetail] = useState<string | null>(null)
   const tokenRef = useRef<string | null>(null)
   const expiresAtRef = useRef(0)
-  const clientRef = useRef<{ request(): void } | null>(null)
+  const clientRef = useRef<{ request(opts?: { selectAccount?: boolean }): void } | null>(null)
   const nowRef = useRef(now)
   nowRef.current = now
 
@@ -60,6 +63,7 @@ export function AuthProvider({
             expiresAtRef.current = nowRef.current() + expiresIn * 1000 - EXPIRY_MARGIN_MS
             setToken(accessToken)
             setLoginError(null)
+            setAuthErrorDetail(null)
             setStatus('signedIn')
           },
           onError: (kind) => setLoginError(LOGIN_ERRORS[kind]),
@@ -76,10 +80,10 @@ export function AuthProvider({
     }
   }, [clientId])
 
-  const login = useCallback(() => {
+  const login = useCallback((opts?: { selectAccount?: boolean }) => {
     if (!clientRef.current) return
     setLoginError(null)
-    clientRef.current.request()
+    clientRef.current.request(opts)
   }, [])
 
   const getToken = useCallback(() => {
@@ -95,21 +99,32 @@ export function AuthProvider({
   const logout = useCallback(async () => {
     const current = tokenRef.current
     clearToken()
+    setAuthErrorDetail(null)
     setStatus('signedOut')
     if (current) await revokeToken(current)
   }, [clearToken])
 
   const reportAuthError = useCallback(
-    (kind: 'auth' | 'forbidden') => {
+    (kind: 'auth' | 'forbidden', message?: string) => {
+      const current = tokenRef.current
       clearToken()
-      setStatus(kind === 'auth' ? 'expired' : 'forbidden')
+      if (kind === 'auth') {
+        setAuthErrorDetail(null)
+        setStatus('expired')
+        return
+      }
+      setAuthErrorDetail(message ?? null)
+      setStatus('forbidden')
+      // The token is useless for this property; revoke it so the next login starts clean.
+      // Fire and forget: revokeToken never rejects.
+      if (current) void revokeToken(current)
     },
     [clearToken],
   )
 
   const value = useMemo(
-    () => ({ status, token, loginError, login, logout, getToken, reportAuthError }),
-    [status, token, loginError, login, logout, getToken, reportAuthError],
+    () => ({ status, token, loginError, authErrorDetail, login, logout, getToken, reportAuthError }),
+    [status, token, loginError, authErrorDetail, login, logout, getToken, reportAuthError],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
