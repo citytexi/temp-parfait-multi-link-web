@@ -1,0 +1,106 @@
+/*
+ * Parfait Admin design tokens.
+ * Direction: Toss Payments merchant dashboard tone — light-gray page, white rounded
+ * cards, one blue accent, large bold numbers, generous whitespace.
+ * Record: design-system/parfait-admin/ (ui-ux-pro-max output + overrides).
+ *
+ * Contrast (WCAG 2.x relative luminance, measured):
+ *   Light            on --adm-bg #F2F4F6 / on --adm-surface #FFFFFF / on --adm-surface-muted #F9FAFB
+ *     text-1 #191F28   15.02 / 16.56 / 15.85
+ *     text-2 #4E5968    6.45 /  7.11 /  6.81
+ *     text-3 #636E7B    4.71 /  5.19 /  4.97
+ *     accent #1B64DA    4.91 /  5.41 /  5.18   (also --adm-positive)
+ *     negative #D22030  4.77 /  5.26 /  5.04
+ *     #FFFFFF on accent 5.41
+ *   Dark             on --adm-bg #101217 / on --adm-surface #1B1E25 / on --adm-surface-muted #23262E
+ *     text-1 #F2F4F6   16.99 / 15.13 / 13.72
+ *     text-2 #C1C8D0   11.10 /  9.88 /  8.96
+ *     text-3 #98A2AE    7.24 /  6.44 /  5.85
+ *     accent #6AA6FF    7.59 /  6.76 /  6.13   (also --adm-positive)
+ *     negative #FF7A7A  7.42 /  6.61 /  5.99
+ *     #101217 on accent 7.59
+ *   Pairs used by components
+ *     accent on accent-soft (secondary button)  light 4.75 (#1B64DA/#E8F1FE)  dark 5.83 (#6AA6FF/#1E2A40)
+ *     tooltip = surface on text-1 (inverted)    light 16.56                   dark 15.13
+ *     focus ring (accent) vs page bg            light 4.91                    dark 7.59
+ */
+:root {
+  color-scheme: light dark;
+
+  /* Color — light */
+  --adm-bg: #f2f4f6;
+  --adm-surface: #ffffff;
+  --adm-surface-muted: #f9fafb;
+  --adm-text-1: #191f28;
+  --adm-text-2: #4e5968;
+  --adm-text-3: #636e7b;
+  --adm-accent: #1b64da;
+  --adm-on-accent: #ffffff;
+  --adm-accent-soft: #e8f1fe;
+  --adm-positive: var(--adm-accent);
+  --adm-negative: #d22030;
+  --adm-neutral: var(--adm-text-3);
+  --adm-border: #e5e8eb;
+  --adm-skeleton: #eceff2;
+  --adm-skeleton-shine: #f6f7f9;
+  --adm-focus: var(--adm-accent);
+  --adm-shadow-card: 0 1px 3px rgba(0, 23, 51, 0.04);
+  --adm-shadow-pop: 0 8px 24px rgba(0, 23, 51, 0.12);
+
+  /* Typography */
+  --adm-font: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --adm-fs-xs: 12px; /* original term, footnotes */
+  --adm-fs-sm: 14px; /* secondary text, table cells */
+  --adm-fs-md: 16px; /* body */
+  --adm-fs-lg: 18px; /* card title */
+  --adm-fs-xl: 22px; /* section title */
+  --adm-fs-2xl: 28px; /* page title, full-screen title */
+  --adm-fs-3xl: 34px; /* KPI number */
+  --adm-fw-regular: 400;
+  --adm-fw-medium: 500;
+  --adm-fw-bold: 700;
+  --adm-lh-tight: 1.25;
+  --adm-lh-body: 1.5;
+
+  /* Spacing (4px base) */
+  --adm-space-1: 4px;
+  --adm-space-2: 8px;
+  --adm-space-3: 12px;
+  --adm-space-4: 16px;
+  --adm-space-5: 20px;
+  --adm-space-6: 24px;
+  --adm-space-8: 32px;
+  --adm-space-10: 40px;
+  --adm-space-14: 56px;
+
+  /* Radius */
+  --adm-radius-sm: 8px;
+  --adm-radius-md: 12px;
+  --adm-radius-lg: 20px; /* cards */
+  --adm-radius-pill: 999px;
+
+  /* Motion */
+  --adm-duration: 180ms;
+  --adm-hit: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --adm-bg: #101217;
+    --adm-surface: #1b1e25;
+    --adm-surface-muted: #23262e;
+    --adm-text-1: #f2f4f6;
+    --adm-text-2: #c1c8d0;
+    --adm-text-3: #98a2ae;
+    --adm-accent: #6aa6ff;
+    --adm-on-accent: #101217;
+    --adm-accent-soft: #1e2a40;
+    --adm-negative: #ff7a7a;
+    --adm-border: #2c3038;
+    --adm-skeleton: #262a32;
+    --adm-skeleton-shine: #30343d;
+    --adm-shadow-card: none;
+    --adm-shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+}
