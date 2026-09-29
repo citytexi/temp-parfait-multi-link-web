@@ -45,12 +45,6 @@ vi.mock('./ga/client', () => ({
 }))
 
 // Lets a test put a real query consumer in the page area instead of the real page.
-vi.mock('./pages/MenuPage', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./pages/MenuPage')>()
-  return {
-    MenuPage: (props: { menu: MenuId }) => (h.page ? h.page(props.menu) : actual.MenuPage(props)),
-  }
-})
 vi.mock('./pages/OverviewPage', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./pages/OverviewPage')>()
   return {

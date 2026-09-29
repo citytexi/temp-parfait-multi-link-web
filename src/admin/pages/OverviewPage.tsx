@@ -2,41 +2,16 @@ import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { Card } from '../components/Card'
 import { CardState } from '../components/CardState'
 import { ChartFrame, chartTheme } from '../components/ChartFrame'
-import { StatCard } from '../components/StatCard'
+import { StatSlot } from '../components/StatCard'
 import { buildSummary, type OverviewModel } from '../ga/reports/overview'
 import { useGa } from '../hooks/useGa'
 import { cardQuery, useOverview, useRealtimeTotal } from '../hooks/useReports'
-import { formatDuration, formatNumber, formatShortDate, type Delta } from '../lib/format'
+import { formatDuration, formatNumber, formatShortDate } from '../lib/format'
 
 const INFO_USERS = '앱을 한 번 이상 연 사람 수예요. 같은 사람이 여러 번 열어도 1명으로 세요.'
 const INFO_NEW = '이 기간에 앱을 처음 연 사람 수예요.'
 const INFO_AVG = '앱이 화면에 떠 있던 시간을 사람 수로 나눈 값이에요.'
 const TREND_TITLE = '날짜별 앱을 쓴 사람'
-
-type SlotQuery<T> = { data: T | undefined; isPending: boolean; error: unknown; refetch(): unknown }
-
-type StatSlotProps<T> = {
-  query: SlotQuery<T>
-  title: string
-  subtitle: string
-  info?: string
-  value(data: T): string
-  delta?(data: T): Delta
-}
-
-/** A stat card that shows loading or error in place until its value is ready. */
-function StatSlot<T>({ query, value, delta, ...header }: StatSlotProps<T>) {
-  if (query.data !== undefined) {
-    return <StatCard {...header} value={value(query.data)} delta={delta?.(query.data)} />
-  }
-  return (
-    <Card {...header}>
-      <CardState query={cardQuery(query)} isEmpty={false}>
-        {null}
-      </CardState>
-    </Card>
-  )
-}
 
 function trendLabel(trend: OverviewModel['trend']): string {
   if (trend.length === 0) return `${TREND_TITLE} 선 차트`

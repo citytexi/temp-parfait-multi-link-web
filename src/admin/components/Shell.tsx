@@ -2,8 +2,10 @@ import { useAuth } from '../auth/AuthContext'
 import { useGa } from '../hooks/useGa'
 import type { MenuId } from '../lib/urlState'
 import { EventsPage } from '../pages/EventsPage'
-import { MenuPage } from '../pages/MenuPage'
 import { OverviewPage } from '../pages/OverviewPage'
+import { RealtimePage } from '../pages/RealtimePage'
+import { RetentionPage } from '../pages/RetentionPage'
+import { TechPage } from '../pages/TechPage'
 import { UsersPage } from '../pages/UsersPage'
 import { PeriodFilter } from './PeriodFilter'
 import { QuotaBadge } from './QuotaBadge'
@@ -17,8 +19,12 @@ function Page({ menu }: { menu: MenuId }) {
       return <UsersPage />
     case 'events':
       return <EventsPage />
-    default:
-      return <MenuPage menu={menu} />
+    case 'retention':
+      return <RetentionPage />
+    case 'tech':
+      return <TechPage />
+    case 'realtime':
+      return <RealtimePage />
   }
 }
 

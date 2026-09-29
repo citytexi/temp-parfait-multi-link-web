@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { buildEventsRequest, parseEvents } from '../ga/reports/events'
 import { buildOverviewRequests, parseOverview } from '../ga/reports/overview'
-import { buildRealtimeRequests } from '../ga/reports/realtime'
+import { buildRealtimeRequests, parseRealtime } from '../ga/reports/realtime'
+import { buildEngagementRequest, buildRetentionRequest, parseEngagement, parseRetention } from '../ga/reports/retention'
+import { buildTechRequests, parseTech } from '../ga/reports/tech'
 import { buildUsersRequests, parseUsers } from '../ga/reports/users'
 import { toRows } from '../ga/reports/common'
 import { useGa } from './useGa'
@@ -33,6 +35,54 @@ export function useEvents() {
     queryKey: ['events', ranges],
     queryFn: async () => parseEvents(await client.runReport(buildEventsRequest(ranges!))),
     enabled: ranges !== null,
+  })
+}
+
+/** Weekly return rates for the last four completed weeks. Ignores the period filter. */
+export function useRetention() {
+  const { client, today } = useGa()
+  return useQuery({
+    queryKey: ['retention', today],
+    queryFn: async () => parseRetention(await client.runReport(buildRetentionRequest(today)), today),
+  })
+}
+
+/** Visits per person and average time per person, compared with the previous period. */
+export function useEngagement() {
+  const { client, ranges } = useGa()
+  return useQuery({
+    queryKey: ['engagement', ranges],
+    queryFn: async () => parseEngagement(await client.runReport(buildEngagementRequest(ranges!))),
+    enabled: ranges !== null,
+  })
+}
+
+/** Platform, country and app version shares — one batchRunReports call. */
+export function useTech() {
+  const { client, ranges } = useGa()
+  return useQuery({
+    queryKey: ['tech', ranges],
+    queryFn: async () => parseTech((await client.batchRunReports(buildTechRequests(ranges!))).reports),
+    enabled: ranges !== null,
+  })
+}
+
+/** Total and per-minute active people for 지금 접속 중. Polls every minute while the tab is visible. */
+export function useRealtime() {
+  const { client } = useGa()
+  return useQuery({
+    queryKey: ['realtime'],
+    queryFn: async () => {
+      const [totalReq, byMinuteReq] = buildRealtimeRequests()
+      const [total, byMinute] = await Promise.all([
+        client.runRealtimeReport(totalReq),
+        client.runRealtimeReport(byMinuteReq),
+      ])
+      return parseRealtime(total, byMinute)
+    },
+    staleTime: 0,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
   })
 }
 

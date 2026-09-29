@@ -649,3 +649,82 @@ body {
   font-weight: var(--adm-fw-medium);
   color: var(--adm-text-2);
 }
+
+.adm-page__note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--adm-space-1) var(--adm-space-3);
+  margin: calc(var(--adm-space-2) * -1) 0 var(--adm-space-6);
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+/* 다시 찾아온 사람: tint grows with the ratio; --adm-heat is 0–40% (see RetentionPage). */
+.adm-table th[scope='row'] {
+  font-weight: var(--adm-fw-medium);
+  color: var(--adm-text-1);
+}
+
+.adm-table td.adm-heat {
+  background: color-mix(in srgb, var(--adm-accent) var(--adm-heat, 0%), var(--adm-surface));
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-text-1);
+}
+
+.adm-table td.adm-heat--none {
+  background: none;
+  color: var(--adm-text-3);
+}
+
+/* 기기·지역: donut with a text legend */
+.adm-donut {
+  display: grid;
+  gap: var(--adm-space-4);
+  align-items: center;
+}
+
+@media (min-width: 640px) {
+  .adm-donut {
+    grid-template-columns: minmax(0, 1fr) minmax(160px, auto);
+  }
+}
+
+.adm-legend {
+  display: grid;
+  gap: var(--adm-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--adm-fs-sm);
+}
+
+.adm-legend__item {
+  display: flex;
+  align-items: center;
+  gap: var(--adm-space-2);
+}
+
+.adm-legend__swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--adm-border);
+}
+
+.adm-legend__label {
+  color: var(--adm-text-2);
+}
+
+.adm-legend__value {
+  margin-left: auto;
+  font-weight: var(--adm-fw-bold);
+  color: var(--adm-text-1);
+}
+
+/* 지금 접속 중 */
+.adm-realtime__count {
+  font-size: var(--adm-fs-3xl);
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-accent);
+}

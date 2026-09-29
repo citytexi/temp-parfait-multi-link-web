@@ -9,10 +9,6 @@ export const MENU_ITEMS: readonly { id: MenuId; label: string }[] = [
   { id: 'realtime', label: '지금 접속 중' },
 ]
 
-export function menuLabel(id: MenuId): string {
-  return MENU_ITEMS.find((m) => m.id === id)?.label ?? ''
-}
-
 type SideMenuProps = {
   active: MenuId
   onSelect(menu: MenuId): void
