@@ -1,0 +1,51 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "country"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "activeUsers"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "South Korea"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "700"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "(not set)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "200"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "(other)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "100"
+    }
+   ]
+  }
+ ],
+ "rowCount": 3
+}

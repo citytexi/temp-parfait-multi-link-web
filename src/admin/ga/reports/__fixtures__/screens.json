@@ -1,0 +1,396 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "unifiedScreenName"
+  },
+  {
+   "name": "dateRange"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "screenPageViews",
+   "type": "TYPE_INTEGER"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "home"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "5000"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "home"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "4000"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "link_detail"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "3000"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "link_detail"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "3000"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "(not set)"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2000"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "(not set)"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2500"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "settings"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1500"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "settings"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1000"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "profile"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1200"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "profile"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1200"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "search"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1000"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "search"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "800"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "folder"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "900"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "folder"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "900"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "onboarding"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "800"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "onboarding"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1600"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "share"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "700"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "share"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "700"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "login"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "600"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "notice"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "500"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "notice"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "500"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "faq"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "400"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "faq"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "100"
+    }
+   ]
+  }
+ ],
+ "totals": [
+  {
+   "dimensionValues": [
+    {
+     "value": "RESERVED_TOTAL"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "18000"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "RESERVED_TOTAL"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "20000"
+    }
+   ]
+  }
+ ],
+ "rowCount": 23
+}
