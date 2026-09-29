@@ -2,12 +2,16 @@ import { formatNumber, type Delta } from '../../lib/format'
 import type { DateRange } from '../../lib/period'
 import type { RunReportRequest, RunReportResponse } from '../types'
 import { compared, splitByDateRange, toRows, type Compared } from './common'
+import { buildScreensRequest, parseScreens, type ScreensModel } from './screens'
+
+export type TrendPoint = { date: string; activeUsers: number; android: number; ios: number }
 
 export type OverviewModel = {
   users: Compared
   newUsers: Compared
   avgEngagementSec: Compared
-  trend: { date: string; activeUsers: number }[]
+  trend: TrendPoint[]
+  screens: ScreensModel
 }
 
 export function buildOverviewRequests(r: {
@@ -27,7 +31,33 @@ export function buildOverviewRequests(r: {
       // Days with no activity come back as zero rows instead of gaps in the chart.
       keepEmptyRows: true,
     },
+    {
+      dateRanges: [r.current],
+      dimensions: [{ name: 'date' }, { name: 'platform' }],
+      metrics: [{ name: 'activeUsers' }],
+      orderBys: [{ dimension: { dimensionName: 'date' }, desc: false }],
+      keepEmptyRows: true,
+    },
+    buildScreensRequest(r),
   ]
+}
+
+/** Total trend with Android and iOS merged in by date. Other platforms (web) are left out. */
+function mergeTrend(total: RunReportResponse, byPlatform: RunReportResponse): TrendPoint[] {
+  const platforms = new Map<string, { android: number; ios: number }>()
+  for (const row of toRows(byPlatform)) {
+    const key = row.dims.platform?.toLowerCase()
+    if (key !== 'android' && key !== 'ios') continue
+    const entry = platforms.get(row.dims.date) ?? { android: 0, ios: 0 }
+    entry[key] += row.mets.activeUsers ?? 0
+    platforms.set(row.dims.date, entry)
+  }
+  const totalRows = toRows(total)
+  const base =
+    totalRows.length > 0
+      ? totalRows.map((row) => ({ date: row.dims.date, activeUsers: row.mets.activeUsers ?? 0 }))
+      : [...platforms.keys()].sort().map((date) => ({ date, activeUsers: 0 }))
+  return base.map((point) => ({ ...point, ...(platforms.get(point.date) ?? { android: 0, ios: 0 }) }))
 }
 
 const avg = (total: number, users: number): number => (users === 0 ? 0 : total / users)
@@ -36,10 +66,7 @@ export function parseOverview(reports: RunReportResponse[]): OverviewModel {
   const { current, previous } = splitByDateRange(reports[0] ?? {})
   const cur = current[0]?.mets ?? {}
   const prev = previous[0]?.mets ?? {}
-  const trend = toRows(reports[1] ?? {}).map((row) => ({
-    date: row.dims.date,
-    activeUsers: row.mets.activeUsers ?? 0,
-  }))
+  const trend = mergeTrend(reports[1] ?? {}, reports[2] ?? {})
   return {
     users: compared(cur.activeUsers ?? 0, prev.activeUsers ?? 0),
     newUsers: compared(cur.newUsers ?? 0, prev.newUsers ?? 0),
@@ -48,6 +75,7 @@ export function parseOverview(reports: RunReportResponse[]): OverviewModel {
       avg(prev.userEngagementDuration ?? 0, prev.activeUsers ?? 0),
     ),
     trend,
+    screens: parseScreens(reports[3] ?? {}),
   }
 }
 

@@ -7,6 +7,8 @@ import { GaError } from '../ga/errors'
 import eventsRes from '../ga/reports/__fixtures__/events.json'
 import totals from '../ga/reports/__fixtures__/overview-totals.json'
 import trend from '../ga/reports/__fixtures__/overview-trend.json'
+import platformTrend from '../ga/reports/__fixtures__/overview-platform-trend.json'
+import screensRes from '../ga/reports/__fixtures__/screens.json'
 import usersNvr from '../ga/reports/__fixtures__/users-new-vs-returning.json'
 import usersTrend from '../ga/reports/__fixtures__/users-trend.json'
 import realtimeTotal from '../ga/reports/__fixtures__/realtime-total.json'
@@ -69,7 +71,7 @@ beforeEach(() => {
   h.downloadCsv.mockClear()
   h.client = {
     runReport: vi.fn(async () => ({})),
-    batchRunReports: vi.fn(async () => ({ reports: [totals, trend] })),
+    batchRunReports: vi.fn(async () => ({ reports: [totals, trend, platformTrend, screensRes] })),
     runRealtimeReport: vi.fn(async () => realtimeTotal),
   }
 })
@@ -92,8 +94,48 @@ describe('OverviewPage', () => {
     expect(h.client.batchRunReports).toHaveBeenCalledTimes(1)
     const [requests] = h.client.batchRunReports.mock.calls[0]
     expect(requests[0].dateRanges).toEqual([ranges.current, ranges.previous])
+    expect(requests).toHaveLength(4)
+    expect(requests[2].dimensions).toEqual([{ name: 'date' }, { name: 'platform' }])
+    expect(requests[3].dimensions).toEqual([{ name: 'unifiedScreenName' }])
     expect(h.client.runRealtimeReport).toHaveBeenCalledWith({ metrics: [{ name: 'activeUsers' }] })
     expect(h.client.runReport).not.toHaveBeenCalled()
+  })
+
+  it('draws 전체, Android and iOS lines on the trend chart', async () => {
+    renderPage(<OverviewPage />)
+    const chart = await screen.findByRole('img', { name: /날짜별 앱을 쓴 사람/ })
+    expect(chart.getAttribute('aria-label')).toContain('Android')
+    expect(chart.getAttribute('aria-label')).toContain('iOS')
+    const trendCard = card('날짜별 앱을 쓴 사람')
+    expect(within(trendCard).getByText('전체')).toBeInTheDocument()
+    expect(within(trendCard).getByText('Android')).toBeInTheDocument()
+    expect(within(trendCard).getByText('iOS')).toBeInTheDocument()
+    expect(chart.querySelectorAll('.recharts-line')).toHaveLength(3)
+    expect(chart.querySelector('[tabindex="0"], [role="application"]')).toBeNull()
+  })
+
+  it('shows the top screens card with a lead and rows', async () => {
+    renderPage(<OverviewPage />)
+    const screens = card('많이 본 화면')
+    expect(await within(screens).findByText('#1 home')).toBeInTheDocument()
+    expect(within(screens).getByText('25%')).toBeInTheDocument()
+    const rows = within(screens).getAllByRole('listitem')
+    expect(rows).toHaveLength(10)
+    const detail = rows.find((row) => within(row).queryByText('link_detail'))!
+    expect(within(detail).getByText('3,000')).toBeInTheDocument()
+    expect(within(detail).getByText('변화 없음')).toBeInTheDocument()
+    expect(within(screens).getByText('사용자가 적은 항목은 개인정보 보호를 위해 GA가 숨길 수 있어요')).toBeInTheDocument()
+    await userEvent.click(within(screens).getByRole('button', { name: 'CSV 받기' }))
+    const [filename, csv] = h.downloadCsv.mock.calls[0]
+    expect(filename).toBe('parfait-screens-2026-09-22_2026-09-28.csv')
+    expect(csv.split('\r\n')[0]).toBe('\ufeff화면 이름,조회수,비율,직전 기간 조회수')
+  })
+
+  it('shows the empty state on the screens card when there are no screens', async () => {
+    h.client.batchRunReports.mockResolvedValue({ reports: [totals, trend, platformTrend, {}] })
+    renderPage(<OverviewPage />)
+    expect(await within(card('많이 본 화면')).findByText('이 기간에는 데이터가 없어요')).toBeInTheDocument()
+    expect(within(card('앱을 쓴 사람')).getByText('1,120')).toBeInTheDocument()
   })
 
   it('isolates a realtime failure to its own card', async () => {

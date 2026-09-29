@@ -735,3 +735,97 @@ body {
   font-variant-numeric: tabular-nums;
   color: var(--adm-accent);
 }
+
+/* 많이 본 화면: #1 lead, then a ranked list with proportional bars */
+.adm-screens {
+  display: grid;
+  gap: var(--adm-space-4);
+  min-width: 0;
+}
+
+.adm-screens__lead {
+  display: grid;
+  gap: var(--adm-space-1);
+  min-width: 0;
+}
+
+.adm-screens__top {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--adm-fs-xl);
+  font-weight: var(--adm-fw-bold);
+  line-height: var(--adm-lh-tight);
+  color: var(--adm-text-1);
+}
+
+.adm-screens__figures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--adm-space-1) var(--adm-space-3);
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+.adm-screens__value {
+  font-size: var(--adm-fs-3xl);
+  font-weight: var(--adm-fw-bold);
+  line-height: var(--adm-lh-tight);
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-text-1);
+}
+
+.adm-screens__share strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-text-1);
+}
+
+.adm-screens__list {
+  display: grid;
+  gap: var(--adm-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--adm-fs-sm);
+}
+
+.adm-screens__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--adm-space-1) var(--adm-space-3);
+}
+
+.adm-screens__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--adm-text-1);
+}
+
+.adm-screens__views {
+  font-weight: var(--adm-fw-bold);
+  color: var(--adm-text-1);
+}
+
+.adm-screens__delta {
+  min-width: 5em;
+}
+
+.adm-screens__track {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: var(--adm-radius-pill);
+  background: var(--adm-surface-muted);
+  overflow: hidden;
+}
+
+.adm-screens__bar {
+  display: block;
+  height: 100%;
+  border-radius: var(--adm-radius-pill);
+  background: var(--adm-accent);
+}
