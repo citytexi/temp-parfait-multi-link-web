@@ -13,8 +13,9 @@ const ADMIN_CSP = [
   'font-src https://cdn.jsdelivr.net',
   // Google account avatars shown by GIS.
   "img-src 'self' data: https://*.googleusercontent.com",
+  // 'self': Vite's modulepreload polyfill fetches same-origin chunks.
   // GA Data API; GIS endpoints (Google's documented requirement); token revoke on logout.
-  'connect-src https://analyticsdata.googleapis.com https://accounts.google.com/gsi/ https://oauth2.googleapis.com',
+  "connect-src 'self' https://analyticsdata.googleapis.com https://accounts.google.com/gsi/ https://oauth2.googleapis.com",
   // GIS iframes (Google's documented requirement, narrower than the spec's accounts.google.com).
   'frame-src https://accounts.google.com/gsi/',
   // Hardening: no <base> hijack, no form posts, no plugins.

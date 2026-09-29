@@ -80,15 +80,18 @@
 GitHub Pages는 HTTP 헤더를 설정할 수 없으므로 meta 태그로 둔다.
 
 - `<meta name="robots" content="noindex, nofollow">`
-- `<meta name="referrer" content="no-referrer">`
-- CSP:
+- `<meta name="referrer" content="strict-origin-when-cross-origin">` — GIS가 Referer로 요청 origin을 확인하므로 `no-referrer`는 쓰지 않는다. cross-origin에는 origin만 보내서 경로·쿼리는 새지 않는다.
+- CSP (빌드 때만 `<meta http-equiv>`로 넣는다. dev 서버는 React Refresh 인라인 스크립트 때문에 제외):
   - `default-src 'self'`
   - `script-src 'self' https://accounts.google.com/gsi/client`
   - `style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style https://cdn.jsdelivr.net`
   - `font-src https://cdn.jsdelivr.net`
-  - `connect-src https://analyticsdata.googleapis.com`
-  - `frame-src https://accounts.google.com`
   - `img-src 'self' data: https://*.googleusercontent.com`
+  - `connect-src 'self' https://analyticsdata.googleapis.com https://accounts.google.com/gsi/ https://oauth2.googleapis.com` — `'self'`는 Vite modulepreload polyfill, `gsi/`는 GIS 요구사항, `oauth2`는 로그아웃 때 토큰 revoke
+  - `frame-src https://accounts.google.com/gsi/`
+  - `base-uri 'self'`
+  - `form-action 'none'`
+  - `object-src 'none'`
 - 구현 중 GIS나 폰트가 다른 origin을 요구하면 최소한으로만 추가하고, 추가한 이유를 주석으로 남긴다.
 
 ### 1회 수동 세팅 (콘솔 작업)
