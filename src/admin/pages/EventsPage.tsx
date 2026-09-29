@@ -52,7 +52,7 @@ export function EventsPage() {
         <Card title={CHART_TITLE} subtitle="이벤트">
           <CardState query={query} isEmpty={isEmpty}>
             <ChartFrame label={chartLabel(list)} height={360}>
-              <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
+              <BarChart accessibilityLayer={false} data={chartData} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
                 <CartesianGrid horizontal={false} {...chartTheme.grid} />
                 <XAxis type="number" tickFormatter={formatNumber} tick={chartTheme.tick} tickLine={false} allowDecimals={false} />
                 <YAxis type="category" dataKey="label" width={120} tick={chartTheme.tick} tickLine={false} axisLine={false} />

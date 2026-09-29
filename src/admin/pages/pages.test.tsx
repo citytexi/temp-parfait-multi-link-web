@@ -77,7 +77,9 @@ describe('OverviewPage', () => {
     expect(within(card('처음 온 사람')).getByText('300')).toBeInTheDocument()
     expect(within(card('한 사람당 평균 이용 시간')).getByText('3분 20초')).toBeInTheDocument()
     expect(await within(card('지금 접속 중')).findByText('42')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: /날짜별 앱을 쓴 사람/ })).toBeInTheDocument()
+    const chart = screen.getByRole('img', { name: /날짜별 앱을 쓴 사람/ })
+    expect(chart.querySelector('svg')).not.toBeNull()
+    expect(chart.querySelector('[tabindex="0"], [role="application"]')).toBeNull()
 
     expect(h.client.batchRunReports).toHaveBeenCalledTimes(1)
     const [requests] = h.client.batchRunReports.mock.calls[0]
@@ -111,7 +113,9 @@ describe('EventsPage', () => {
     expect(within(screenView).getByText('5,000')).toBeInTheDocument()
     expect(within(screenView).getByText('▲ 25%')).toBeInTheDocument()
     expect(screen.getByText('사용자가 적은 항목은 개인정보 보호를 위해 GA가 숨길 수 있어요')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: /가장 많이 일어난 행동 Top 10/ })).toBeInTheDocument()
+    const chart = screen.getByRole('img', { name: /가장 많이 일어난 행동 Top 10/ })
+    expect(chart.querySelector('svg')).not.toBeNull()
+    expect(chart.querySelector('[tabindex="0"], [role="application"]')).toBeNull()
     expect(h.client.runReport).toHaveBeenCalledTimes(1)
   })
 })
@@ -124,9 +128,9 @@ describe('UsersPage', () => {
     const newRow = within(table).getByText('신규').closest('tr')!
     expect(within(newRow).getByText('300')).toBeInTheDocument()
     expect(within(newRow).getByText('▲ 20%')).toBeInTheDocument()
-    expect(
-      screen.getByRole('img', { name: /09\.21 기준 하루 110명, 일주일 420명, 한 달 910명/ }),
-    ).toBeInTheDocument()
+    const chart = screen.getByRole('img', { name: /09\.21 기준 하루 110명, 일주일 420명, 한 달 910명/ })
+    expect(chart.querySelector('svg')).not.toBeNull()
+    expect(chart.querySelector('[tabindex="0"], [role="application"]')).toBeNull()
     expect(screen.getByText('하루 (DAU)')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'CSV 받기' })).toBeInTheDocument()
   })

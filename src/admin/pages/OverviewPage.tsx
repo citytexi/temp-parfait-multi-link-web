@@ -53,6 +53,7 @@ export function OverviewPage() {
   const data = overview.data
 
   const isPreset = period.kind === 'preset'
+  // With days = null (custom period) buildSummary ignores the label and says '선택한 기간'.
   const summary =
     data && ranges
       ? buildSummary(isPreset ? `지난 ${ranges.days}일` : periodLabel, isPreset ? ranges.days : null, data.users)
@@ -96,7 +97,7 @@ export function OverviewPage() {
         >
           {data && (
             <ChartFrame label={trendLabel(data.trend)}>
-              <LineChart data={data.trend} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+              <LineChart accessibilityLayer={false} data={data.trend} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
                 <CartesianGrid vertical={false} {...chartTheme.grid} />
                 <XAxis dataKey="date" tickFormatter={formatShortDate} tick={chartTheme.tick} tickLine={false} />
                 <YAxis tickFormatter={formatNumber} tick={chartTheme.tick} tickLine={false} axisLine={false} width={48} allowDecimals={false} />

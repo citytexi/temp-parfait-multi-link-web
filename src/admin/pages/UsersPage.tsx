@@ -48,7 +48,7 @@ export function UsersPage() {
           <CardState query={query} isEmpty={data !== undefined && data.trend.length === 0}>
             {data && (
               <ChartFrame label={trendLabel(data.trend)}>
-                <LineChart data={data.trend} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                <LineChart accessibilityLayer={false} data={data.trend} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
                   <CartesianGrid vertical={false} {...chartTheme.grid} />
                   <XAxis dataKey="date" tickFormatter={formatShortDate} tick={chartTheme.tick} tickLine={false} />
                   <YAxis tickFormatter={formatNumber} tick={chartTheme.tick} tickLine={false} axisLine={false} width={48} allowDecimals={false} />

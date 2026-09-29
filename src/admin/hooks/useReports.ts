@@ -43,7 +43,7 @@ export function useRealtimeTotal() {
     queryKey: ['realtimeTotal'],
     queryFn: async () => {
       const rows = toRows(await client.runRealtimeReport(buildRealtimeRequests()[0]))
-      return rows.reduce((sum, row) => sum + (Object.values(row.mets)[0] ?? 0), 0)
+      return rows.reduce((sum, row) => sum + (row.mets.activeUsers ?? 0), 0)
     },
     staleTime: 0,
     refetchInterval: 60_000,
