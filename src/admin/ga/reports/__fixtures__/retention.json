@@ -1,0 +1,168 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "cohort"
+  },
+  {
+   "name": "cohortNthWeek"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "cohortActiveUsers"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "2026-09-20~2026-09-26"
+    },
+    {
+     "value": "0000"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "60"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "2026-09-13~2026-09-19"
+    },
+    {
+     "value": "0001"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "30"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "2026-09-13~2026-09-19"
+    },
+    {
+     "value": "0000"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "80"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "2026-09-06~2026-09-12"
+    },
+    {
+     "value": "0002"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "70"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "2026-09-06~2026-09-12"
+    },
+    {
+     "value": "0001"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "90"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "2026-09-06~2026-09-12"
+    },
+    {
+     "value": "0000"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "200"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "2026-08-30~2026-09-05"
+    },
+    {
+     "value": "0003"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "30"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "2026-08-30~2026-09-05"
+    },
+    {
+     "value": "0002"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "40"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "2026-08-30~2026-09-05"
+    },
+    {
+     "value": "0001"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "50"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "2026-08-30~2026-09-05"
+    },
+    {
+     "value": "0000"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "100"
+    }
+   ]
+  }
+ ],
+ "rowCount": 10
+}

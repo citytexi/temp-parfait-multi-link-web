@@ -1,0 +1,51 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "appVersion"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "activeUsers"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "1.2.0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "500"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "1.1.0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "400"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "(not set)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "100"
+    }
+   ]
+  }
+ ],
+ "rowCount": 3
+}

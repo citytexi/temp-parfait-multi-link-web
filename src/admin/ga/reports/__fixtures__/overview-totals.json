@@ -1,0 +1,4 @@
+{"dimensionHeaders":[{"name":"dateRange"}],"metricHeaders":[{"name":"activeUsers","type":"TYPE_INTEGER"},{"name":"newUsers","type":"TYPE_INTEGER"},{"name":"userEngagementDuration","type":"TYPE_SECONDS"}],
+"rows":[
+{"dimensionValues":[{"value":"date_range_0"}],"metricValues":[{"value":"1120"},{"value":"300"},{"value":"224000"}]},
+{"dimensionValues":[{"value":"date_range_1"}],"metricValues":[{"value":"1000"},{"value":"320"},{"value":"150000"}]}],"rowCount":2}

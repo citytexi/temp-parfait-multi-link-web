@@ -1,0 +1,51 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "platform"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "activeUsers"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "Android"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "600"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "iOS"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "300"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "web"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "100"
+    }
+   ]
+  }
+ ],
+ "rowCount": 3
+}

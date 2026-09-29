@@ -1,0 +1,51 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "minutesAgo"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "activeUsers"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "00"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "5"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "03"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "7"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "29"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2"
+    }
+   ]
+  }
+ ],
+ "rowCount": 3
+}

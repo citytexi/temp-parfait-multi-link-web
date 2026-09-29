@@ -1,0 +1,18 @@
+{
+ "metricHeaders": [
+  {
+   "name": "activeUsers"
+  }
+ ],
+ "rows": [
+  {
+   "metricValues": [
+    {
+     "value": "42"
+    }
+   ],
+   "dimensionValues": []
+  }
+ ],
+ "rowCount": 1
+}
