@@ -27,6 +27,7 @@ export type RunReportRequest = {
   limit?: number
   cohortSpec?: CohortSpec
   metricAggregations?: ('TOTAL' | 'MAXIMUM' | 'MINIMUM' | 'COUNT')[]
+  keepEmptyRows?: boolean
   returnPropertyQuota?: boolean
 }
 

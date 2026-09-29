@@ -22,6 +22,8 @@ export function buildUsersRequests(r: {
         { name: 'active28DayUsers' },
       ],
       orderBys: [{ dimension: { dimensionName: 'date' }, desc: false }],
+      // Days with no activity come back as zero rows instead of gaps in the chart.
+      keepEmptyRows: true,
     },
     {
       dateRanges: [r.current, r.previous],

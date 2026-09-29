@@ -19,6 +19,8 @@ describe('overview', () => {
     expect(b.dimensions).toEqual([{ name: 'date' }])
     expect(b.metrics).toEqual([{ name: 'activeUsers' }])
     expect(b.orderBys).toEqual([{ dimension: { dimensionName: 'date' }, desc: false }])
+    expect(b.keepEmptyRows).toBe(true)
+    expect(a.keepEmptyRows).toBeUndefined()
   })
   it('parses totals, avg engagement and trend', () => {
     const m = parseOverview([totals, trend])

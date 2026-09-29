@@ -14,6 +14,8 @@ describe('users', () => {
     expect(a.dimensions).toEqual([{ name: 'date' }])
     expect(a.metrics).toEqual([{ name: 'active1DayUsers' }, { name: 'active7DayUsers' }, { name: 'active28DayUsers' }])
     expect(a.dateRanges).toEqual([r.current])
+    expect(a.keepEmptyRows).toBe(true)
+    expect(b.keepEmptyRows).toBeUndefined()
     expect(b.dimensions).toEqual([{ name: 'newVsReturning' }])
     expect(b.metrics).toEqual([{ name: 'activeUsers' }])
     expect(b.dateRanges).toEqual([r.current, r.previous])
