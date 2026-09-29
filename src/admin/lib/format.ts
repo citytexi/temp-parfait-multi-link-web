@@ -31,3 +31,8 @@ export function computeDelta(current: number, previous: number): Delta {
     ? { ratio, text: `▲ ${percent}%`, tone: 'up' }
     : { ratio, text: `▼ ${percent}%`, tone: 'down' }
 }
+
+/** GA `date` dimension ('YYYYMMDD') → 'MM.DD' for chart axes. */
+export function formatShortDate(gaDate: string): string {
+  return /^\d{8}$/.test(gaDate) ? `${gaDate.slice(4, 6)}.${gaDate.slice(6, 8)}` : gaDate
+}

@@ -1,9 +1,26 @@
 import { useAuth } from '../auth/AuthContext'
 import { useGa } from '../hooks/useGa'
+import type { MenuId } from '../lib/urlState'
+import { EventsPage } from '../pages/EventsPage'
 import { MenuPage } from '../pages/MenuPage'
+import { OverviewPage } from '../pages/OverviewPage'
+import { UsersPage } from '../pages/UsersPage'
 import { PeriodFilter } from './PeriodFilter'
 import { QuotaBadge } from './QuotaBadge'
 import { SideMenu } from './SideMenu'
+
+function Page({ menu }: { menu: MenuId }) {
+  switch (menu) {
+    case 'overview':
+      return <OverviewPage />
+    case 'users':
+      return <UsersPage />
+    case 'events':
+      return <EventsPage />
+    default:
+      return <MenuPage menu={menu} />
+  }
+}
 
 export function Shell() {
   const { logout } = useAuth()
@@ -24,7 +41,7 @@ export function Shell() {
       <div className="adm-shell__body">
         <SideMenu active={menu} onSelect={setMenu} />
         <main className="adm-page">
-          <MenuPage menu={menu} />
+          <Page menu={menu} />
         </main>
       </div>
       <footer className="adm-shell__footer">

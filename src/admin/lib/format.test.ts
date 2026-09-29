@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeDelta, formatDuration, formatNumber } from './format'
+import { computeDelta, formatDuration, formatNumber, formatShortDate } from './format'
 
 describe('formatNumber', () => {
   it('adds thousands separators', () => {
@@ -48,5 +48,12 @@ describe('computeDelta', () => {
     expect(d.text).toBe('변화 없음')
     expect(d.tone).toBe('flat')
     expect(d.ratio).toBeCloseTo(0.001)
+  })
+})
+
+describe('formatShortDate', () => {
+  it('turns a GA date into MM.DD', () => {
+    expect(formatShortDate('20260928')).toBe('09.28')
+    expect(formatShortDate('(other)')).toBe('(other)')
   })
 })

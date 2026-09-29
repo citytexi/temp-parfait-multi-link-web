@@ -599,3 +599,53 @@ body {
     transition: none;
   }
 }
+
+/* Page content: lead sentence, card grids, charts, tags */
+.adm-page__lead {
+  margin: calc(var(--adm-space-2) * -1) 0 var(--adm-space-6);
+  font-size: var(--adm-fs-xl);
+  font-weight: var(--adm-fw-bold);
+  line-height: var(--adm-lh-tight);
+  color: var(--adm-text-1);
+}
+
+.adm-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--adm-space-4);
+  margin-bottom: var(--adm-space-4);
+}
+
+@media (min-width: 640px) {
+  .adm-grid--stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .adm-grid--stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.adm-chart {
+  width: 100%;
+  min-width: 0;
+}
+
+.adm-event {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--adm-space-2);
+}
+
+.adm-tag {
+  display: inline-block;
+  padding: 2px var(--adm-space-2);
+  border-radius: var(--adm-radius-pill);
+  background: var(--adm-surface-muted);
+  border: 1px solid var(--adm-border);
+  font-size: var(--adm-fs-xs);
+  font-weight: var(--adm-fw-medium);
+  color: var(--adm-text-2);
+}
