@@ -1,5 +1,8 @@
+// Spreadsheets run a cell starting with one of these as a formula (CSV injection).
+const FORMULA_START = /^[=+\-@]/
+
 function escapeCell(value: string | number): string {
-  const s = String(value)
+  const s = typeof value === 'string' && FORMULA_START.test(value) ? `'${value}` : String(value)
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
@@ -16,5 +19,6 @@ export function downloadCsv(filename: string, csv: string): void {
   document.body.appendChild(a)
   a.click()
   a.remove()
-  URL.revokeObjectURL(url)
+  // Revoking in the same task can cancel the download in some browsers.
+  setTimeout(() => URL.revokeObjectURL(url), 0)
 }
