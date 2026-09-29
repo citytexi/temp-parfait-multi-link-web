@@ -15,6 +15,7 @@ describe('tech', () => {
       expect(req.dateRanges).toEqual([r.current])
       expect(req.orderBys).toEqual([{ metric: { metricName: 'activeUsers' }, desc: true }])
       expect(req.limit).toBe(limit)
+      expect(req.metricAggregations).toEqual(['TOTAL'])
     }
   })
   it('parses shares with display labels and ratios summing to 1', () => {
@@ -26,6 +27,14 @@ describe('tech', () => {
     for (const list of [m.platforms, m.countries, m.appVersions]) {
       expect(list.reduce((s, x) => s + x.ratio, 0)).toBeCloseTo(1)
     }
+  })
+  it('uses GA totals as denominator when top rows are truncated', () => {
+    const withTotals = { ...country, totals: [{ metricValues: [{ value: '1000' }] }] }
+    const trimmed = { ...withTotals, rows: withTotals.rows.slice(0, 2) }
+    const m = parseTech([platform, trimmed, appVersion])
+    expect(m.countries[0].ratio).toBeCloseTo(0.7)
+    expect(m.countries.reduce((s, x) => s + x.ratio, 0)).toBeCloseTo(0.9)
+    expect(m.platforms.reduce((s, x) => s + x.ratio, 0)).toBeCloseTo(1)
   })
   it('handles empty', () => {
     expect(parseTech([{}, {}, {}])).toEqual({ platforms: [], countries: [], appVersions: [] })

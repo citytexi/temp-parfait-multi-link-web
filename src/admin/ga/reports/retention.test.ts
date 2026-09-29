@@ -56,7 +56,17 @@ describe('retention', () => {
       rows: [{ dimensionValues: [{ value: '2026-08-30~2026-09-05' }, { value: '0000' }], metricValues: [{ value: '0' }] }],
     }
     expect(parseRetention(res, today).cohorts[0].weeks).toEqual([0, 0, 0, 0, null])
-    expect(parseRetention({}, today)).toEqual({ cohorts: [] })
+    const empty = parseRetention({}, today).cohorts
+    expect(empty).toHaveLength(4)
+    expect(empty[0]).toMatchObject({ size: 0, weeks: [0, 0, 0, 0, null] })
+    expect(empty[3]).toMatchObject({ size: 0, weeks: [0, null, null, null, null] })
+  })
+  it('keeps a cohort GA omitted with size 0', () => {
+    const rows = retention.rows.filter((row) => row.dimensionValues[0].value !== '2026-09-13~2026-09-19')
+    const { cohorts } = parseRetention({ ...retention, rows }, today)
+    expect(cohorts).toHaveLength(4)
+    expect(cohorts[2]).toEqual({ label: '09.13 ~ 09.19', size: 0, weeks: [0, 0, null, null, null] })
+    expect(cohorts[0].size).toBe(100)
   })
   it('parses engagement', () => {
     const m = parseEngagement(engagement)

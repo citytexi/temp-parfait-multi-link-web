@@ -26,6 +26,7 @@ export type RunReportRequest = {
   orderBys?: OrderBy[]
   limit?: number
   cohortSpec?: CohortSpec
+  metricAggregations?: ('TOTAL' | 'MAXIMUM' | 'MINIMUM' | 'COUNT')[]
   returnPropertyQuota?: boolean
 }
 
@@ -44,6 +45,7 @@ export type RunReportResponse = {
   dimensionHeaders?: { name: string }[]
   metricHeaders?: { name: string; type?: string }[]
   rows?: { dimensionValues: { value: string }[]; metricValues: { value: string }[] }[]
+  totals?: { dimensionValues?: { value: string }[]; metricValues: { value: string }[] }[]
   rowCount?: number
   propertyQuota?: PropertyQuota
 }

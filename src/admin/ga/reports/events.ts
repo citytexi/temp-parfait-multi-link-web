@@ -17,7 +17,7 @@ export function buildEventsRequest(r: { current: DateRange; previous: DateRange 
     dimensions: [{ name: 'eventName' }],
     metrics: [{ name: 'eventCount' }, { name: 'totalUsers' }],
     orderBys: [{ metric: { metricName: 'eventCount' }, desc: true }],
-    limit: 20,
+    limit: 100,
   }
 }
 

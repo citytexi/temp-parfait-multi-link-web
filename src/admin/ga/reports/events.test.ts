@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildEventsRequest, parseEvents } from './events'
+import events from './__fixtures__/events.json'
 import res from './__fixtures__/events.json'
 
 const r = {
@@ -14,7 +15,7 @@ describe('events', () => {
       dimensions: [{ name: 'eventName' }],
       metrics: [{ name: 'eventCount' }, { name: 'totalUsers' }],
       orderBys: [{ metric: { metricName: 'eventCount' }, desc: true }],
-      limit: 20,
+      limit: 100,
     })
   })
   it('parses top 10 by current count with labels and registration', () => {
@@ -30,6 +31,24 @@ describe('events', () => {
     const counts = items.map((i) => i.count.current)
     expect(counts).toEqual([...counts].sort((a, b) => b - a))
     expect(items.some((i) => i.name === 'custom_zero')).toBe(false)
+  })
+  it('finds previous rows that appear after 20 other rows', () => {
+    const row = (name: string, range: string, count: number) => ({
+      dimensionValues: [{ value: name }, { value: range }],
+      metricValues: [{ value: String(count) }, { value: '1' }],
+    })
+    const filler = Array.from({ length: 25 }, (_, i) => row(`f${i}`, 'date_range_0', 10000 - i))
+    const res = {
+      ...events,
+      rows: [
+        row('screen_view', 'date_range_0', 20000),
+        ...filler,
+        row('screen_view', 'date_range_1', 10000),
+      ],
+    }
+    const items = parseEvents(res)
+    expect(items.find((e) => e.name === 'f0')!.count.delta.text).toBe('비교 불가')
+    expect(items.find((e) => e.name === 'screen_view')!.count.delta.text).toBe('▲ 100%')
   })
   it('handles empty', () => {
     expect(parseEvents({})).toEqual([])

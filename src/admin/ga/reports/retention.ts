@@ -52,11 +52,12 @@ export function buildEngagementRequest(r: {
 const mmdd = (ymd: string): string => ymd.slice(5).replace('-', '.')
 
 export function parseRetention(res: RunReportResponse, today: string): { cohorts: RetentionCohort[] } {
-  const byCohort = new Map<string, Map<number, number>>()
+  const names = buildRetentionRequest(today).cohortSpec!.cohorts.map((c) => c.name!)
+  const byCohort = new Map<string, Map<number, number>>(names.map((n) => [n, new Map()]))
   for (const row of toRows(res)) {
     const name = row.dims.cohort
+    if (!byCohort.has(name)) continue
     const week = Number(row.dims.cohortNthWeek)
-    if (!byCohort.has(name)) byCohort.set(name, new Map())
     byCohort.get(name)!.set(week, row.mets.cohortActiveUsers ?? 0)
   }
   const cohorts = [...byCohort.entries()]
