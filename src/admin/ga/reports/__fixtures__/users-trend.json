@@ -1,0 +1,4 @@
+{"dimensionHeaders":[{"name":"date"}],"metricHeaders":[{"name":"active1DayUsers"},{"name":"active7DayUsers"},{"name":"active28DayUsers"}],
+"rows":[
+{"dimensionValues":[{"value":"20260920"}],"metricValues":[{"value":"100"},{"value":"400"},{"value":"900"}]},
+{"dimensionValues":[{"value":"20260921"}],"metricValues":[{"value":"110"},{"value":"420"},{"value":"910"}]}],"rowCount":2}

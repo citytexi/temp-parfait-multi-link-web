@@ -1,0 +1,6 @@
+{"dimensionHeaders":[{"name":"date"},{"name":"platform"}],"metricHeaders":[{"name":"activeUsers","type":"TYPE_INTEGER"}],
+"rows":[
+{"dimensionValues":[{"value":"20260920"},{"value":"Android"}],"metricValues":[{"value":"90"}]},
+{"dimensionValues":[{"value":"20260920"},{"value":"iOS"}],"metricValues":[{"value":"50"}]},
+{"dimensionValues":[{"value":"20260920"},{"value":"web"}],"metricValues":[{"value":"10"}]},
+{"dimensionValues":[{"value":"20260921"},{"value":"ANDROID"}],"metricValues":[{"value":"170"}]}],"rowCount":4}

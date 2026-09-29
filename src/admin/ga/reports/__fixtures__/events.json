@@ -1,0 +1,435 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "eventName"
+  },
+  {
+   "name": "dateRange"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "eventCount"
+  },
+  {
+   "name": "totalUsers"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "screen_view"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "5000"
+    },
+    {
+     "value": "100"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "screen_view"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "4000"
+    },
+    {
+     "value": "100"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "session_start"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "3000"
+    },
+    {
+     "value": "101"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "session_start"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "3300"
+    },
+    {
+     "value": "101"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "user_engagement"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2900"
+    },
+    {
+     "value": "102"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "first_open"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "2000"
+    },
+    {
+     "value": "103"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "first_open"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1000"
+    },
+    {
+     "value": "103"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "link_click"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1900"
+    },
+    {
+     "value": "104"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "link_click"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1800"
+    },
+    {
+     "value": "104"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "notification_open"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "900"
+    },
+    {
+     "value": "105"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "notification_open"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "800"
+    },
+    {
+     "value": "105"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "app_update"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "800"
+    },
+    {
+     "value": "106"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "app_update"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "900"
+    },
+    {
+     "value": "106"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "os_update"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "700"
+    },
+    {
+     "value": "107"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "os_update"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "700"
+    },
+    {
+     "value": "107"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "app_exception"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "600"
+    },
+    {
+     "value": "108"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "app_exception"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "300"
+    },
+    {
+     "value": "108"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "notification_receive"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "500"
+    },
+    {
+     "value": "109"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "notification_receive"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "500"
+    },
+    {
+     "value": "109"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "app_remove"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "400"
+    },
+    {
+     "value": "110"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "app_remove"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "410"
+    },
+    {
+     "value": "110"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "custom_zero"
+    },
+    {
+     "value": "date_range_0"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "300"
+    },
+    {
+     "value": "111"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "custom_zero"
+    },
+    {
+     "value": "date_range_1"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "0"
+    },
+    {
+     "value": "111"
+    }
+   ]
+  }
+ ],
+ "rowCount": 23
+}

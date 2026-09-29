@@ -1,0 +1,7 @@
+{"dimensionHeaders":[{"name":"newVsReturning"},{"name":"dateRange"}],"metricHeaders":[{"name":"activeUsers"}],
+"rows":[
+{"dimensionValues":[{"value":"new"},{"value":"date_range_0"}],"metricValues":[{"value":"300"}]},
+{"dimensionValues":[{"value":"returning"},{"value":"date_range_0"}],"metricValues":[{"value":"800"}]},
+{"dimensionValues":[{"value":"(not set)"},{"value":"date_range_0"}],"metricValues":[{"value":"20"}]},
+{"dimensionValues":[{"value":"new"},{"value":"date_range_1"}],"metricValues":[{"value":"250"}]},
+{"dimensionValues":[{"value":"returning"},{"value":"date_range_1"}],"metricValues":[{"value":"700"}]}],"rowCount":5}
