@@ -80,6 +80,7 @@ body {
 }
 
 .adm-card__header {
+  position: relative; /* anchors the InfoTip bubble so it stays inside the card */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -157,9 +158,9 @@ body {
   font-weight: var(--adm-fw-medium);
 }
 
-/* InfoTip: 44x44 hit area around a 16px icon */
+/* InfoTip: 44x44 hit area around a 16px icon. The bubble is positioned against the card
+   header (not the icon) so it never runs past the viewport edge on narrow screens. */
 .adm-infotip {
-  position: relative;
   display: inline-flex;
 }
 
@@ -191,11 +192,10 @@ body {
 .adm-infotip__bubble {
   position: absolute;
   z-index: 10;
-  top: calc(100% + var(--adm-space-3));
-  left: 50%;
-  transform: translateX(-50%);
+  top: calc(100% + var(--adm-space-2));
+  left: 0;
   width: max-content;
-  max-width: min(280px, 80vw);
+  max-width: min(320px, 100%);
   padding: var(--adm-space-3) var(--adm-space-4);
   background: var(--adm-text-1);
   color: var(--adm-surface);
@@ -537,7 +537,7 @@ body {
 .adm-period__date {
   min-height: var(--adm-hit);
   padding: 0 var(--adm-space-3);
-  border: 1px solid var(--adm-border);
+  border: 1px solid var(--adm-border-strong);
   border-radius: var(--adm-radius-sm);
   background: var(--adm-surface);
   color: var(--adm-text-1);

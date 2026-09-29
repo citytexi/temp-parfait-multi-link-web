@@ -12,11 +12,20 @@ import { formatNumber } from '../lib/format'
 const PLATFORM_TITLE = 'Android와 iOS 비율'
 const COUNTRY_TITLE = '많이 쓰는 국가 Top 10'
 const VERSION_TITLE = '앱 버전별 사람 수'
-// Accent first, then neutrals. The legend always carries the label and share as text.
-const SLICE_COLORS = ['var(--adm-accent)', 'var(--adm-text-3)', 'var(--adm-accent-soft)', 'var(--adm-border)']
+// Series tokens (each >= 3:1 vs the card surface in both themes, see tokens.css).
+// Slices past the fifth cycle through series 2-5 so the accent is never reused.
+// The legend always carries the label and share as text.
+const SLICE_COLORS = [
+  'var(--adm-series-1)',
+  'var(--adm-series-2)',
+  'var(--adm-series-3)',
+  'var(--adm-series-4)',
+  'var(--adm-series-5)',
+]
 
 const percent = (ratio: number): string => `${Math.round(ratio * 100)}%`
-const sliceColor = (i: number): string => SLICE_COLORS[i % SLICE_COLORS.length]
+const sliceColor = (i: number): string =>
+  i < SLICE_COLORS.length ? SLICE_COLORS[i] : SLICE_COLORS[1 + ((i - 1) % (SLICE_COLORS.length - 1))]
 
 function donutLabel(platforms: Share[]): string {
   if (platforms.length === 0) return `${PLATFORM_TITLE} 도넛 차트`

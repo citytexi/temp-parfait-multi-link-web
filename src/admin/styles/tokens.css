@@ -23,6 +23,16 @@
  *     accent on accent-soft (secondary button)  light 4.75 (#1B64DA/#E8F1FE)  dark 5.83 (#6AA6FF/#1E2A40)
  *     tooltip = surface on text-1 (inverted)    light 16.56                   dark 15.13
  *     focus ring (accent) vs page bg            light 4.91                    dark 7.59
+ *   Form control boundary (--adm-border-strong, non-text >= 3:1 vs --adm-surface)
+ *     light #8A939E 3.11                          dark #6B7380 3.49
+ *   Chart series (non-text, need >= 3:1 vs --adm-surface; told apart by hue, a 2px surface
+ *   gap between slices, and a text legend)
+ *                        light (on #FFFFFF)     dark (on #1B1E25)
+ *     series-1 blue      #1B64DA  5.41          #6AA6FF  6.76   (= accent)
+ *     series-2 orange    #C2570C  4.50          #F59E42  7.83
+ *     series-3 teal      #0F8577  4.52          #3CC6B0  7.86
+ *     series-4 purple    #8B4FD6  5.02          #B996FF  7.04
+ *     series-5 gray      #636E7B  5.19          #98A2AE  6.44   (= text-3)
  */
 :root {
   color-scheme: light dark;
@@ -41,9 +51,15 @@
   --adm-negative: #d22030;
   --adm-neutral: var(--adm-text-3);
   --adm-border: #e5e8eb;
+  --adm-border-strong: #8a939e;
   --adm-skeleton: #eceff2;
   --adm-skeleton-shine: #f6f7f9;
   --adm-focus: var(--adm-accent);
+  --adm-series-1: var(--adm-accent);
+  --adm-series-2: #c2570c;
+  --adm-series-3: #0f8577;
+  --adm-series-4: #8b4fd6;
+  --adm-series-5: var(--adm-text-3);
   --adm-shadow-card: 0 1px 3px rgba(0, 23, 51, 0.04);
   --adm-shadow-pop: 0 8px 24px rgba(0, 23, 51, 0.12);
 
@@ -97,7 +113,11 @@
     --adm-on-accent: #101217;
     --adm-accent-soft: #1e2a40;
     --adm-negative: #ff7a7a;
+    --adm-series-2: #f59e42;
+    --adm-series-3: #3cc6b0;
+    --adm-series-4: #b996ff;
     --adm-border: #2c3038;
+    --adm-border-strong: #6b7380;
     --adm-skeleton: #262a32;
     --adm-skeleton-shine: #30343d;
     --adm-shadow-card: none;
