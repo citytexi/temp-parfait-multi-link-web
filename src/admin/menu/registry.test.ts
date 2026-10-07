@@ -14,11 +14,11 @@ describe('menu registry', () => {
       def({ id: 'c', group: 'metrics', order: 20 }),
       def({ id: 'a', group: 'devtools', order: 100 }),
       def({ id: 'm', group: 'metrics', order: 10 }),
-    ])
+    ], 'm')
     expect(r.menus.map((m) => m.id)).toEqual(['m', 'c', 'z', 'a', 'b'])
   })
   it('omits groups that have no menus', () => {
-    const r = buildRegistry([def({ id: 'm' })])
+    const r = buildRegistry([def({ id: 'm' })], 'm')
     expect(r.groups.map((g) => g.id)).toEqual(['metrics'])
     expect(r.groups[0].label).toBe('지표')
   })
@@ -29,7 +29,15 @@ describe('menu registry', () => {
     expect(() => buildRegistry([def({ group: 'nope' as GroupId })])).toThrow(/nope/)
   })
   it('does not throw when two menus share an order', () => {
-    expect(() => buildRegistry([def({ id: 'a' }), def({ id: 'b' })])).not.toThrow()
+    expect(() => buildRegistry([def({ id: 'a' }), def({ id: 'b' })], 'a')).not.toThrow()
+  })
+  it('throws when the default menu is not one of the menus and names it', () => {
+    expect(() => buildRegistry([def({ id: 'a' })], 'missing')).toThrow(/missing/)
+    expect(() => buildRegistry([def({ id: 'a' })])).toThrow(/overview/)
+  })
+  it('does not throw for an empty list', () => {
+    expect(() => buildRegistry([])).not.toThrow()
+    expect(buildRegistry([]).menus).toEqual([])
   })
   it('lookup answers isMenu, usesPeriod and defaultMenu', () => {
     const r = buildRegistry([def({ id: 'p', usesPeriod: true }), def({ id: 'q' })], 'p')

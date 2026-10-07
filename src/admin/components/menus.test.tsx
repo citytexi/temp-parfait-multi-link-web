@@ -83,6 +83,23 @@ describe('SideMenu', () => {
     expect(readCollapsed()).toEqual([])
   })
 
+  it('re-opens the active group on a move within the same group', async () => {
+    const { rerender } = render(<SideMenu groups={groups} active="overview" onSelect={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: '지표' }))
+    expect(screen.queryByRole('list', { name: '지표' })).toBeNull()
+    expect(readCollapsed()).toEqual(['metrics'])
+
+    rerender(<SideMenu groups={groups} active="users" onSelect={() => {}} />)
+    expect(screen.getByRole('list', { name: '지표' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '사용자' })).toHaveAttribute('aria-current', 'page')
+    expect(readCollapsed()).toEqual([])
+
+    // Collapsing by hand afterwards still works and persists.
+    await userEvent.click(screen.getByRole('button', { name: '지표' }))
+    expect(screen.queryByRole('list', { name: '지표' })).toBeNull()
+    expect(readCollapsed()).toEqual(['metrics'])
+  })
+
   it('lets the user collapse the active group', async () => {
     render(<SideMenu groups={groups} active="overview" onSelect={() => {}} />)
     await userEvent.click(screen.getByRole('button', { name: '지표' }))
@@ -123,6 +140,17 @@ describe('MobileMenu', () => {
     rerender(<MobileMenu groups={groups} active="links" onSelect={() => {}} />)
     expect(screen.getByRole('list', { name: '팀 운영' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '팀 운영' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('returns to the active group on a move within it after another group was pressed', async () => {
+    const { rerender } = render(<MobileMenu groups={groups} active="overview" onSelect={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: '개발자 도구' }))
+    expect(screen.getByRole('list', { name: '개발자 도구' })).toBeInTheDocument()
+
+    rerender(<MobileMenu groups={groups} active="users" onSelect={() => {}} />)
+    expect(labelsIn('지표')).toEqual(['한눈에 보기', '사용자'])
+    expect(screen.getByRole('button', { name: '사용자' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: '지표' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('hides the group switch when there is one group', () => {

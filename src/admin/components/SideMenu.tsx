@@ -13,10 +13,10 @@ export function SideMenu({ groups, active, onSelect }: MenuProps): ReactElement 
   const persisted = useRef(stored)
   const [collapsed, setCollapsed] = useState(() => without(stored, activeGroup))
 
-  // Navigating to a menu reveals its group.
+  // Navigating to a menu reveals its group, including a move within the same group.
   useEffect(() => {
     setCollapsed((prev) => (prev.includes(activeGroup ?? '') ? without(prev, activeGroup) : prev))
-  }, [activeGroup])
+  }, [active, activeGroup])
 
   // Write only when the list really differs from what is stored.
   useEffect(() => {

@@ -50,6 +50,20 @@ describe('NavProvider', () => {
     expect(pushSpy).not.toHaveBeenCalled()
   })
 
+  it('ignores an id that is not a menu and warns', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { result, pushSpy, replaceSpy } = setup('/admin/?menu=users&q=hello')
+    replaceSpy.mockClear()
+    act(() => result.current.nav.setMenu('nope'))
+    expect(pushSpy).not.toHaveBeenCalled()
+    expect(replaceSpy).not.toHaveBeenCalled()
+    expect(window.location.pathname + window.location.search).toBe('/admin/?menu=users&q=hello')
+    expect(result.current.nav.menu).toBe('users')
+    expect(result.current.param[0]).toBe('hello')
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0].join(' ')).toContain('nope')
+  })
+
   it('clears page params on a menu change', () => {
     const { result, pushSpy } = setup('/admin/?menu=utm&q=hello')
     expect(result.current.param[0]).toBe('hello')

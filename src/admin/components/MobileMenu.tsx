@@ -7,10 +7,10 @@ export function MobileMenu({ groups, active, onSelect }: MenuProps): ReactElemen
   const [picked, setPicked] = useState(activeGroup ?? groups[0]?.id)
   const activeTab = useRef<HTMLButtonElement>(null)
 
-  // Following navigation: the shown group becomes the active menu's group.
+  // Following navigation: any change of the active menu shows that menu's group again.
   useEffect(() => {
     if (activeGroup) setPicked(activeGroup)
-  }, [activeGroup])
+  }, [active, activeGroup])
 
   useEffect(() => {
     activeTab.current?.scrollIntoView({ inline: 'nearest', block: 'nearest' })

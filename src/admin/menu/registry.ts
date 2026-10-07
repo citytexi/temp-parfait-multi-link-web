@@ -26,6 +26,8 @@ export function buildRegistry(defs: readonly MenuDef[], defaultMenu = 'overview'
   )
   const groups = GROUPS.map((g) => ({ ...g, menus: menus.filter((m) => m.group === g.id) })).filter((g) => g.menus.length > 0)
   const byId = new Map(menus.map((m) => [m.id, m]))
+  // A default that is not a menu would leave the page area blank. An empty registry has no page to show anyway.
+  if (menus.length > 0 && !byId.has(defaultMenu)) throw new Error(`Default menu "${defaultMenu}" is not a registered menu`)
   return {
     menus,
     groups,

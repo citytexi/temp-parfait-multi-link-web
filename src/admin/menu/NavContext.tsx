@@ -62,6 +62,10 @@ export function NavProvider({
 
   const setMenu = useCallback(
     (menu: MenuId) => {
+      if (!lookupRef.current.isMenu(menu)) {
+        if (import.meta.env.DEV) console.warn(`setMenu: "${menu}" is not a registered menu; ignored`)
+        return
+      }
       const cur = stateRef.current
       if (menu === cur.menu) return
       commit({ menu, period: cur.period, pageParams: {} }, 'push')
