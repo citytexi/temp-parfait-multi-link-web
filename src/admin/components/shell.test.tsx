@@ -133,6 +133,16 @@ describe('Shell', () => {
     expect(await screen.findByText('비 내용')).toBeInTheDocument()
   })
 
+  it('renders the footer only for usesGa menus', async () => {
+    render(tree())
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument()
+    expect(await screen.findByText('에이 내용')).toBeInTheDocument()
+
+    await userEvent.click(menuButton('비'))
+    expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument()
+    expect(await screen.findByText('비 내용')).toBeInTheDocument()
+  })
+
   it('moves focus to the heading and updates the title after a menu change, not on first render', async () => {
     render(<StrictMode>{tree()}</StrictMode>)
     expect(screen.getByRole('heading', { level: 1, name: '에이' })).not.toHaveFocus()

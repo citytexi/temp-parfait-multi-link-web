@@ -381,9 +381,9 @@ body {
   min-height: 100dvh;
 }
 
+/* One row at every width: the brand gives way (ellipsis) before anything wraps. */
 .adm-topbar {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--adm-space-2);
   padding: var(--adm-space-4);
@@ -396,13 +396,21 @@ body {
   font-size: var(--adm-fs-lg);
   font-weight: var(--adm-fw-bold);
   color: var(--adm-text-1);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.adm-topbar__logout {
+  flex: none;
 }
 
 /* Quick-navigation opener, shaped like a search field. Below 960px it sits next to logout. */
 .adm-topbar__search {
   display: inline-flex;
   align-items: center;
+  flex: none;
   gap: var(--adm-space-2);
   min-width: var(--adm-hit);
   min-height: var(--adm-hit);
@@ -586,6 +594,13 @@ body {
   flex: none;
 }
 
+/* A long label ends in an ellipsis instead of pushing the sidebar wider; the button's title has the full text. */
+.adm-menu__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .adm-menu__item:hover {
   background: var(--adm-surface-muted);
 }
@@ -596,9 +611,10 @@ body {
   font-weight: var(--adm-fw-bold);
 }
 
-/* Sidebar (960px and up) */
-.adm-menu--side {
+/* Sidebar (960px and up). The nav is the surface; .adm-menu__scroll inside it holds the padding and scrolls. */
+.adm-menu__scroll {
   padding: var(--adm-space-2) var(--adm-space-4);
+  overflow-x: hidden;
 }
 
 .adm-menu__section + .adm-menu__section {
@@ -672,6 +688,10 @@ body {
   transition: background-color var(--adm-duration) ease;
 }
 
+.adm-menu__segment:not([aria-pressed='true']):hover {
+  background: var(--adm-surface);
+}
+
 .adm-menu__segment[aria-pressed='true'] {
   background: var(--adm-surface);
   color: var(--adm-text-1);
@@ -688,6 +708,15 @@ body {
 
 .adm-menu--mobile .adm-menu__list::-webkit-scrollbar {
   display: none;
+}
+
+/* Tabs keep their full label; the list scrolls sideways instead. */
+.adm-menu--mobile .adm-menu__list > li {
+  flex: none;
+}
+
+.adm-menu--mobile .adm-menu__label {
+  overflow: visible;
 }
 
 /* Period filter */
@@ -815,15 +844,25 @@ body {
     flex-direction: row;
   }
 
+  /* Stretches to the full height of the shell body, so the surface and its border never stop short. */
   .adm-menu--side {
-    position: sticky;
-    top: 0;
     flex: 0 0 var(--adm-sidebar-width);
-    align-self: flex-start;
-    max-height: 100dvh;
-    padding: var(--adm-space-4);
+    min-width: 0;
     border-bottom: 0;
     border-right: 1px solid var(--adm-border);
+  }
+
+  /*
+   * Sticks once the top bar has scrolled away, and is then exactly one viewport tall at most.
+   * Before that its lower part is below the fold like the rest of the page, and it scrolls
+   * inside itself.
+   */
+  .adm-menu__scroll {
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    max-height: 100dvh;
+    padding: var(--adm-space-4);
     overflow-y: auto;
   }
 
@@ -900,7 +939,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: var(--adm-space-1) var(--adm-space-3);
-  margin: calc(var(--adm-space-2) * -1) 0 var(--adm-space-6);
+  margin: 0 0 var(--adm-space-6);
   font-size: var(--adm-fs-sm);
   color: var(--adm-text-2);
 }

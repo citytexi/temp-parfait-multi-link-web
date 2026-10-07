@@ -86,7 +86,11 @@ export function Shell({ registry = REGISTRY }: { registry?: Registry }): ReactEl
           )}
         </main>
       </div>
-      <footer className="adm-shell__footer">{current?.usesGa && <QuotaBadge />}</footer>
+      {current?.usesGa && (
+        <footer className="adm-shell__footer">
+          <QuotaBadge />
+        </footer>
+      )}
       <CommandMenu groups={registry.groups} open={commandOpen} onOpenChange={setCommandOpen} onSelect={selectFromCommand} />
     </div>
   )

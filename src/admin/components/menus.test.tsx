@@ -48,6 +48,13 @@ describe('SideMenu', () => {
     expect(screen.getByRole('button', { name: '한눈에 보기' })).not.toHaveAttribute('aria-current')
   })
 
+  it('keeps the label as the button name and repeats it in the title for truncated labels', () => {
+    render(<SideMenu groups={groups} active="users" onSelect={() => {}} />)
+    const item = screen.getByRole('button', { name: '한눈에 보기' })
+    expect(item).toHaveAttribute('title', '한눈에 보기')
+    expect(item.querySelector('.adm-menu__label')).toHaveTextContent('한눈에 보기')
+  })
+
   it('calls onSelect with the menu id', async () => {
     const onSelect = vi.fn()
     render(<SideMenu groups={groups} active="overview" onSelect={onSelect} />)

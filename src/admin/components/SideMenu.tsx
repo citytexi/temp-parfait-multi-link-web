@@ -29,34 +29,37 @@ export function SideMenu({ groups, active, onSelect }: MenuProps): ReactElement 
     setCollapsed((prev) => (prev.includes(id) ? without(prev, id) : [...prev, id]))
 
   return (
+    // The nav is the full-height surface; the inner element is what sticks and scrolls.
     <nav className="adm-menu adm-menu--side" aria-label="메뉴">
-      {groups
-        .filter((g) => g.menus.length > 0)
-        .map((group) => {
-          const open = !collapsed.includes(group.id)
-          const listId = `adm-menu-group-${group.id}`
-          return (
-            <div key={group.id} className="adm-menu__section">
-              <button
-                type="button"
-                className="adm-menu__group"
-                aria-expanded={open}
-                aria-controls={listId}
-                onClick={() => toggle(group.id)}
-              >
-                {group.label}
-                <ChevronDown className="adm-menu__chevron" size={16} aria-hidden="true" />
-              </button>
-              {open && (
-                <ul id={listId} className="adm-menu__list" aria-label={group.label}>
-                  {group.menus.map((menu) => (
-                    <MenuItem key={menu.id} menu={menu} current={menu.id === active} onSelect={onSelect} />
-                  ))}
-                </ul>
-              )}
-            </div>
-          )
-        })}
+      <div className="adm-menu__scroll">
+        {groups
+          .filter((g) => g.menus.length > 0)
+          .map((group) => {
+            const open = !collapsed.includes(group.id)
+            const listId = `adm-menu-group-${group.id}`
+            return (
+              <div key={group.id} className="adm-menu__section">
+                <button
+                  type="button"
+                  className="adm-menu__group"
+                  aria-expanded={open}
+                  aria-controls={listId}
+                  onClick={() => toggle(group.id)}
+                >
+                  {group.label}
+                  <ChevronDown className="adm-menu__chevron" size={16} aria-hidden="true" />
+                </button>
+                {open && (
+                  <ul id={listId} className="adm-menu__list" aria-label={group.label}>
+                    {group.menus.map((menu) => (
+                      <MenuItem key={menu.id} menu={menu} current={menu.id === active} onSelect={onSelect} />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
+      </div>
     </nav>
   )
 }

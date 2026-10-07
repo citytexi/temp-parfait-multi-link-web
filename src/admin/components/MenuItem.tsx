@@ -15,7 +15,10 @@ type MenuItemProps = {
   buttonRef?: Ref<HTMLButtonElement>
 }
 
-/** One menu button: icon plus label. Shared by the sidebar and the mobile tabs. */
+/**
+ * One menu button: icon plus label. Shared by the sidebar and the mobile tabs. The sidebar cuts a
+ * long label with an ellipsis, so the full label is also the button's title.
+ */
 export function MenuItem({ menu, current, onSelect, buttonRef }: MenuItemProps): ReactElement {
   const Icon = menu.icon
   return (
@@ -25,10 +28,11 @@ export function MenuItem({ menu, current, onSelect, buttonRef }: MenuItemProps):
         type="button"
         className="adm-menu__item"
         aria-current={current ? 'page' : undefined}
+        title={menu.label}
         onClick={() => onSelect(menu.id)}
       >
         <Icon className="adm-menu__icon" size={18} aria-hidden="true" />
-        {menu.label}
+        <span className="adm-menu__label">{menu.label}</span>
       </button>
     </li>
   )
