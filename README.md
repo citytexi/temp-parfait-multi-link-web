@@ -88,6 +88,8 @@ export default defineMenu({
 })
 ```
 
+`keywords`, `usesPeriod`, `usesGa`, `scopes`는 안 써도 돼요. `usesPeriod`와 `usesGa`는 안 쓰면 `false`예요. 나머지는 꼭 써야 해요.
+
 새 폴더에 두면 `import` 경로는 `../../menu/defineMenu`처럼 한 단계 더 깊어져요. `id`는 모든 메뉴에서 유일해야 하고, 겹치면 레지스트리가 에러를 던져요. `order`는 그룹 안 정렬 순서이고, 묶음마다 쓸 수 있는 범위가 정해져 있어요. 예약 범위는 `docs/superpowers/specs/2026-10-07-admin-menu-registry-design.md`의 2장 "묶음별 예약 범위" 표를 봐요.
 
 ### CSP 규칙
@@ -101,7 +103,22 @@ export default defineMenu({
 - 쓸 수 있는 키는 `connect-src`, `img-src`, `frame-src`뿐이에요.
 - 값은 `https://` 다음에 점이 들어간 호스트 이름, 그리고 선택으로 포트(`https://a.example:8443`)만 쓸 수 있어요. 경로, 끝의 `/`, 쿼리, 와일드카드(`*`), 그 밖의 문자는 안 돼요.
 - 규칙을 어기면 `npm run build`와 `npm run dev`가 실패해요.
+- CSP는 빌드한 페이지에만 들어가요. 그래서 조각을 빠뜨려도 `npm run dev`에서는 티가 나지 않아요. 외부 주소를 쓰는 페이지는 `npm run build && npm run preview`로 확인해요.
+
+### 페이지 모듈 규칙
+
+`load()`는 로그인한 모든 사용자의 브라우저에서, 한가할 때 미리 실행돼요. 그 페이지를 열지 않아도 실행되고, 여러 번 실행될 수도 있어요(미리 받기, 화면 그리기, 다시 시도). 그래서 페이지 모듈의 최상위에는 부수 효과를 두지 않아요. 요청, 이벤트 리스너, 타이머, 저장소 쓰기는 컴포넌트 안에서 해요.
 
 ### 고치지 않는 파일
 
-`Shell.tsx`, `SideMenu.tsx`, `registry.ts`, `urlState.ts`, `admin.css`, `vite.config.ts`, `src/admin/config.ts`는 고치지 않아요. 메뉴 목록, 모바일 메뉴, `⌘K` 빠른 이동은 레지스트리에서 저절로 만들어져요.
+아래 파일은 고치지 않아요.
+
+- `src/admin/components/Shell.tsx`
+- `src/admin/components/SideMenu.tsx`
+- `src/admin/menu/registry.ts`
+- `src/admin/lib/urlState.ts`
+- `src/admin/styles/admin.css`
+- `vite.config.ts`
+- `src/admin/config.ts`
+
+메뉴 목록, 모바일 메뉴, `⌘K` 빠른 이동은 레지스트리에서 저절로 만들어져요.
