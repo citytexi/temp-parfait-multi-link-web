@@ -2,7 +2,7 @@
 
 - 작성일: 2026-10-07
 - 브랜치: `feat/admin-menu-registry`
-- 상태: 방향 승인됨, 스펙 검토 전
+- 상태: 방향 승인됨, 서브에이전트 검토 반영(2026-10-07), 스펙 확인 전
 
 ## 1. 목표
 
@@ -60,7 +60,7 @@ export default defineMenu({
 |------|----|
 | `id` | URL의 `?menu=` 값. 전체에서 유일해야 한다. |
 | `group` | `metrics`, `devtools`, `ops` 중 하나. |
-| `order` | 그룹 안 정렬 순서. 10 단위로 띄워 쓴다. |
+| `order` | 그룹 안 정렬 순서. 같으면 `id` 순으로 정렬한다. |
 | `label` | 메뉴와 페이지 제목에 쓰는 이름. |
 | `description` | 페이지 제목 아래와 빠른 이동 목록에 쓰는 한 줄 설명. |
 | `icon` | `lucide-react` 아이콘 컴포넌트. |
@@ -68,14 +68,26 @@ export default defineMenu({
 | `load` | 페이지를 동적 import하는 함수. |
 | `usesPeriod` | 기간 필터를 쓰는지. 기본값 `false`. |
 | `usesGa` | GA Data API를 호출하는지. quota 배지 표시에 쓴다. 기본값 `false`. |
-| `scopes` | 이 페이지에 필요한 OAuth scope 목록. 선택. 이번에는 필드만 두고 쓰지 않는다(§6). |
+| `scopes` | 이 페이지에 필요한 OAuth scope 목록. 선택. 이번에는 필드만 두고 쓰지 않는다(§7). |
+
+### 기존 6개 메뉴의 값
+
+| id | label | order | usesPeriod | usesGa |
+|----|-------|-------|------------|--------|
+| `overview` | 한눈에 보기 | 10 | true | true |
+| `users` | 사용자 | 20 | true | true |
+| `events` | 많이 한 행동 | 30 | true | true |
+| `retention` | 다시 찾아온 사람 | 40 | true | true |
+| `tech` | 기기·지역 | 50 | true | true |
+| `realtime` | 지금 접속 중 | 60 | false | true |
+
+`realtime`은 지금도 기간을 쓰지 않는다. 그래서 이 페이지에서는 기간 필터가 사라진다.
 
 ### 수집 방식
 
-`src/admin/menu/registry.ts`가 `import.meta.glob('../pages/**/*.menu.ts', { eager: true })`로 정의 파일을 모두 모은다. 정의 파일은 가볍고, 페이지 코드는 `load`로 필요할 때만 받는다.
+`src/admin/menu/registry.ts`가 `import.meta.glob('../pages/**/*.menu.ts', { eager: true, import: 'default' })`로 정의 파일을 모두 모은다. 정의 파일은 가볍고, 페이지 코드는 `load`로 필요할 때만 받는다.
 
-- 새 메뉴를 추가하는 작업은 페이지 파일과 `*.menu.ts` 파일만 만든다. 공통 파일을 고치지 않는다.
-- 새 페이지는 `src/admin/pages/devtools/`, `src/admin/pages/ops/`처럼 하위 폴더에 둘 수 있다. 기존 6개 페이지는 지금 위치에 둔다.
+새 페이지는 `src/admin/pages/devtools/`, `src/admin/pages/ops/`처럼 하위 폴더에 둘 수 있다. 기존 6개 페이지는 지금 위치에 둔다.
 
 ### 그룹
 
@@ -89,16 +101,33 @@ export default defineMenu({
 
 메뉴가 하나도 없는 그룹은 화면에 나오지 않는다. 이 기반 작업만 배포된 시점에는 `지표` 그룹만 보인다.
 
+### 묶음별 예약 범위
+
+병렬 작업끼리 `order`와 `id`가 겹치면 각자 워크트리에서는 통과하고 머지 뒤에야 드러난다. 그래서 미리 나눠 둔다.
+
+| 묶음 | 그룹 | `order` 범위 |
+|------|------|--------------|
+| 기존 지표 | `metrics` | 10~90 |
+| 묶음 1 | `devtools` | 100~190 |
+| 묶음 1 | `ops` | 100~190 |
+| 묶음 2 | `devtools` | 200~290 |
+| 묶음 3 | `devtools` | 300~390 |
+| 묶음 4 | `devtools` | 400~490 |
+
+`id`는 묶음 스펙에서 정할 때 다른 묶음 스펙과 겹치지 않는지 확인한다. 레지스트리 테스트는 `id` 중복만 실패로 본다. `order`가 겹치면 `id` 순으로 정렬될 뿐 실패하지 않는다.
+
 ### 레지스트리가 주는 것
 
-- `MENUS`: 그룹 순서, `order` 순서로 정렬한 전체 메뉴
+- `MENUS`: 그룹 순서, `order`, `id` 순으로 정렬한 전체 메뉴
 - `MENU_GROUPS`: 메뉴가 있는 그룹과 그 메뉴 목록
 - `findMenu(id)`: id로 메뉴 찾기. 없으면 `undefined`
 - `DEFAULT_MENU_ID`: `'overview'`
 
-`MenuId` 타입은 문자열 유니온에서 `string`으로 바뀐다. 유효한지는 `findMenu`로 실행 중에 확인한다. 대신 레지스트리 테스트가 id 중복, 그룹 안 `order` 중복, 알 수 없는 그룹을 잡는다.
+`MenuId` 타입은 문자열 유니온에서 `string`으로 바뀐다. 유효한지는 실행 중에 확인한다.
 
 ## 3. 내비게이션
+
+화면 폭에 따라 사이드바와 모바일 메뉴 중 하나만 렌더한다. `matchMedia('(min-width: 960px)')`를 구독하는 훅으로 고른다. `matchMedia`가 없는 환경에서는 사이드바를 쓴다. 둘을 함께 렌더하고 CSS로 숨기지 않는 이유는, 같은 메뉴가 접근성 트리에 두 번 나오기 때문이다.
 
 ### 데스크톱 (960px 이상)
 
@@ -118,23 +147,34 @@ export default defineMenu({
 
 - 사이드바에 그룹 제목과 그 아래 메뉴(아이콘 + 이름)를 모두 보여 준다. 어느 메뉴든 한 번 눌러 간다.
 - 그룹 제목을 누르면 그 그룹을 접거나 편다. 접힘 상태는 `localStorage`의 `parfait-admin:menu-collapsed` 키에 그룹 id 배열로 저장한다. 이 키에는 UI 상태만 들어간다.
-- 지금 보고 있는 메뉴의 그룹은 저장된 상태와 상관없이 펼쳐서 보여 준다.
+- 어떤 메뉴로 이동하면(처음 열 때 포함) 그 메뉴의 그룹을 펴고 저장된 접힘 목록에서 뺀다. 그 뒤에 사용자가 그 그룹을 다시 접는 것은 허용한다.
 - `localStorage`를 못 쓰는 환경에서는 모두 펼친 상태로 동작한다.
+- 사이드바는 화면 높이를 넘으면 자기 안에서 세로로 스크롤한다. 메뉴가 16개가 돼도 잘리지 않는다.
 
 ### 모바일 (960px 미만)
 
-- 상단 바 아래에 그룹 전환 세그먼트를 두고, 그 아래에 고른 그룹의 메뉴만 가로 탭으로 보여 준다.
+위에서 아래로 상단 바, 그룹 전환 세그먼트, 메뉴 탭, 페이지 헤더, 페이지 내용 순으로 쌓는다.
+
+- 그룹 전환 세그먼트 아래에 고른 그룹의 메뉴만 가로 탭으로 보여 준다.
 - 그룹이 하나뿐이면 세그먼트를 숨긴다.
 - 세그먼트에서 다른 그룹을 누르면 탭 목록만 바뀐다. 페이지는 탭을 눌렀을 때 바뀐다.
+- 메뉴가 바뀌면(빠른 이동, 뒤로 가기 포함) 세그먼트가 그 메뉴의 그룹으로 맞춰진다.
 - 현재 메뉴의 탭은 화면에 보이도록 스크롤한다.
 
 ### 빠른 이동
 
 - `⌘K`(Windows와 Linux는 `Ctrl+K`)나 상단 바의 검색 버튼으로 연다. 모바일에서는 버튼으로만 연다.
-- 메뉴 이름, 설명, `keywords`로 검색한다. 결과는 그룹별로 묶어 아이콘, 이름, 설명을 보여 준다.
-- 위아래 화살표로 고르고 Enter로 이동한다. Esc나 바깥을 누르면 닫힌다.
+- 단축키는 `preventDefault`로 브라우저 기본 동작(주소창 검색)을 막는다.
+- 메뉴 이름, 설명, `keywords`를 합친 글자에 검색어가 그대로 들어 있는지로 찾는다. 영문은 대소문자를 가리지 않는다. `cmdk`의 기본 퍼지 검색은 한글 일부 입력과 맞지 않아 쓰지 않는다.
+- 결과는 그룹별로 묶어 아이콘, 이름, 설명을 보여 준다.
+- 위아래 화살표로 고르고 Enter로 이동한다. 한글 조합 중(`isComposing`)의 Enter는 이동으로 치지 않는다. Esc나 바깥을 누르면 닫힌다.
 - 검색 결과가 없으면 "찾는 메뉴가 없어요"를 보여 준다.
 - `cmdk`로 만든다. 목록은 레지스트리에서 만들어지므로 메뉴를 추가해도 이 컴포넌트를 고치지 않는다.
+
+### 메뉴가 바뀐 뒤
+
+- 포커스를 페이지 헤더의 `<h1>`으로 옮긴다(`tabIndex={-1}`). 키보드와 스크린리더 사용자가 새 페이지 처음부터 읽게 된다.
+- `document.title`을 `<label> · 파르페 대시보드`로 바꾼다.
 
 ### 접근성
 
@@ -152,8 +192,13 @@ export default defineMenu({
 
 - 왼쪽: 메뉴의 `label`을 `<h1>`으로, 그 아래 `description`
 - 오른쪽 도구 자리: `usesPeriod`가 `true`면 기간 필터와 "기준: 어제까지, 한국 시간" 문구
+- 모바일에서는 도구 자리가 설명 아래로 내려가 폭 전체를 쓴다.
+
+`PageHeader`는 기간 필터에 필요한 값(`period`, `today`, `periodError`, `setPeriod`)을 `useGa()`에서 읽는다. `today`와 `periodError`는 지금처럼 `GaProvider`가 가진다.
 
 기존 6개 페이지에 있는 `<h1 className="adm-page__title">`은 지운다. 제목이 셸로 옮겨 가기 때문이다. `adm-page__lead`(한눈에 보기의 요약 문장, 지금 접속 중의 헤드라인)는 페이지 내용이므로 그대로 둔다.
+
+`.adm-page__lead`는 지금 옛 제목 바로 아래 붙도록 위쪽 여백이 음수다. 헤더가 사이에 들어오면 겹치므로 위쪽 여백을 0으로 바꾸고, 헤더와 페이지 내용 사이 간격은 헤더의 아래 여백(`--adm-space-6`)으로 통일한다.
 
 ### 상단 바
 
@@ -166,8 +211,13 @@ export default defineMenu({
 ### 페이지 로딩
 
 - 페이지는 `React.lazy`로 메뉴별 청크로 나눈다. 메뉴가 늘어도 첫 로딩 크기가 커지지 않는다.
+- lazy 컴포넌트는 메뉴 id별로 한 번 만들어 모듈 수준에 캐시한다.
+- 로그인 뒤 브라우저가 한가할 때 나머지 페이지 청크를 미리 받아 둔다. 메뉴 이동이 바로 되고, 세션 중에 새 버전이 배포돼도 이미 받은 청크로 계속 쓸 수 있다.
 - 로딩 중에는 페이지 영역에 "불러오는 중이에요"를 보여 준다. 헤더와 메뉴는 그대로 둔다.
-- 청크를 못 받으면(새 버전 배포 직후 등) 페이지 영역에 "화면을 불러오지 못했어요"와 새로고침 버튼을 보여 준다. 다른 메뉴로 옮기면 오류 상태를 지운다.
+- 청크를 못 받으면 페이지 영역에 "화면을 불러오지 못했어요"와 "다시 시도" 버튼을 보여 준다.
+  - "다시 시도"는 그 메뉴의 lazy 컴포넌트를 새로 만들어 다시 받는다. 실패한 import는 `React.lazy`가 기억하므로 새로 만들어야 한다.
+  - 다시 시도도 실패하면 "새로고침" 버튼을 함께 보여 주고, 새로고침하면 다시 로그인해야 한다고 알린다. 토큰을 메모리에만 두기 때문이다.
+  - 오류 경계는 메뉴 id를 key로 둔다. 다른 메뉴로 옮기면 오류 상태가 사라진다.
 - 청크는 같은 출처에서 받으므로 CSP는 바꾸지 않는다.
 
 ## 5. 상태와 URL
@@ -176,25 +226,70 @@ export default defineMenu({
 
 지금은 `GaProvider`가 메뉴와 기간을 함께 들고 있다. 메뉴는 GA와 무관하므로 나눈다.
 
-- `NavProvider`(`src/admin/menu/NavContext.tsx`)가 URL 상태(메뉴, 기간)와 `setMenu`, `setPeriod`를 가진다. `useNav()`로 읽는다.
-- `GaProvider`는 `useNav()`에서 기간을 읽어 `ranges`, `periodLabel`, `periodError`를 계산한다. `useGa()`가 주는 값 중 `menu`와 `setMenu`는 뺀다.
+- `NavProvider`(`src/admin/menu/NavContext.tsx`)가 URL 상태(메뉴, 기간, 페이지 파라미터)와 `setMenu`, `setPeriod`를 가진다. `useNav()`로 읽는다.
+- `GaProvider`는 `useNav()`에서 기간을 읽어 `ranges`, `periodLabel`, `periodError`를 계산한다. `useGa()`가 주는 값 중 `menu`와 `setMenu`는 뺀다. `period`, `setPeriod`, `today`는 남긴다.
 - 기존 페이지는 `useGa()`에서 기간 관련 값만 쓰므로 고칠 것이 없다.
+- `parseUrlState`는 유효한 메뉴인지 판단하는 함수를 인자로 받는다. `urlState.ts`가 레지스트리를 직접 import하지 않아야 단위 테스트가 실제 메뉴 목록에 묶이지 않는다.
 
 ### URL 규칙
 
 - `?menu=<id>` 형식은 그대로다. 기존 링크(`?menu=events&period=28d`)는 지금과 똑같이 동작한다.
 - 알 수 없는 `menu` 값은 `overview`로 간다.
 - `usesPeriod`가 `false`인 페이지에서는 URL에 기간 파라미터를 붙이지 않는다(`?menu=utm`).
-- 기간을 쓰지 않는 페이지로 갔다가 돌아와도 고른 기간은 유지된다. 기간은 메모리 상태에 남아 있다.
-- 지금처럼 `history.replaceState`를 쓴다.
+- 기간을 쓰지 않는 페이지로 갔다가 돌아와도 고른 기간은 유지된다. 기간은 메모리 상태에 남아 있다. 다만 기간을 쓰지 않는 페이지에서 새로고침하면 기간은 기본값(7일)으로 돌아간다.
 
-## 6. OAuth scope
+### 뒤로 가기
+
+- 메뉴 이동은 `history.pushState`로 기록한다. 브라우저 뒤로 가기로 이전 메뉴에 돌아갈 수 있다. `popstate`를 듣고 상태를 URL에 맞춘다.
+- 기간 변경과 페이지 파라미터 변경은 지금처럼 `history.replaceState`를 쓴다. 필터를 만질 때마다 기록이 쌓이지 않게 한다.
+
+지금은 메뉴 이동도 `replaceState`다. 메뉴가 늘면 뒤로 가기가 필요해서 바꾼다.
+
+### 페이지 파라미터
+
+페이지가 자기 상태를 URL에 둘 수 있게 한다. 예를 들어 UTM 빌더가 입력값을 URL에 담아 팀원에게 링크로 넘길 수 있다.
+
+- `menu`, `period`, `start`, `end`는 셸이 쓴다. 그 밖의 쿼리 파라미터는 현재 페이지의 것이다.
+- `usePageParam(key)`가 `[value, setValue]`를 준다. `setValue(null)`은 그 파라미터를 지운다. 위 네 이름은 key로 쓸 수 없다.
+- 셸이 URL을 다시 쓸 때 페이지 파라미터를 그대로 보존한다.
+- 메뉴가 바뀌면 페이지 파라미터를 모두 지운다.
+
+## 6. 페이지가 자기 것을 가져오는 규칙
+
+새 메뉴가 공통 파일을 고치지 않게 하려면 스타일, 설정, CSP도 페이지 쪽에 있어야 한다.
+
+| 무엇 | 어디에 두나 |
+|------|-------------|
+| 스타일 | 페이지 옆 `<이름>.css`. 페이지 컴포넌트가 import한다. 클래스는 `adm-<메뉴 id>-`로 시작한다. `admin.css`는 셸과 공용 컴포넌트 스타일만 가진다. |
+| 설정 값 | 페이지 폴더의 `config.ts`. `src/admin/config.ts`는 GA와 OAuth 값만 가진다. |
+| CSP 허용 주소 | 페이지 옆 `<이름>.csp.json`. 아래 참고. |
+| 테스트 | 페이지 옆 `<이름>.test.tsx`. |
+
+### CSP 조각
+
+`vite.config.ts`가 빌드 때 `src/admin/pages/**/*.csp.json`을 모두 읽어 어드민 CSP에 합친다.
+
+```json
+{ "connect-src": ["https://firebaseremoteconfig.googleapis.com"] }
+```
+
+- 허용하는 지시어는 `connect-src`, `img-src`, `frame-src`뿐이다. 다른 키가 있으면 빌드를 실패시킨다. `script-src`는 조각으로 넓힐 수 없다.
+- 값은 `https://`로 시작하는 출처여야 한다. 와일드카드 출처(`https://*`, `*`)는 빌드를 실패시킨다.
+- 이번에는 조각 파일이 하나도 없다. 그때 만들어지는 CSP는 지금과 글자 하나 다르지 않아야 한다.
+
+주소를 미리 다 넣어 두지 않고 조각으로 받는 이유는, 쓰지 않는 주소를 CSP에 열어 두지 않기 위해서다.
+
+### 그래도 겹치는 파일
+
+- `package.json`, `package-lock.json`: 묶음이 의존성을 추가하면 겹친다. 머지할 때 `npm install`로 lockfile을 다시 만든다. 미리 깔아 두지 않는다. 쓰지 않는 의존성을 두지 않기 위해서다.
+
+## 7. OAuth scope
 
 이번에는 `scopes` 필드를 타입에만 둔다. 로그인은 지금처럼 `analytics.readonly` 하나만 요청한다.
 
 scope가 더 필요한 페이지에 들어갈 때 추가 동의를 받는 흐름은 묶음 3의 스펙에서 정한다. 레지스트리에 필드를 미리 두는 이유는, 그때 메뉴 정의 형식을 바꾸지 않으려는 것이다.
 
-## 7. 파일 구조
+## 8. 파일 구조
 
 ```
 src/admin/
@@ -202,77 +297,94 @@ src/admin/
 │  ├─ defineMenu.ts        # MenuDef 타입, defineMenu()
 │  ├─ groups.ts            # 그룹 목록
 │  ├─ registry.ts          # glob 수집, 정렬, findMenu
-│  ├─ NavContext.tsx       # NavProvider, useNav
-│  └─ collapsed.ts         # 접힘 상태 읽기/쓰기 (localStorage)
+│  ├─ NavContext.tsx       # NavProvider, useNav, usePageParam
+│  ├─ collapsed.ts         # 접힘 상태 읽기/쓰기 (localStorage)
+│  └─ useIsDesktop.ts      # matchMedia 구독
 ├─ components/
 │  ├─ Shell.tsx            # 헤더, 메뉴, 페이지 영역 조립
 │  ├─ SideMenu.tsx         # 데스크톱 그룹 사이드바
 │  ├─ MobileMenu.tsx       # 그룹 세그먼트 + 탭
 │  ├─ PageHeader.tsx       # 제목, 설명, 도구 자리
-│  ├─ PageOutlet.tsx       # lazy 페이지, 로딩, 오류 경계
+│  ├─ PageOutlet.tsx       # lazy 페이지, 로딩, 오류 경계, 미리 받기
 │  └─ CommandMenu.tsx      # 빠른 이동
 ├─ pages/
 │  ├─ OverviewPage.tsx
 │  ├─ OverviewPage.menu.ts # 기존 6개 페이지마다 하나씩
 │  └─ ...
-└─ lib/urlState.ts         # MenuId를 string으로, 검증을 레지스트리에 위임
+└─ lib/urlState.ts         # MenuId를 string으로, 페이지 파라미터 보존
 ```
 
-스타일은 `src/admin/styles/admin.css`에 추가하고 `tokens.css`의 토큰만 쓴다. 새 색을 만들지 않는다. 디자인 기준은 `design-system/parfait-admin/MASTER.md`를 따른다.
+셸과 공용 컴포넌트의 스타일은 `src/admin/styles/admin.css`에 추가하고 `tokens.css`의 토큰만 쓴다. 새 색을 만들지 않는다.
+
+디자인 기준은 `design-system/parfait-admin/pages/dashboard.md`를 먼저 따르고, 거기 없는 것만 `MASTER.md`를 따른다. `dashboard.md`가 `MASTER.md`를 덮어쓴다.
 
 ### 추가하는 의존성
 
 | 패키지 | 용도 | 비고 |
 |--------|------|------|
 | `cmdk` | 빠른 이동 | React 19 지원. 키보드와 스크린리더 처리가 들어 있다. |
-| `lucide-react` | 아이콘 | 쓰는 아이콘만 번들에 들어간다. `MASTER.md`가 권하는 아이콘 세트다. |
+| `lucide-react` | 아이콘 | 쓰는 아이콘만 번들에 들어간다. |
 
 둘 다 어드민 엔트리에서만 import한다. 멀티링크 번들에는 들어가지 않아야 한다.
 
-## 8. 새 메뉴를 추가하는 방법
+### 테스트 환경
+
+`src/test/setup.ts`에 jsdom에 없는 `ResizeObserver`, `Element.prototype.scrollIntoView`, `matchMedia`의 대체 구현을 넣는다. `cmdk`와 탭 스크롤, 화면 폭 훅이 쓴다.
+
+## 9. 새 메뉴를 추가하는 방법
 
 뒤따르는 묶음은 아래만 하면 된다.
 
 1. `src/admin/pages/<그룹>/` 아래에 페이지 컴포넌트를 만든다.
-2. 같은 폴더에 `<이름>.menu.ts`를 만든다.
-3. 페이지 테스트를 쓴다.
+2. 같은 폴더에 `<이름>.menu.ts`를 만든다. `order`는 §2의 예약 범위에서 고른다.
+3. 필요하면 같은 폴더에 `<이름>.css`, `config.ts`, `<이름>.csp.json`을 둔다.
+4. 페이지 테스트를 쓴다.
 
-`Shell.tsx`, `SideMenu.tsx`, `registry.ts`, `urlState.ts`는 고치지 않는다. 이 절차를 README에 짧게 적는다.
+`Shell.tsx`, `SideMenu.tsx`, `registry.ts`, `urlState.ts`, `admin.css`, `vite.config.ts`, `src/admin/config.ts`는 고치지 않는다.
 
-## 9. 테스트
+이 절차를 README에 적는다. README와 수동 확인 목록에 있는 "메뉴 6개" 같은 개수 표현은 개수가 없는 말로 바꾼다. 메뉴를 추가할 때마다 문서를 고치지 않게 하려는 것이다.
+
+## 10. 테스트
 
 ### 자동 테스트
 
-- 레지스트리: id 중복 없음, 그룹 안 `order` 중복 없음, 모든 메뉴의 그룹이 `groups.ts`에 있음, 정렬 순서
-- URL 상태: 알 수 없는 메뉴는 `overview`, 기간을 안 쓰는 메뉴는 기간 파라미터 없음, 기존 URL 왕복 변환 유지
-- 사이드바: 그룹 접기와 펴기, 접힘 상태 저장과 복원, 현재 메뉴의 그룹은 항상 펼침, 빈 그룹 숨김
-- 모바일 메뉴: 그룹 전환 시 탭 목록 변경, 그룹이 하나면 세그먼트 숨김
-- 빠른 이동: 단축키로 열기, 검색, Enter로 이동, 결과 없음 문구
-- 페이지 헤더: `usesPeriod`에 따라 기간 필터 표시, `usesGa`에 따라 quota 배지 표시
-- 페이지 영역: 로딩 표시, 청크 실패 시 오류 화면과 다른 메뉴로 이동 후 복구
-- 기존 테스트는 모두 통과해야 한다. 메뉴 타입 변경과 제목 이동에 맞춰 고치는 것은 허용한다.
+- 레지스트리: `id` 중복 없음, 모든 메뉴의 그룹이 `groups.ts`에 있음, 그룹과 `order`와 `id` 순 정렬
+- URL 상태: 알 수 없는 메뉴는 `overview`, 기간을 안 쓰는 메뉴는 기간 파라미터 없음, 기존 URL 왕복 변환 유지, 페이지 파라미터 보존, 메뉴가 바뀌면 페이지 파라미터 삭제
+- 뒤로 가기: 메뉴 이동은 `pushState`, 기간 변경은 `replaceState`, `popstate`로 이전 메뉴 복원
+- 사이드바: 그룹 접기와 펴기, 접힘 상태 저장과 복원, 이동한 메뉴의 그룹 자동 펼침, 빈 그룹 숨김
+- 모바일 메뉴: 그룹 전환 시 탭 목록 변경, 그룹이 하나면 세그먼트 숨김, 메뉴가 바뀌면 세그먼트가 따라감
+- 빠른 이동: 단축키로 열기와 `preventDefault`, 한글 일부 입력 검색, Enter로 이동, 조합 중 Enter 무시, 결과 없음 문구
+- 페이지 헤더: `usesPeriod`에 따라 기간 필터 표시, `usesGa`에 따라 quota 배지 표시, 메뉴가 바뀌면 `<h1>` 포커스와 `document.title`
+- 페이지 영역: 로딩 표시, 청크 실패 시 오류 화면, "다시 시도"로 복구, 다른 메뉴로 이동 후 복구
+- CSP 조각: 조각이 없으면 기존 CSP와 같음, 허용하지 않는 지시어와 와일드카드는 실패, 조각의 주소가 합쳐짐
+- 기존 테스트는 모두 통과해야 한다. 메뉴 타입 변경, 제목 이동, `pushState` 전환에 맞춰 고치는 것은 허용한다.
 
-테스트에서 그룹과 메뉴를 바꿔 넣을 수 있게, 메뉴 컴포넌트는 레지스트리를 직접 import하지 않고 props로 받는다.
+테스트가 실제 메뉴 목록에 묶이지 않게 한다.
+
+- `Shell`은 메뉴 그룹 목록을 props로 받고, 기본값이 실제 레지스트리다. 메뉴 컴포넌트와 빠른 이동도 props로 받는다.
+- `App.test.tsx`의 "메뉴 6개" 검사는 `지표` 그룹의 메뉴만 확인하도록 바꾼다. 새 메뉴가 들어와도 이 테스트는 깨지지 않아야 한다.
+- 사이드바 테스트는 매번 `localStorage`를 비운다.
 
 ### 수동 확인
 
-- 데스크톱과 모바일 폭에서 메뉴 이동, 그룹 접기, 빠른 이동
+- 데스크톱과 모바일 폭에서 메뉴 이동, 그룹 접기, 빠른 이동, 뒤로 가기
 - 기존 링크(`?menu=events&period=28d`)로 들어가 같은 화면이 나오는지
 - 다크 모드
 - 빌드 후 멀티링크 번들에 `cmdk`, `lucide-react`가 없는지
 - 빌드한 어드민 페이지에서 CSP 위반이 콘솔에 없는지
 
-## 10. 완료 기준
+## 11. 완료 기준
 
 - 기존 6개 메뉴가 `지표` 그룹 아래에서 지금과 같은 내용으로 보인다.
-- 테스트용 메뉴 정의 파일 하나를 추가하는 것만으로 사이드바, 모바일 탭, 빠른 이동, URL에 그 메뉴가 나타난다. 확인 뒤 테스트용 파일은 지운다.
+- 테스트용 페이지 폴더 하나(페이지, `*.menu.ts`, `*.css`, `*.csp.json`)를 추가하는 것만으로 사이드바, 모바일 탭, 빠른 이동, URL, CSP에 반영된다. 이때 `git status`에 그 폴더 밖의 변경이 없어야 한다. 확인 뒤 테스트용 폴더는 지운다.
 - 기간 필터가 페이지 헤더에 있고, `usesPeriod`가 `false`인 페이지에서는 나오지 않는다.
+- 조각 파일이 없는 상태의 빌드 결과에서 어드민 CSP가 이 작업 전과 같다.
 - `npm run typecheck`, `npm test`, `npm run build`가 통과한다.
 
-## 11. 범위 밖
+## 12. 범위 밖
 
 - 개발자 도구와 팀 운영 페이지 자체. 뒤따르는 묶음에서 만든다.
 - OAuth scope 추가와 추가 동의 흐름. 묶음 3에서 정한다.
 - 로그인 없이 쓰는 페이지. 어드민 전체는 지금처럼 GA 권한이 있는 계정으로 로그인해야 열린다.
 - 즐겨찾기, 최근 본 메뉴, 메뉴 순서 바꾸기.
-- 기존 6개 페이지의 내용 변경.
+- 기존 6개 페이지의 내용 변경. 제목 `<h1>`을 지우는 것만 한다.
