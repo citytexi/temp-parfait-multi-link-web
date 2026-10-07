@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { buildAdminCsp, FRAGMENT_DIRECTIVES, readCspFragments } from './adminCsp.ts'
+import { buildAdminCsp, escapeHtmlAttribute, FRAGMENT_DIRECTIVES, readCspFragments } from './adminCsp.ts'
 
 const EXPECTED_BASE =
   "default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; img-src 'self' data: https://*.googleusercontent.com; connect-src 'self' https://analyticsdata.googleapis.com https://accounts.google.com/gsi/ https://oauth2.googleapis.com; frame-src https://accounts.google.com/gsi/; base-uri 'self'; form-action 'none'; object-src 'none'"
@@ -38,6 +38,11 @@ describe('buildAdminCsp', () => {
     expect(() => buildAdminCsp([{ file: 'pages/x/arr.csp.json', directives }])).toThrow(/arr\.csp\.json/)
   })
 
+  it.each([['https://api.github.com'], ['https://a.example:8443']])('accepts %s', (source) => {
+    const csp = buildAdminCsp([{ file: 'a.csp.json', directives: { 'connect-src': [source] } }])
+    expect(csp.replace(` ${source}`, '')).toBe(EXPECTED_BASE)
+  })
+
   it.each([
     ['script-src', ['https://evil.example']],
     ['default-src', ['https://a.example']],
@@ -58,11 +63,30 @@ describe('buildAdminCsp', () => {
     ['connect-src', [1]],
     ['connect-src', null],
     ['img-src', 'https://a.example'],
+    ['connect-src', ['https://a.example&#59script-src-elem&#32https://evil.example']],
+    ['connect-src', ['https://&#42.example.com']],
+    ['connect-src', ['https://a.example&#x2a']],
+    ['connect-src', ['https://a.example&quot']],
+    ['connect-src', ['https://a.example<']],
+    ['connect-src', ['https://a.example>']],
+    ['connect-src', ['https://a.example\t']],
+    ['connect-src', ['https://a.example\u0000']],
+    ['connect-src', ['https://u@a.example']],
+    ['connect-src', ['https://a.example/path']],
+    ['connect-src', ['https://a.example/']],
+    ['connect-src', ['https://a.example?x=1']],
+    ['connect-src', ['HTTPS://a.example']],
+    ['connect-src', ['https://localhost']],
   ])('rejects %s %j and names the file', (directive, value) => {
     expect(() =>
       buildAdminCsp([{ file: 'pages/x/x.csp.json', directives: { [directive]: value as string[] } }]),
     ).toThrow(/x\.csp\.json/)
   })
+})
+
+describe('escapeHtmlAttribute', () => {
+  it('escapes & " < >', () => expect(escapeHtmlAttribute('a&b"c<d>e')).toBe('a&amp;b&quot;c&lt;d&gt;e'))
+  it('leaves the base policy unchanged', () => expect(escapeHtmlAttribute(EXPECTED_BASE)).toBe(EXPECTED_BASE))
 })
 
 describe('readCspFragments', () => {
@@ -86,9 +110,10 @@ describe('readCspFragments', () => {
     write(root, 'a/deep/y.csp.json', '{"img-src":["https://a.example"]}')
     write(root, 'a/z.json', '{"connect-src":["https://z.example"]}')
     const frags = readCspFragments(root)
-    expect(frags).toHaveLength(2)
-    expect(frags[0].file.replaceAll('\\', '/')).toMatch(/a\/deep\/y\.csp\.json$/)
-    expect(frags[1].file.replaceAll('\\', '/')).toMatch(/b\/x\.csp\.json$/)
+    expect(frags.map((f) => path.relative(root, f.file).replaceAll('\\', '/'))).toEqual([
+      'a/deep/y.csp.json',
+      'b/x.csp.json',
+    ])
     expect(frags[0].directives).toEqual({ 'img-src': ['https://a.example'] })
   })
 

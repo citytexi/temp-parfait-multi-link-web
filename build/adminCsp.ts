@@ -28,8 +28,14 @@ const BASE_DIRECTIVES: Record<string, string> = {
   'object-src': "'none'",
 }
 
-// https only, no wildcard, and no whitespace, ; , or quotes that could start another source or directive.
-const SOURCE_PATTERN = /^https:\/\/[^\s;,'"*]+$/
+// Strict allowlist: https scheme, dotted hostname, optional port. No path, userinfo, query, wildcard,
+// or any character (&, <, quotes, whitespace, ;, ...) that could be decoded or parsed into another source or directive.
+const SOURCE_PATTERN = /^https:\/\/[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+(:\d{1,5})?$/
+
+/** Escape a value for use inside a double-quoted HTML attribute. */
+export function escapeHtmlAttribute(value: string): string {
+  return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+}
 
 function validate(fragment: CspFragment): void {
   const { file, directives } = fragment
@@ -71,10 +77,11 @@ export function readCspFragments(pagesDir: string): CspFragment[] {
   if (!fs.existsSync(pagesDir)) return []
   return fs
     .readdirSync(pagesDir, { recursive: true, encoding: 'utf8' })
+    .map((rel) => rel.replaceAll('\\', '/'))
     .filter((rel) => rel.endsWith('.csp.json'))
-    .map((rel) => path.join(pagesDir, rel))
     .sort()
-    .map((file) => {
+    .map((rel) => {
+      const file = path.join(pagesDir, rel)
       let directives: unknown
       try {
         directives = JSON.parse(fs.readFileSync(file, 'utf8'))
