@@ -374,6 +374,7 @@ body {
 
 /* App shell: top bar, menu, page area, quota footer */
 .adm-shell {
+  --adm-sidebar-width: 240px;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -674,7 +675,7 @@ body {
   .adm-menu--side {
     position: sticky;
     top: 0;
-    flex: 0 0 240px;
+    flex: 0 0 var(--adm-sidebar-width);
     align-self: flex-start;
     max-height: 100dvh;
     padding: var(--adm-space-4);
@@ -688,7 +689,7 @@ body {
   }
 
   .adm-shell__footer {
-    padding: 0 var(--adm-space-8) var(--adm-space-6) calc(220px + var(--adm-space-8));
+    padding: 0 var(--adm-space-8) var(--adm-space-6) calc(var(--adm-sidebar-width) + var(--adm-space-8));
   }
 }
 
