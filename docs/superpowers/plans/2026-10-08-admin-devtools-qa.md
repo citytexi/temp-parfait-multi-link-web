@@ -34,8 +34,8 @@
 1. GA 응답에 `rows`, `rowCount`, `propertyQuota`가 없음(이벤트가 0건일 때의 실제 응답) → 크래시 없이 빈 표, 잘림 아님, 남은 한도는 모름으로 처리. (Task 5, Task 10)
 2. 검색어에 `(`, `[`, `\`, `.` 같은 정규식 문자가 들어감 → 글자 그대로 찾고 예외가 없다. (Task 5, Task 11)
 3. `StrictMode`에서 화면이 두 번 마운트됨 → 조회 타이머와 `document` 리스너가 한 벌만 돌고, 화면을 떠나면 모두 없어진다. (Task 7)
-4. URL의 `watch`가 `,a,,a, b` 처럼 빈 조각, 중복, 공백을 가짐 → `['a', 'b']`로 읽고, 별을 누르면 URL에는 정리된 값이 쓰인다. (Task 8)
-5. `navigator.clipboard`가 없거나 `writeText`가 거부됨(권한, 비보안 컨텍스트) → 예외 없이 코드를 선택할 수 있는 글상자를 보여 준다. (Task 12)
+4. URL의 `watch`가 `,a,,a, b` 처럼 빈 조각, 중복, 공백을 가짐 → `['a', 'b']`로 읽고, 별을 누르면 URL에는 정리된 값이 쓰인다. (Task 8b)
+5. `navigator.clipboard`가 없거나 `writeText`가 거부됨(권한, 비보안 컨텍스트) → 예외 없이 코드를 선택할 수 있는 글상자를 보여 준다. (Task 12b)
 
 ---
 
@@ -61,15 +61,16 @@ src/admin/pages/devtools/
 │  ├─ config.ts                 # 새로: 상수 (Task 5)
 │  ├─ report.ts                 # 새로: 요청, 파싱, 합계, 비교, 강조 (Task 5)
 │  ├─ report.test.ts
-│  ├─ __fixtures__/stream.json, stream-empty.json
+│  ├─ __fixtures__/stream.json, stream-empty.json, withExtra.ts
 │  ├─ pollPolicy.ts             # 새로 (Task 6)
 │  ├─ pollPolicy.test.ts
 │  ├─ useEventStream.ts         # 새로 (Task 7)
 │  ├─ useEventStream.test.tsx
-│  ├─ StreamStatus.tsx          # 새로 (Task 8)
-│  ├─ StreamTable.tsx           # 새로 (Task 8)
-│  ├─ EventStreamPage.tsx       # 새로 (Task 8)
-│  ├─ EventStreamPage.menu.ts   # 새로 (Task 8)
+│  ├─ StreamStatus.tsx          # 새로 (Task 8a)
+│  ├─ StreamTable.tsx           # 새로 (Task 8a)
+│  ├─ streamParts.test.tsx      # 새로 (Task 8a)
+│  ├─ EventStreamPage.tsx       # 새로 (Task 8b)
+│  ├─ EventStreamPage.menu.ts   # 새로 (Task 8b)
 │  ├─ EventStreamPage.test.tsx
 │  └─ event-stream.css
 └─ event-dictionary/
@@ -78,17 +79,25 @@ src/admin/pages/devtools/
    ├─ __fixtures__/observed.json, recent.json, metadata.json
    ├─ dictionary.ts             # 새로: 합치기, 상태, 필터 (Task 11)
    ├─ dictionary.test.ts
-   ├─ useEventDictionary.ts     # 새로 (Task 12)
-   ├─ DictionaryTable.tsx       # 새로 (Task 12)
-   ├─ EventDictionaryPage.tsx   # 새로 (Task 12)
+   ├─ useEventDictionary.ts     # 새로 (Task 12a)
+   ├─ useEventDictionary.test.tsx
+   ├─ DictionaryTable.tsx       # 새로 (Task 12b)
+   ├─ EventDictionaryPage.tsx   # 새로 (Task 12b)
    ├─ EventDictionaryPage.menu.ts
    ├─ EventDictionaryPage.test.tsx
    └─ event-dictionary.css
 ```
 
-Task 1~4는 서로 독립이다. Task 5~9는 스트림, Task 10~12는 사전이다. 사전은 Task 1, 2, 3, 4에만 기대므로 스트림과 순서를 바꿔도 된다.
+Task 1~4는 서로 독립이다. Task 5~9는 스트림, Task 10~12b는 사전이다. 사전은 Task 1, 2, 3, 4에만 기대므로 스트림과 순서를 바꿔도 된다.
 
 페이지 테스트는 `src/admin/pages/pages2.test.tsx`의 방식을 따른다: `vi.hoisted`로 가짜 `client`를 만들고 `vi.mock('../../../hooks/useGa', ...)`로 `useGa`를 바꾼 뒤 `QueryClientProvider`와 `NavProvider`로 감싸 그린다.
+
+테스트에서 지킬 것:
+
+- 가짜 타이머를 쓰는 테스트는 `fireEvent`와 `pages2.test.tsx`의 `advance()` 도우미를 쓴다. `userEvent`는 쓰지 않는다. 가짜 `setTimeout` 아래에서 `userEvent`는 끝나지 않는 타이머를 기다리고, `userEvent.setup()`은 `navigator.clipboard`를 자기 것으로 바꿔 버린다.
+- `fireEvent.click`은 포커스를 옮기지 않는다. 포커스를 확인하는 테스트는 먼저 `button.focus()`를 부른다.
+- `NavProvider`에는 `lookup`을 넘긴다: `isMenu`는 `event-stream`과 `event-dictionary`를 알고, `usesPeriod`는 `event-dictionary`에만 `true`다. URL은 `window.history.replaceState`로 정한다.
+- 탭 가려짐은 `Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' })` 뒤에 `document.dispatchEvent(new Event('visibilitychange', { bubbles: true }))`로 만들고, `afterEach`에서 `Reflect.deleteProperty(document, 'visibilityState')`로 되돌린다. 훅은 `document`에서 듣는다.
 
 ---
 
@@ -287,6 +296,13 @@ it('replaces page params without a history entry when already on the menu', () =
   expect(pushSpy).not.toHaveBeenCalled()
   expect(replaceSpy).toHaveBeenLastCalledWith(null, '', '/admin/?menu=utm&q=new')
 })
+it('does nothing when the menu and params are already current', () => {
+  const { result, pushSpy, replaceSpy } = setup('/admin/?menu=utm&q=same')
+  pushSpy.mockClear(); replaceSpy.mockClear()
+  act(() => result.current.nav.setMenu('utm', { q: 'same' }))
+  expect(pushSpy).not.toHaveBeenCalled()
+  expect(replaceSpy).not.toHaveBeenCalled()
+})
 it('still ignores the same menu without params and clears params on a plain change', () => {
   const { result, pushSpy } = setup('/admin/?menu=utm&q=old')
   pushSpy.mockClear()
@@ -307,7 +323,7 @@ it('ignores an unknown menu even with params', () => {
 
 - [ ] **Step 2: 실패를 확인한다.** Run: `npx vitest run src/admin/menu/NavContext.test.tsx` Expected: FAIL
 
-- [ ] **Step 3: `NavValue.setMenu`와 구현을 고친다.** 예약어는 `RESERVED_PARAMS`로 거른다. 같은 메뉴 + `params` 있음은 `commit(..., 'replace')`, 다른 메뉴는 `commit(..., 'push')`. `setMenu`는 계속 안정된 참조여야 한다.
+- [ ] **Step 3: `NavValue.setMenu`와 구현을 고친다.** 예약어는 `RESERVED_PARAMS`로 거른다. 같은 메뉴에 지금과 똑같은 `params`를 주면 아무 일도 하지 않는다(기존 테스트 "does not touch history when a value is unchanged"와 같은 규칙). 같은 메뉴 + `params` 있음은 `commit(..., 'replace')`, 다른 메뉴는 `commit(..., 'push')`. `setMenu`는 계속 안정된 참조여야 한다.
 
 - [ ] **Step 4: README 3번 항목에 한 문장을 더한다.** "다른 메뉴를 페이지 상태와 함께 열려면 `useNav().setMenu(id, { key: 값 })`을 써요."
 
@@ -381,7 +397,7 @@ it('has a visible label', () => {
 - Create: `src/admin/pages/devtools/event-stream/config.ts`, `report.ts`, `report.test.ts`, `__fixtures__/stream.json`, `__fixtures__/stream-empty.json`
 
 **Interfaces:**
-- Consumes: `eventLabel` (Task 1), `PropertyQuota`, `RunRealtimeReportRequest`, `RunReportResponse` (Task 2), `toRows` (`ga/reports/common.ts`)
+- Consumes: `findEvent` (Task 1), `PropertyQuota`, `RunRealtimeReportRequest`, `RunReportResponse` (Task 2), `toRows` (`ga/reports/common.ts`)
 - Produces:
 
 ```ts
@@ -405,7 +421,7 @@ export type StreamRow = { event: string; minutesAgo: number; platform: string; v
 export type StreamSnapshot = { rows: StreamRow[]; truncated: boolean; fetchedAt: number; quota: PropertyQuota | null }
 export type DimFilter = { platform: string | null; version: string | null }
 export type EventLine = {
-  name: string; label: string; registered: boolean; watched: boolean
+  name: string; label: string; inCatalog: boolean; watched: boolean   // label: 카탈로그 라벨, 없거나 비면 name
   now: number; last5: number; total: number
   perMinute: number[]            // 길이 30, 오래된 분이 먼저 (index 0 = 29분 전)
 }
@@ -420,13 +436,19 @@ export function diffSnapshots(prev: StreamSnapshot | null, next: StreamSnapshot,
 export function mergeHighlights(current: ReadonlyMap<string, Highlight>, changes: ReadonlyMap<string, Change>, now: number): Map<string, Highlight>
 export function parseWatch(param: string | null): string[]
 export function toggleWatch(watch: readonly string[], name: string): string | null   // URL에 쓸 값, 비면 null
+
+// __fixtures__/withExtra.ts (Task 7, 8b의 테스트도 쓴다)
+export function withExtra(
+  res: RunReportResponse,
+  rows: [event: string, minutesAgo: number, platform: string, version: string, count: number][],
+): RunReportResponse   // rows를 더하고 rowCount를 맞춘 새 응답
 ```
 
 규칙:
 - `buildStreamRequest`: 스펙 "조회"의 값 그대로. `orderBys: [{ dimension: { dimensionName: 'minutesAgo', orderType: 'NUMERIC' } }]`, `limit: ROW_LIMIT`.
-- `parseStream`: 빈 값과 `(not set)`인 `platform`, `appVersion`은 `NOT_SET`으로 합친다. `truncated`는 `(res.rowCount ?? 0) > rows.length`. `quota`는 `res.propertyQuota ?? null`.
+- `parseStream`: 빈 값과 `(not set)`인 `platform`, `appVersion`은 `NOT_SET`으로 합친다. `truncated`는 `(res.rowCount ?? 0) > (res.rows?.length ?? 0)`. 받은 원본 행 수와 비교한다. `quota`는 `res.propertyQuota ?? null`.
 - `filterOptions`: 스냅샷에 나온 값을 정렬해 돌려주고, `selected`의 값이 목록에 없으면 더한다.
-- `toLines`: `dim`으로 거른 행을 이벤트별로 합친다. 정렬은 지켜보는 것 먼저, 그다음 `total` 내림차순, 같으면 이름 순. `q`는 이름과 라벨에서 대소문자 없이 **글자 그대로** 찾는다(정규식 아님). 지켜보는 이벤트는 `q`와 상관없이 포함하고, 스냅샷에 없으면 0으로 채운 줄을 만든다.
+- `toLines`: `dim`으로 거른 행을 이벤트별로 합친다. `inCatalog`는 `findEvent(name) !== undefined`다. 라벨이 빈 카탈로그 항목은 `label === name`, `inCatalog === true`다. 정렬은 지켜보는 것 먼저, 그다음 `total` 내림차순, 같으면 이름 순. `q`는 이름과 라벨에서 대소문자 없이 **글자 그대로** 찾는다(정규식 아님). 지켜보는 이벤트는 `q`와 상관없이 포함하고, 스냅샷에 없으면 0으로 채운 줄을 만든다.
 - `diffSnapshots`: `prev`가 `null`이거나 `next.fetchedAt - prev.fetchedAt > BASELINE_MAX_AGE_MS`이면 빈 맵. 그 밖에는 두 스냅샷을 같은 `dim`으로 합쳐서 비교한다. `prev`에 없던 이벤트는 `{ kind: 'new', delta: last5 }`, `last5`가 늘어난 이벤트는 `{ kind: 'up', delta: 늘어난 양 }`. 줄어든 것과 그대로인 것은 넣지 않는다.
 - `mergeHighlights`: `now - at >= HIGHLIGHT_TTL_MS`인 것을 버린다. 남은 것에 `changes`를 더한다: 이미 있으면 `delta`를 더하고 `at`을 `now`로 바꾸며 `kind`는 기존 것이 `'new'`면 `'new'`로 둔다.
 - `parseWatch`: 쉼표로 나누고 앞뒤 공백을 지우고 빈 조각과 중복을 버린다. 순서는 처음 나온 순서.
@@ -468,7 +490,7 @@ it('lists filter options and keeps a selected value that is absent', () => {
 })
 it('sums now, last 5 minutes, 30 minutes and fills 30 buckets oldest first', () => {
   const [first] = toLines(parseStream(stream, 0), { platform: null, version: null }, '', [])
-  expect(first).toMatchObject({ name: 'screen_view', label: '화면 조회', registered: true, now: 3, last5: 9, total: 14 })
+  expect(first).toMatchObject({ name: 'screen_view', label: '화면 조회', inCatalog: true, now: 3, last5: 9, total: 14 })
   expect(first.perMinute).toHaveLength(30)
   expect(first.perMinute[29]).toBe(3)   // 0분 전
   expect(first.perMinute[28]).toBe(2)   // 1분 전
@@ -493,8 +515,17 @@ it('searches name and label literally and case-insensitively', () => {
 it('keeps watched events regardless of the search and adds a zero row when absent', () => {
   const lines = toLines(parseStream(stream, 0), { platform: null, version: null }, 'purchase', ['screen_view', 'not_yet'])
   expect(lines.map((l) => l.name)).toEqual(['screen_view', 'not_yet', 'purchase_done'])
-  expect(lines[1]).toMatchObject({ watched: true, registered: false, now: 0, last5: 0, total: 0 })
+  expect(lines[1]).toMatchObject({ watched: true, inCatalog: false, label: 'not_yet', now: 0, last5: 0, total: 0 })
   expect(lines[1].perMinute).toEqual(Array(30).fill(0))
+})
+it('orders watched events by total, not by the order in the URL', () => {
+  const names = toLines(parseStream(stream, 0), { platform: null, version: null }, '', ['not_yet', 'screen_view']).map((l) => l.name)
+  expect(names.slice(0, 2)).toEqual(['screen_view', 'not_yet'])
+})
+it('marks catalogue membership', () => {
+  const lines = toLines(parseStream(stream, 0), { platform: null, version: null }, '', [])
+  expect(lines.find((l) => l.name === 'purchase_done')).toMatchObject({ inCatalog: false, label: 'purchase_done' })
+  expect(lines.find((l) => l.name === 'session_start')).toMatchObject({ inCatalog: true, label: '앱 실행' })
 })
 it('diffs against the previous snapshot under the current filter', () => {
   const prev = parseStream(stream, 0)
@@ -528,7 +559,7 @@ it('parses and toggles the watch param', () => {
 })
 ```
 
-`withExtra(res, rows)`는 테스트 파일 안의 도우미다. fixture의 `rows`에 `[event, minutesAgo, platform, version, count]` 행을 더하고 `rowCount`를 맞춘다.
+`withExtra`는 `__fixtures__/withExtra.ts`에 둔다(Interfaces).
 
 - [ ] **Step 3: 실패를 확인한다.** Run: `npx vitest run src/admin/pages/devtools/event-stream/report.test.ts` Expected: FAIL
 
@@ -571,7 +602,7 @@ export function reasonText(d: PollDecision): string
 
 - `quotaShare`: `q`가 `null`이면 `null`. 세 항목 각각 `remaining / REALTIME_LIMITS[항목]`을 0~1로 자른 값 중 최소. 세 항목이 다 없으면 `1`.
 - `decidePoll`: 스펙의 멈춤 표(위에서부터) → 평소 주기 표(위에서부터) → 실패가 있으면 `min(MAX_BACKOFF_MS, max(평소 주기, BASE_INTERVAL_MS × 2^failures))`에 `reason: 'retrying'`. `quotaShare`가 `null`이면 한도 조건은 모두 건너뛴다.
-- `reasonText`: 스펙 표의 문구. `'normal'`은 `` `${intervalMs / 1000}초마다 갱신 중` ``, `'hidden'`은 빈 문자열.
+- `reasonText`: 스펙 표의 문구. `'normal'`은 `` `${intervalMs / 1000}초마다 갱신 중` ``, `'quota_saving'`은 `` `실시간 조회 한도를 아끼려고 ${intervalMs / 1000}초마다 갱신해요` ``, `'hidden'`은 빈 문자열.
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
@@ -677,7 +708,10 @@ export function useEventStream(dim: DimFilter): EventStream
 - `visible`은 `document.visibilityState`와 `visibilitychange`로 따른다. 다시 보이게 됐을 때 `decidePoll`의 결과가 멈춤이 아니면 바로 한 번 조회한다.
 - 조작은 `document`의 `pointerdown`, `keydown`, `wheel`, `scroll`(모두 `passive`, `scroll`은 `capture`)이다. 마지막 조작 뒤 `IDLE_AFTER_MS`가 지나면 다시 그려서 주기가 느려지게 한다(조작마다 다시 그리지 않는다. 타이머 하나를 다시 건다). 느려진 상태에서 조작이 생기면 원래 주기로 돌아오고, 스냅샷이 `BASE_INTERVAL_MS`보다 오래됐으면 바로 한 번 조회한다.
 - `refreshNow`는 일시정지와 멈춤 상태에서도 조회한다.
-- 만료된 강조를 지우기 위한 타이머는 두지 않는다. 강조는 조회가 성공할 때 정리되고, 표가 그릴 때 `at`으로 한 번 더 거른다(Task 8).
+- `setPaused(false)`로 다시 시작하면 바로 한 번 조회한다. 오래 멈춰 둔 표가 5초 더 남아 있으면 안 된다.
+- idle 타이머는 마지막 조작 뒤 `IDLE_AFTER_MS + 1`에 건다. `decidePoll`은 `idleMs`가 `IDLE_AFTER_MS`를 넘어야 idle로 본다.
+- `dim`이 바뀌면 `highlights`를 비운다. 다른 필터에서 생긴 `▲ +n`이 지금 필터의 숫자 옆에 남으면 틀리다.
+- 만료된 강조를 지우기 위한 타이머는 두지 않는다. 강조는 조회가 성공할 때 정리되고, 표가 그릴 때 `at`으로 한 번 더 거른다(Task 8a).
 - `StrictMode`에서 리스너와 타이머가 한 벌만 남는다.
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다.** `renderHook`, 가짜 타이머(`vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] })`), `useGa`를 mock해서 `client.runRealtimeReport`를 `vi.fn()`으로 둔다. `document.visibilityState`는 `Object.defineProperty`로 바꾸고 `visibilitychange`를 직접 보낸다. fixture는 Task 5의 것을 쓴다.
@@ -689,7 +723,9 @@ it('fetches on mount and then every 5 seconds', async () => {
 it('slows to 15 seconds when under half the hourly quota is left', async () => {
   // 응답의 tokensPerHour.remaining = 19_000 → decision.reason 'quota_saving' → 5초 뒤 호출 없음, 15초 뒤 호출
 })
-it('stops when paused, still fetches on refreshNow, resumes on unpause', async () => {})
+it('stops when paused, still fetches on refreshNow, and fetches at once on resume', async () => {
+  // setPaused(true) → 10초 지나도 호출 없음 → refreshNow() → +1 → setPaused(false) → 즉시 +1 → 5초 뒤 +1
+})
 it('stops while hidden and fetches at once when visible again', async () => {})
 it('does not fetch on becoming visible while paused', async () => {})
 it('backs off after network errors and recovers after a success', async () => {
@@ -707,8 +743,15 @@ it('stops on bad_request', async () => {})
 it('does not count auth errors as failures', async () => {
   // GaError('auth') → decision.reason은 'retrying'이 아니다
 })
-it('slows down after 10 idle minutes and catches up on activity', async () => {
-  // 10분 + 1ms 경과 → decision.reason 'idle' → pointerdown → decision.reason 'normal'이고 호출이 즉시 1회 늘어난다
+it('slows down after 10 idle minutes and catches up on activity when the data is old', async () => {
+  // 600,001ms 경과 → decision.reason 'idle' → 30초 더 경과(그 사이 호출 없음) → pointerdown
+  // → decision.reason 'normal'이고 호출이 즉시 1회 늘어난다
+})
+it('does not fetch on activity when the data is fresh', async () => {
+  // 600,001ms 경과 → 'idle' → 곧바로 pointerdown → 'normal', 호출은 늘지 않는다(직전 조회가 5초 안)
+})
+it('clears highlights when the filter changes', async () => {
+  // 강조가 생긴 뒤 rerender({ platform: 'Android', version: null }) → highlights.size === 0
 })
 it('highlights events that appear or grow between polls, under the current filter', async () => {
   // 1번째 응답 stream, 2번째 응답 withExtra(...) → highlights.get('new_event') 는 { kind: 'new', delta: 1, at: <2번째 fetchedAt> }
@@ -730,78 +773,154 @@ it('runs one timer and one set of listeners under StrictMode and cleans up on un
 
 ---
 
-### Task 8: 스트림 화면
+### Task 8a: 스트림의 상태 줄과 표
 
-스펙 §2 전체를 읽는다. 문구, 표의 열, 상태별 화면, "모바일과 접근성"은 스펙을 그대로 따른다.
+스펙 §2의 "화면"(상태 줄, 표), "변화 강조", "모바일과 접근성"을 읽는다.
 
 **Files:**
-- Create: `src/admin/pages/devtools/event-stream/StreamStatus.tsx`, `StreamTable.tsx`, `EventStreamPage.tsx`, `EventStreamPage.menu.ts`, `EventStreamPage.test.tsx`, `event-stream.css`
+- Create: `src/admin/pages/devtools/event-stream/StreamStatus.tsx`, `StreamTable.tsx`, `streamParts.test.tsx`, `event-stream.css`
 
 **Interfaces:**
-- Consumes: `useEventStream`, `EventStream` (Task 7), `toLines`, `filterOptions`, `parseWatch`, `toggleWatch`, `EventLine`, `Highlight`, `NOT_SET` (Task 5), `reasonText` (Task 6), `SearchField` (Task 4), `usePageParam`, `useNav` (Task 3), `Card`, `CardState`, `displayDim`, `formatNumber`
-- Produces: `export function EventStreamPage(): ReactElement`, 메뉴 정의(스펙 §2 "메뉴" 표의 값, 아이콘은 `lucide-react`의 `Radio`)
+- Consumes: `EventLine`, `Highlight`, `StreamSnapshot` (Task 5), `PollDecision`, `reasonText` (Task 6), `HIGHLIGHT_TTL_MS`, `formatNumber`
+- Produces:
 
-컴포넌트 경계:
-- `StreamStatus({ decision, updatedAt, paused, onPause, onRefresh, snapshot })`: 상태 줄. 주기 문장은 `role="status"` 안에, "마지막 갱신 HH:mm:ss"(서울 시간)는 그 밖에 둔다. `import.meta.env.DEV`일 때만 진단 줄을 그린다: 직전 요청이 쓴 토큰(`quota.tokensPerHour.consumed`), 세 한도의 `remaining`, 받은 행 수.
-- `StreamTable({ lines, highlights, onToggleWatch, onOpenDictionary })`: 표. `<tr key={line.name}>`. 1초마다 다시 그려서 "n초 전"을 갱신하고 `HIGHLIGHT_TTL_MS`가 지난 강조를 숨긴다(타이머는 보이는 강조가 있을 때만 돈다). 추이 막대는 `aria-hidden`인 인라인 SVG이고 막대 30개, 높이는 그 줄의 최댓값 대비다.
-- `EventStreamPage`: `usePageParam`으로 `q`, `platform`, `ver`, `watch`를 읽고 쓴다. 빈 상태와 안내 문구를 그린다. 지켜보는 이벤트에 변화가 있을 때만 `aria-live="polite"` 영역에 "<라벨> n번 더 들어왔어요"(`'new'`면 "<라벨> 새로 들어왔어요")를 쓴다.
+```ts
+export function StreamStatus(props: {
+  decision: PollDecision
+  snapshot: StreamSnapshot | undefined
+  paused: boolean
+  onPause(paused: boolean): void
+  onRefresh(): void
+}): ReactElement
+export function StreamTable(props: {
+  lines: readonly EventLine[]
+  highlights: ReadonlyMap<string, Highlight>
+  onToggleWatch(name: string): void
+  onOpenDictionary(name: string): void
+}): ReactElement
+```
 
 정한 것:
-- 플랫폼과 앱 버전 선택 상자의 첫 항목은 `전체`(값 `''` → 파라미터 `null`)다. `NOT_SET`은 `알 수 없음`으로 보인다.
-- 별 버튼의 이름은 `` `${line.name} 지켜보기` ``, `aria-pressed`를 쓴다. 아이콘은 `lucide-react`의 `Star`이고 켜졌을 때 `fill="currentColor"`다.
-- 강조 문구: `'new'`는 태그 `새로 들어옴 · n초 전`, `'up'`은 텍스트 `▲ +n · m초 전`.
-- `사전에서 보기`는 `registered`가 `false`인 줄에만 있고 `setMenu('event-dictionary', { event: line.name })`을 부른다.
-- 첫 조회 실패가 `GaError`의 `quota`면 `CardState` 대신 `reasonText({ intervalMs: null, reason: 'quota_exhausted' })`와 `다시 시도` 버튼을 그린다. 그 밖의 첫 조회 중과 실패는 `CardState`(`isEmpty={false}`)에 맡긴다.
-- 카드 제목은 `최근 30분 이벤트`.
-- 이 메뉴는 `usesGa: false`지만 `useGa()`를 쓴다. 구현 전에 `src/admin/App.tsx`에서 `GaProvider`가 `usesGa`와 상관없이 모든 페이지를 감싸는지 확인한다. 감싸지 않으면 멈추고 보고한다(셸을 고쳐야 한다는 뜻이다).
+- `StreamStatus`: 주기 문장(`reasonText(decision)`)은 `role="status"` 안에, "마지막 갱신 HH:mm:ss"는 그 밖에 둔다. 시각은 `snapshot.fetchedAt`을 서울 시간으로 쓴다(`RealtimePage.tsx`의 `updatedAt` 포매터와 같은 설정). `snapshot`이 없으면 주기 문장과 마지막 갱신을 그리지 않는다. 버튼은 `일시정지`/`다시 시작`과 `지금 새로고침`.
+- 진단 줄: `import.meta.env.DEV`일 때만 그린다. 글자는 `` `진단(개발 모드): 직전 요청 ${consumed}토큰 · 남은 한도 시간 ${a} / 프로젝트 ${b} / 하루 ${c} · ${rows}행` ``. 값이 없으면 `—`.
+- `StreamTable`: `<tr key={line.name}>`. 열은 스펙 "표"의 여섯 개다. 강조가 보이는 동안만 1초 타이머로 다시 그려 "n초 전"을 갱신하고, `HIGHLIGHT_TTL_MS`가 지난 강조는 그리지 않는다.
+- 강조 문구: `'new'`는 태그 `` `새로 들어옴 · ${n}초 전` ``, `'up'`은 텍스트 `` `▲ +${delta} · ${n}초 전` ``.
+- 별 버튼의 이름은 `` `${line.name} 지켜보기` ``, `aria-pressed`. 아이콘은 `lucide-react`의 `Star`이고 켜졌을 때 `fill="currentColor"`.
+- `사전에 없음` 태그와 `사전에서 보기` 버튼은 `inCatalog`가 `false`인 줄에만 있다.
+- 추이는 `aria-hidden`인 인라인 SVG, 막대 30개, 높이는 그 줄의 최댓값 대비다.
 
-- [ ] **Step 1: 실패하는 테스트를 쓴다** (`EventStreamPage.test.tsx`). `NavProvider`에 두 메뉴를 아는 `lookup`을 넘기고 `window.history.replaceState`로 URL을 정한다.
+- [ ] **Step 1: 실패하는 테스트를 쓴다** (`streamParts.test.tsx`)
+
+```ts
+it('puts the interval sentence in the status region and the time outside it', () => {
+  // decision { intervalMs: 5000, reason: 'normal' }, fetchedAt = Date.UTC(2026, 9, 8, 5, 2, 31)
+  // getByRole('status')의 글자는 '5초마다 갱신 중', '마지막 갱신 14:02:31'은 status 밖에 있다
+})
+it('shows neither before the first snapshot', () => {})
+it('swaps the pause button and reports clicks', () => {
+  // paused=false: '일시정지' → onPause(true). paused=true: '다시 시작' → onPause(false). '지금 새로고침' → onRefresh
+})
+it('shows the diagnostics line in dev', () => {
+  // getByText(/^진단\(개발 모드\): 직전 요청 3토큰/)
+})
+it('renders a row per line with label, raw name and three counts', () => {})
+it('shows the catalogue tag and the dictionary button only for events outside the catalogue', () => {})
+it('names and presses the star', () => {
+  // getByRole('button', { name: 'screen_view 지켜보기' })의 aria-pressed가 watched를 따른다, 클릭 → onToggleWatch('screen_view')
+})
+it('words highlights with their age and hides them after 60 seconds', () => {
+  // 가짜 타이머. at = now - 8000 → '▲ +3 · 8초 전' → 1초 뒤 '9초 전' → at에서 60초가 되면 없어진다
+  // kind 'new' → '새로 들어옴 · 8초 전'
+})
+it('hides the trend from assistive tech', () => {
+  // 추이 svg에 aria-hidden="true", rect 30개
+})
+```
+
+- [ ] **Step 2: 실패를 확인한다.** Run: `npx vitest run src/admin/pages/devtools/event-stream/streamParts.test.tsx` Expected: FAIL
+- [ ] **Step 3: 두 컴포넌트를 구현한다.**
+- [ ] **Step 4: `event-stream.css`를 쓴다.** 클래스는 모두 `adm-event-stream-`으로 시작한다. 960px 미만: 추이 열을 숨기고, 이벤트 칸은 `white-space: normal`, 태그와 강조는 이름 아래 줄. 별 버튼과 `사전에서 보기`는 `min-width`/`min-height: var(--adm-hit)`. 선택 상자의 글자 크기는 `var(--adm-fs-md)`. 강조된 줄의 배경은 `var(--adm-accent-soft)`에서 투명으로 가는 애니메이션이고 `prefers-reduced-motion: reduce`에서 끈다. 추이 막대의 색은 `var(--adm-accent)`.
+- [ ] **Step 5: 통과를 확인한다.** Run: `npm run typecheck && npm test` Expected: PASS
+- [ ] **Step 6: Commit** — `feat(admin): add the event stream status line and table`
+
+---
+
+### Task 8b: 스트림 페이지와 메뉴
+
+스펙 §2 전체를 읽는다. 문구와 상태별 화면은 스펙을 그대로 따른다.
+
+**Files:**
+- Create: `src/admin/pages/devtools/event-stream/EventStreamPage.tsx`, `EventStreamPage.menu.ts`, `EventStreamPage.test.tsx`
+- Modify: `event-stream.css`(필터 줄과 빈 상태의 모양)
+
+**Interfaces:**
+- Consumes: `useEventStream` (Task 7), `StreamStatus`, `StreamTable` (Task 8a), `toLines`, `filterOptions`, `parseWatch`, `toggleWatch`, `NOT_SET`, `withExtra` (Task 5), `reasonText` (Task 6), `SearchField` (Task 4), `usePageParam`, `useNav` (Task 3), `Card`, `CardState`, `displayDim`, `GaError`
+- Produces: `export function EventStreamPage(): ReactElement`, 메뉴 정의(스펙 §2 "메뉴" 표의 값, 아이콘은 `lucide-react`의 `Radio`)
+
+정한 것:
+- `usePageParam`으로 `q`, `platform`, `ver`, `watch`를 읽고 쓴다.
+- 플랫폼과 앱 버전 선택 상자의 첫 항목은 `전체`(값 `''` → 파라미터 `null`)다. `NOT_SET`은 `알 수 없음`으로 보이고 URL에는 `(not set)`으로 쓴다. 두 상자에는 보이는 라벨 `플랫폼`, `앱 버전`이 있다.
+- 카드 제목은 `최근 30분 이벤트`. 카드 아래에 안내 "여러 사람이 함께 쓰면 이벤트가 섞여 보여요. 플랫폼과 앱 버전으로 좁혀 보세요."를 `adm-page__note`로 둔다.
+- 빈 상태는 **지켜보지 않는 줄이 0개일 때** 그린다. 지켜보는 줄이 있으면 표를 그리고 그 아래에 빈 상태를 둔다. 스냅샷의 행이 0개면 "최근 30분 동안 …", 그 밖에는 "조건에 맞는 이벤트가 없어요"와 `필터 지우기`다.
+- `필터 지우기`는 `q`, `platform`, `ver`를 `null`로 쓴다. `watch`는 남긴다.
+- 지켜보는 이벤트에 새 강조가 생겼을 때만 `aria-live="polite"` 영역에 "<라벨> n번 더 들어왔어요"(`'new'`면 "<라벨> 새로 들어왔어요")를 쓴다.
+- `사전에서 보기`는 `setMenu('event-dictionary', { event: name })`을 부른다.
+- 첫 조회 실패가 `GaError`의 `quota`면 `CardState` 대신 `reasonText({ intervalMs: null, reason: 'quota_exhausted' })`와 `다시 시도` 버튼(`refreshNow`)을 그린다. 이때 상태 줄은 스냅샷이 없어서 문장을 그리지 않으므로(Task 8a) 문구는 한 번만 나온다. 그 밖의 첫 조회 중과 실패는 `CardState`(`isEmpty={false}`)에 맡긴다.
+- 잘림 안내는 표 아래에 둔다.
+- 이 메뉴는 `usesGa: false`지만 `useGa()`를 쓴다. `GaProvider`는 `usesGa`와 상관없이 모든 페이지를 감싼다(`src/admin/App.tsx`).
+
+- [ ] **Step 1: 실패하는 테스트를 쓴다** (`EventStreamPage.test.tsx`)
 
 ```ts
 it('lists events with now, 5-minute and 30-minute counts', async () => {
-  // 행 이름 '화면 조회' 안에 'screen_view', 셀 3 / 9 / 14
-})
-it('shows the status line and the last update outside the live region', async () => {
-  // getByRole('status')에 '5초마다 갱신 중', 그 안에 '마지막 갱신'은 없다
+  // 행 '화면 조회' 안에 'screen_view', 셀 3 / 9 / 14. 안내 '여러 사람이 함께 쓰면 …'이 있다
 })
 it('filters by platform without another request', async () => {
   // 플랫폼을 iOS로 → screen_view 30분 값 2, runRealtimeReport 호출 수 그대로, URL에 platform=iOS
 })
+it('writes (not set) for the unknown option', async () => {
+  // 앱 버전에서 '알 수 없음' 선택 → new URLSearchParams(location.search).get('ver') === '(not set)'
+})
 it('reads filters from the URL and keeps an absent selected value in the list', async () => {
-  // /admin/?menu=event-stream&platform=web → 플랫폼 선택 값 'web', '조건에 맞는 이벤트가 없어요'
+  // ?menu=event-stream&platform=web → 플랫폼 선택 값 'web', '조건에 맞는 이벤트가 없어요'
 })
 it('clears q, platform and ver but keeps watch', async () => {
-  // '필터 지우기' → URL은 ?menu=event-stream&watch=screen_view
+  // ?q=x&platform=iOS&ver=1.4.0&watch=screen_view → '필터 지우기' → location.search === '?menu=event-stream&watch=screen_view'
 })
 it('pins watched events, shows a zero row for one that has not arrived, and ignores the search for them', async () => {
   // ?watch=not_yet&q=purchase → 첫 행 not_yet(0, 0, 0), 다음 purchase_done
 })
+it('shows the no-match state under the watched rows', async () => {
+  // ?watch=not_yet&platform=web → not_yet 행이 있고 '조건에 맞는 이벤트가 없어요'와 '필터 지우기'도 있다
+})
+it('shows the nothing-arrived state under the watched rows', async () => {
+  // 응답 stream-empty, ?watch=not_yet → not_yet 행과 '최근 30분 동안 들어온 이벤트가 없어요. 앱에서 이벤트를 보내면 여기에 나타나요.'
+})
 it('normalises a messy watch param when a star is pressed', async () => {
   // ?watch=,a,,a, b → 'screen_view 지켜보기' 누름 → URL의 watch 값은 'a,b,screen_view'
 })
-it('keeps focus on the star after the row moves to the top', async () => {})
-it('tags new and grown events and announces only watched ones', async () => {
-  // 2번째 응답에 new_event와 screen_view +2, watch=screen_view
-  // '새로 들어옴' 태그, '▲ +2' 텍스트, live 영역에는 '화면 조회 2번 더 들어왔어요'만
+it('keeps focus on the star after the row moves to the top', async () => {
+  // button.focus() → fireEvent.click → document.activeElement가 같은 이름의 버튼
 })
-it('drops a highlight 60 seconds after it appeared', async () => {})
+it('tags new and grown events and announces only watched ones', async () => {
+  // 2번째 응답 withExtra(stream, [['screen_view', 0, 'iOS', '1.4.0', 2], ['new_event', 0, 'Android', '1.5.0', 1]]), watch=screen_view
+  // '새로 들어옴' 태그와 '▲ +2' 텍스트가 있고, live 영역의 글자는 '화면 조회 2번 더 들어왔어요'뿐이다
+})
 it('pauses and resumes', async () => {
-  // '일시정지' → 버튼이 '다시 시작', 상태 '일시정지했어요', 10초 지나도 호출 없음
+  // '일시정지' → 버튼 '다시 시작', 상태 '일시정지했어요', 10초 지나도 호출 없음 → '다시 시작' → 호출 +1
 })
 it('keeps the table when a refresh fails', async () => {
   // 2번째 조회 GaError('network') → 표는 그대로, 상태 '불러오지 못해서 다시 시도하고 있어요'
 })
-it('shows the realtime quota message when the first load hits the quota', async () => {
-  // '실시간 조회 한도를 다 써서 …'가 보이고 '오늘 조회 한도'는 없다
-})
-it('shows the empty state when nothing arrived in 30 minutes', async () => {
-  // '최근 30분 동안 들어온 이벤트가 없어요. 앱에서 이벤트를 보내면 여기에 나타나요.'
+it('shows the realtime quota message once when the first load hits the quota', async () => {
+  // getByText('실시간 조회 한도를 다 써서 자동 갱신을 멈췄어요. 한 시간쯤 뒤에 다시 시도해 주세요.')가 예외 없이 하나를 찾고
+  // '오늘 조회 한도'는 없다. '다시 시도' → 호출 +1
 })
 it('warns when rows were truncated', async () => {
   // '이벤트가 많아서 오래된 기록 일부가 빠졌어요. 30분 횟수가 실제보다 적을 수 있어요.'
 })
 it('opens the dictionary on the event', async () => {
-  // purchase_done의 '사전에서 보기' → URL은 ?menu=event-dictionary&period=7d&event=purchase_done
+  // purchase_done의 '사전에서 보기' → location.search === '?menu=event-dictionary&period=7d&event=purchase_done'
 })
 it('defines the menu', () => {
   expect(menu).toMatchObject({ id: 'event-stream', group: 'devtools', order: 210, label: '실시간 이벤트', usesPeriod: false, usesGa: false })
@@ -809,14 +928,9 @@ it('defines the menu', () => {
 ```
 
 - [ ] **Step 2: 실패를 확인한다.** Run: `npx vitest run src/admin/pages/devtools/event-stream/EventStreamPage.test.tsx` Expected: FAIL
-
-- [ ] **Step 3: 컴포넌트와 메뉴 정의를 구현한다.**
-
-- [ ] **Step 4: `event-stream.css`를 쓴다.** 클래스는 모두 `adm-event-stream-`으로 시작한다. 960px 미만: 추이 열을 숨기고, 이벤트 칸은 `white-space: normal`, 태그와 강조는 이름 아래 줄. 별 버튼과 `사전에서 보기`는 `min-width`/`min-height: var(--adm-hit)`. 선택 상자의 글자 크기는 `var(--adm-fs-md)`. 강조된 줄의 배경은 `var(--adm-accent-soft)`에서 투명으로 가는 애니메이션이고 `prefers-reduced-motion: reduce`에서 끈다. 추이 막대의 색은 `var(--adm-accent)`.
-
-- [ ] **Step 5: 통과와 빌드를 확인한다.** Run: `npm run typecheck && npm test && npm run build` Expected: PASS. 레지스트리 테스트(`src/admin/menu/registry.test.ts`)가 새 메뉴와 함께 통과한다.
-
-- [ ] **Step 6: Commit** — `feat(admin): add the realtime event stream page`
+- [ ] **Step 3: 페이지와 메뉴 정의를 구현한다.**
+- [ ] **Step 4: 통과와 빌드를 확인한다.** Run: `npm run typecheck && npm test && npm run build` Expected: PASS. 레지스트리 테스트(`src/admin/menu/registry.test.ts`)가 새 메뉴와 함께 통과한다.
+- [ ] **Step 5: Commit** — `feat(admin): add the realtime event stream page`
 
 ---
 
@@ -824,7 +938,7 @@ it('defines the menu', () => {
 
 스펙 §8. 구현자가 혼자 끝낼 수 없다. 사용자에게 요청하고 답을 기다린다.
 
-- [ ] **Step 1: 사용자에게 요청한다.** `npm run dev`로 어드민을 열고 `실시간 이벤트` 메뉴에서 아래를 확인해 달라고 한다.
+- [ ] **Step 1: 사용자에게 요청한다.** `npm run dev`로 어드민을 열고 `실시간 이벤트` 메뉴에서 아래를 확인해 달라고 한다. 이 시점에는 사전 메뉴가 아직 없어서 `사전에서 보기`를 눌러도 아무 일이 없다는 것도 알린다.
   1. 앱에서 이벤트를 보낸 뒤 화면에 나타날 때까지 걸린 시간(초)
   2. 진단 줄의 "직전 요청이 쓴 토큰" 값(여러 번 본 값의 범위)과 받은 행 수
   3. 세 한도의 남은 양
@@ -1081,15 +1195,15 @@ it('builds CSV rows', () => {
 
 ---
 
-### Task 12: 사전 화면
+### Task 12a: 사전 훅
 
-스펙 §3 전체를 읽는다. 문구, 표의 열, 상태별 화면, `event` 파라미터의 처리, "모바일과 접근성"은 스펙을 그대로 따른다.
+스펙 §3의 "원본 네 가지"(react-query 열)와 "상태별 화면"을 읽는다.
 
 **Files:**
-- Create: `src/admin/pages/devtools/event-dictionary/useEventDictionary.ts`, `DictionaryTable.tsx`, `EventDictionaryPage.tsx`, `EventDictionaryPage.menu.ts`, `EventDictionaryPage.test.tsx`, `event-dictionary.css`
+- Create: `src/admin/pages/devtools/event-dictionary/useEventDictionary.ts`, `useEventDictionary.test.tsx`
 
 **Interfaces:**
-- Consumes: Task 10과 11의 모든 것, `EVENT_CATALOG` (Task 1), `client.runReport`/`runRealtimeReport`/`getMetadata` (Task 2), `SearchField` (Task 4), `usePageParam`, `useGa`, `Card`, `CardState`, `CsvButton`, `formatNumber`, `displayDim`
+- Consumes: `buildObservedRequest`, `parseObserved`, `buildRecentRequest`, `parseRecent`, `parseMetadata`, `GaParam` (Task 10), `buildDictionary`, `DictionaryEntry` (Task 11), `EVENT_CATALOG` (Task 1), `client.runReport`/`runRealtimeReport`/`getMetadata` (Task 2), `useGa`
 - Produces:
 
 ```ts
@@ -1098,27 +1212,79 @@ export type EventDictionary = {
   observed: 'pending' | 'error' | 'ready' | 'invalid-period'
   recentFailed: boolean
   retryObserved(): void
+  range: { startDate: string; endDate: string } | null     // useGa().ranges?.current
   params: { data: GaParam[] | undefined; isPending: boolean; error: unknown; refetch(): void }
   registeredParams: ReadonlySet<string>     // metadata에 있는 파라미터 이름. 못 받았으면 빈 집합
 }
 export function useEventDictionary(): EventDictionary
-export function EventDictionaryPage(): ReactElement
 ```
 
 정한 것:
 - query: `['event-dictionary', 'observed', ranges]`(기본 설정, `enabled: ranges !== null`), `['event-dictionary', 'recent']`(`staleTime: 60_000`), `['event-dictionary', 'metadata']`(`staleTime: Infinity`, `gcTime: Infinity`).
-- `observed`가 `'ready'`가 아니면 `buildDictionary`에 `observed: null`을 넘긴다. `ranges === null`이면 `'invalid-period'`다.
+- `ranges === null`이면 `observed`는 `'invalid-period'`다.
+- `observed`가 `'ready'`가 아니면 `buildDictionary`에 `observed: null`을 넘긴다. `recent`는 받았으면 넘기고 아니면 `null`이다.
+- `entries`는 입력이 바뀔 때만 다시 만든다(`useMemo`).
+
+- [ ] **Step 1: 실패하는 테스트를 쓴다.** `renderHook`, `useGa` mock(테스트마다 `ranges`를 바꿀 수 있게 `h.ranges`로 둔다), 카탈로그 mock은 Task 12b의 설명과 같은 방식이다.
+
+```ts
+it('starts pending with catalogue entries only, then becomes ready with observed counts', async () => {
+  // 처음: observed 'pending', entries는 카탈로그 6개, 모두 count null
+  // 응답 뒤: observed 'ready', screen_view의 count 160, today_only가 entries에 있다
+})
+it('reports an observation error and retries', async () => {
+  // runReport가 GaError('server') → observed 'error', entries는 카탈로그 6개 → retryObserved() → 호출 +1 → 'ready'
+})
+it('does not query the period when it is invalid', async () => {
+  // h.ranges = null → observed 'invalid-period', range null, runReport 호출 0회, runRealtimeReport와 getMetadata는 호출된다
+})
+it('flags a failed recent check and still judges from the period', async () => {
+  // runRealtimeReport가 GaError('server') → recentFailed true, observed 'ready', both_needed의 status 'missing'
+})
+it('exposes registered params and an empty set when metadata fails', async () => {
+  // 성공: registeredParams는 Set(['item_id', 'price'])
+  // 실패: params.error가 있고 registeredParams.size === 0
+})
+it('uses menu-prefixed query keys', async () => {
+  // queryClient.getQueryCache().getAll().every((q) => q.queryKey[0] === 'event-dictionary')
+})
+```
+
+- [ ] **Step 2: 실패를 확인한다.** Run: `npx vitest run src/admin/pages/devtools/event-dictionary/useEventDictionary.test.tsx` Expected: FAIL
+- [ ] **Step 3: 구현한다.**
+- [ ] **Step 4: 통과를 확인한다.** Run: `npm run typecheck && npm test` Expected: PASS
+- [ ] **Step 5: Commit** — `feat(admin): load the event dictionary sources`
+
+---
+
+### Task 12b: 사전 페이지와 메뉴
+
+스펙 §3 전체를 읽는다. 문구, 표의 열, 상태별 화면, `event` 파라미터의 처리, "모바일과 접근성"은 스펙을 그대로 따른다.
+
+**Files:**
+- Create: `src/admin/pages/devtools/event-dictionary/DictionaryTable.tsx`, `EventDictionaryPage.tsx`, `EventDictionaryPage.menu.ts`, `EventDictionaryPage.test.tsx`, `event-dictionary.css`
+
+**Interfaces:**
+- Consumes: Task 10과 11의 모든 것, `EVENT_CATALOG` (Task 1), `client.runReport`/`runRealtimeReport`/`getMetadata` (Task 2), `SearchField` (Task 4), `usePageParam`, `useGa`, `Card`, `CardState`, `CsvButton`, `formatNumber`, `displayDim`
+- Consumes: `useEventDictionary`, `EventDictionary` (Task 12a)
+- Produces: `export function EventDictionaryPage(): ReactElement`, 메뉴 정의
+
+정한 것:
+- 이 Task의 코드는 `findEvent`와 `eventLabel`을 부르지 않는다. 카탈로그에 관한 것은 `DictionaryEntry`에서 읽는다.
 - 메뉴 정의는 스펙 §3 "메뉴" 표의 값이고 아이콘은 `lucide-react`의 `BookOpenText`다.
 - 판정 기준 줄: `` `${startDate} ~ ${endDate}과 최근 30분을 기준으로 판정했어요` ``. `recentFailed`면 그 아래에 "오늘 들어온 이벤트는 확인하지 못했어요".
 - 상태 버튼의 글자는 `` `${STATUS_LABEL} ${개수}` ``, `전체`는 `` `전체 ${all}` ``, 개수를 모르면 `—`. `aria-pressed`. 고른 버튼을 다시 누르면 `status`를 지운다.
 - 상태 버튼이나 검색어를 사용자가 바꾸면 `event` 파라미터를 지운다. 행의 펼치기 버튼은 `event`를 그 이름으로 쓰고, 펼친 행을 다시 누르면 지운다.
 - `event`가 지금 목록에 없는 이름일 때의 두 경우(걸러진 이벤트, 기록이 없는 이름)는 스펙 "URL 상태"대로 목록 맨 위에 그린다. 이 줄은 CSV와 개수에 넣지 않는다.
+- `event`가 `entries`에 없는 이름인데 `observed`가 `'error'`나 `'invalid-period'`면, 임시 행에는 "수집 현황을 확인하지 못해서 이 이벤트의 기록을 알 수 없어요"를 쓰고 복사 버튼은 두지 않는다. `'pending'`이면 스켈레톤이다.
+- 펼친 내용의 설명이 비어 있으면 "아직 설명이 없어요". 플랫폼별 줄은 `` `${플랫폼} ${횟수}번 · ${사람 수}명` ``, 최근 30분 줄은 `` `최근 30분: ${플랫폼} ${횟수}번` ``.
+- 상태 필터가 `unknown`/`missing`/`partial`인데 `observed`가 `'pending'`이면 목록 자리에 스켈레톤(`role="status"`, 이름 `불러오는 중`)을 그린다.
 - 펼치기 버튼은 `aria-expanded`, `aria-controls`를 가진다. 이름은 `` `${entry.name} 자세히 보기` ``.
 - 복사: `navigator.clipboard?.writeText`를 `try`/`catch`로 감싼다. 성공하면 버튼 글자를 2초 동안 `복사했어요`로 바꾸고 `role="status"`로 알린다. 없거나 실패하면 `readOnly`인 `<textarea>`에 코드를 넣어 보여 주고 내용을 선택한다.
 - CSV 파일 이름: `` `parfait-event-dictionary-${startDate}_${endDate}.csv` ``. 기간이 잘못됐으면 CSV 버튼을 그리지 않는다.
 - 파라미터 카드 제목은 `GA에 등록된 파라미터`. 종류 칸은 `측정기준` 또는 `측정항목`.
 
-- [ ] **Step 1: 실패하는 테스트를 쓴다** (`EventDictionaryPage.test.tsx`). 카탈로그는 `vi.mock('../../../ga/eventCatalog', ...)`로 Task 11 테스트와 같은 작은 카탈로그로 바꾼다(`findEvent`, `targetPlatforms`, `ALL_PLATFORMS`는 실제 구현을 쓴다). fixture는 Task 10의 것을 쓴다.
+- [ ] **Step 1: 실패하는 테스트를 쓴다** (`EventDictionaryPage.test.tsx`). 카탈로그는 `vi.mock('../../../ga/eventCatalog', ...)`로 Task 11 테스트와 같은 작은 카탈로그로 바꾼다. 작은 카탈로그는 `vi.hoisted` 안에서 만들고, mock은 `EVENT_CATALOG`와 그 카탈로그 위에서 찾는 `findEvent`를 내보낸다. `targetPlatforms`와 `ALL_PLATFORMS`만 `importOriginal`의 것을 쓴다(실제 `findEvent`는 원래 카탈로그를 붙들고 있어서 쓰면 안 된다). `navigator.clipboard`는 jsdom에 없으므로 `Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })`로 넣고 `afterEach`에서 `Reflect.deleteProperty(navigator, 'clipboard')`로 지운다. fixture는 Task 10의 것을 쓴다.
 
 ```ts
 it('shows the catalog at once and fills counts when observation arrives', async () => {
@@ -1137,13 +1303,23 @@ it('keeps zero-count status buttons', async () => {
 it('searches through SearchField and writes q', async () => {})
 it('expands one event at a time and mirrors it in the URL', async () => {
   // 'purchase_done 자세히 보기' → aria-expanded true, URL event=purchase_done, 파라미터 표에 item_id와 'GA 등록됨'
-  // 다른 행을 펼치면 앞의 것은 접힌다
+  // 'Android 30번 · 10명', 'iOS 11번 · 5명'이 있다. 다른 행을 펼치면 앞의 것은 접힌다
+})
+it('says so when an event has no description', async () => {
+  // only_android를 펼침 → '아직 설명이 없어요'
 })
 it('tags events seen only today', async () => {
   // today_only 행에 '오늘 들어옴'
 })
 it('shows a filtered-out event from the URL on top with a note, outside the counts', async () => {
   // ?status=unknown&event=screen_view → 첫 행 screen_view와 '필터와 상관없이 보여요', '사전에 없음 2'는 그대로
+  // CSV 받기 → 내보낸 행에 screen_view가 없다
+})
+it('cannot vouch for an unlisted event while observation has failed', async () => {
+  // runReport 실패, ?event=today_only → '수집 현황을 확인하지 못해서 이 이벤트의 기록을 알 수 없어요', 복사 버튼 없음
+})
+it('shows a skeleton for an observation-only status while observation is pending', async () => {
+  // runReport가 끝나지 않는 Promise, ?status=missing → 목록 자리에 '불러오는 중' status, '조건에 맞는 이벤트가 없어요'는 없다
 })
 it('shows a placeholder row for a name with no record', async () => {
   // ?event=ghost_event → '이 기간과 최근 30분에 들어온 기록이 없어요'와 '카탈로그 항목 복사'
@@ -1205,6 +1381,6 @@ it('defines the menu', () => {
   - `git diff develop --stat`에 Global Constraints의 고치지 않는 파일 10개와 `package.json`, `package-lock.json`이 없다.
   - `grep -rn "localStorage" src/admin/pages/devtools`의 결과가 없다.
   - `grep -rhn "className=" src/admin/pages/devtools/event-stream src/admin/pages/devtools/event-dictionary`에 나오는 새 클래스가 정한 접두사로 시작한다(기존 `adm-table`, `adm-tag`, `adm-button`, `adm-card`, `adm-state`, `adm-num`, `adm-skeleton`, `adm-grid`, `adm-page__note`는 예외).
-  - 빌드 결과에 진단 줄이 없다: `grep -rl "직전 요청" dist`의 결과가 없다.
+  - 빌드 결과에 진단 줄이 없다: `grep -rl "진단(개발 모드)" dist`의 결과가 없다.
 - [ ] **Step 3: 사용자에게 화면 확인을 요청한다.** `npm run build && npm run preview`로 두 화면을 열어 달라고 한다. 볼 것: 콘솔에 CSP 위반이 없는지, 사이드바·모바일 메뉴·`⌘K`에 두 메뉴가 나오는지, 960px 아래에서 표가 가로로 넘치지 않는지, `사전에서 보기`가 그 이벤트를 펼친 채 여는지.
 - [ ] **Step 4: 스펙의 상태 줄을 고친다.** `상태: 구현됨(2026-10-XX)`으로 바꾸고 Task 9를 건너뛰었으면 그 사실을 적는다. Commit — `docs: mark the admin QA tools spec as implemented`
