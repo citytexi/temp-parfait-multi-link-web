@@ -1,37 +1,65 @@
-import type { MenuId } from '../lib/urlState'
+import { ChevronDown } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { readCollapsed, writeCollapsed } from '../menu/collapsed'
+import { groupOf, MenuItem, type MenuProps } from './MenuItem'
 
-export const MENU_ITEMS: readonly { id: MenuId; label: string }[] = [
-  { id: 'overview', label: '한눈에 보기' },
-  { id: 'users', label: '사용자' },
-  { id: 'events', label: '많이 한 행동' },
-  { id: 'retention', label: '다시 찾아온 사람' },
-  { id: 'tech', label: '기기·지역' },
-  { id: 'realtime', label: '지금 접속 중' },
-]
+const without = (ids: readonly string[], id: string | undefined) => ids.filter((x) => x !== id)
+const sameList = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i])
 
-type SideMenuProps = {
-  active: MenuId
-  onSelect(menu: MenuId): void
-}
+/** Grouped sidebar with collapsible sections. Collapsed state persists in localStorage. */
+export function SideMenu({ groups, active, onSelect }: MenuProps): ReactElement {
+  const activeGroup = groupOf(groups, active)
+  const [stored] = useState(readCollapsed)
+  const persisted = useRef(stored)
+  const [collapsed, setCollapsed] = useState(() => without(stored, activeGroup))
 
-/** Left sidebar at ≥960px; a horizontally scrollable tab bar below that. */
-export function SideMenu({ active, onSelect }: SideMenuProps) {
+  // Navigating to a menu reveals its group, including a move within the same group.
+  useEffect(() => {
+    setCollapsed((prev) => (prev.includes(activeGroup ?? '') ? without(prev, activeGroup) : prev))
+  }, [active, activeGroup])
+
+  // Write only when the list really differs from what is stored.
+  useEffect(() => {
+    if (sameList(collapsed, persisted.current)) return
+    persisted.current = collapsed
+    writeCollapsed(collapsed)
+  }, [collapsed])
+
+  const toggle = (id: string) =>
+    setCollapsed((prev) => (prev.includes(id) ? without(prev, id) : [...prev, id]))
+
   return (
-    <nav className="adm-menu" aria-label="메뉴">
-      <ul className="adm-menu__list">
-        {MENU_ITEMS.map((item) => (
-          <li key={item.id}>
-            <button
-              type="button"
-              className="adm-menu__item"
-              aria-current={item.id === active ? 'page' : undefined}
-              onClick={() => onSelect(item.id)}
-            >
-              {item.label}
-            </button>
-          </li>
-        ))}
-      </ul>
+    // The nav is the full-height surface; the inner element is what sticks and scrolls.
+    <nav className="adm-menu adm-menu--side" aria-label="메뉴">
+      <div className="adm-menu__scroll">
+        {groups
+          .filter((g) => g.menus.length > 0)
+          .map((group) => {
+            const open = !collapsed.includes(group.id)
+            const listId = `adm-menu-group-${group.id}`
+            return (
+              <div key={group.id} className="adm-menu__section">
+                <button
+                  type="button"
+                  className="adm-menu__group"
+                  aria-expanded={open}
+                  aria-controls={listId}
+                  onClick={() => toggle(group.id)}
+                >
+                  {group.label}
+                  <ChevronDown className="adm-menu__chevron" size={16} aria-hidden="true" />
+                </button>
+                {open && (
+                  <ul id={listId} className="adm-menu__list" aria-label={group.label}>
+                    {group.menus.map((menu) => (
+                      <MenuItem key={menu.id} menu={menu} current={menu.id === active} onSelect={onSelect} />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
+      </div>
     </nav>
   )
 }

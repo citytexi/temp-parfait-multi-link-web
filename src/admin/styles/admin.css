@@ -374,17 +374,18 @@ body {
 
 /* App shell: top bar, menu, page area, quota footer */
 .adm-shell {
+  --adm-sidebar-width: 240px;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
 }
 
+/* One row at every width: the brand gives way (ellipsis) before anything wraps. */
 .adm-topbar {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--adm-space-3) var(--adm-space-6);
+  gap: var(--adm-space-2);
   padding: var(--adm-space-4);
   background: var(--adm-surface);
   border-bottom: 1px solid var(--adm-border);
@@ -395,25 +396,72 @@ body {
   font-size: var(--adm-fs-lg);
   font-weight: var(--adm-fw-bold);
   color: var(--adm-text-1);
-}
-
-.adm-topbar__filter {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--adm-space-2) var(--adm-space-4);
-  flex: 1 1 auto;
   min-width: 0;
-}
-
-.adm-topbar__basis {
-  margin: 0;
-  font-size: var(--adm-fs-xs);
-  color: var(--adm-text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .adm-topbar__logout {
+  flex: none;
+}
+
+/* Quick-navigation opener, shaped like a search field. Below 960px it sits next to logout. */
+.adm-topbar__search {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: var(--adm-space-2);
+  min-width: var(--adm-hit);
+  min-height: var(--adm-hit);
   margin-left: auto;
+  padding: 0 var(--adm-space-3);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-md);
+  background: var(--adm-surface-muted);
+  color: var(--adm-text-2);
+  font: inherit;
+  font-size: var(--adm-fs-sm);
+  font-weight: var(--adm-fw-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--adm-duration) ease,
+    border-color var(--adm-duration) ease;
+}
+
+.adm-topbar__search:hover {
+  background: var(--adm-surface);
+  border-color: var(--adm-border-strong);
+}
+
+.adm-topbar__search-icon {
+  flex: none;
+}
+
+.adm-topbar__kbd {
+  margin-left: auto;
+  padding: 2px var(--adm-space-2);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-text-3);
+  font: inherit;
+  font-size: var(--adm-fs-xs);
+  font-weight: var(--adm-fw-medium);
+  line-height: var(--adm-lh-tight);
+  white-space: nowrap;
+}
+
+/* Narrow phones: icon-only, so brand, search and logout stay on one row. */
+@media (max-width: 480px) {
+  .adm-topbar__search {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .adm-topbar__search-text {
+    display: none;
+  }
 }
 
 .adm-shell__body {
@@ -429,11 +477,77 @@ body {
   padding: var(--adm-space-6) var(--adm-space-4);
 }
 
+/* Page header: title and description on the left, tools (period filter) on the right */
+.adm-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--adm-space-4);
+  margin-bottom: var(--adm-space-6);
+}
+
+.adm-page-header__text {
+  min-width: 0;
+}
+
 .adm-page__title {
-  margin: 0 0 var(--adm-space-6);
+  margin: 0 0 var(--adm-space-1);
   font-size: var(--adm-fs-2xl);
   font-weight: var(--adm-fw-bold);
   line-height: var(--adm-lh-tight);
+}
+
+/* Focused by script after navigation: no ring then, but keyboard users keep the :focus-visible one. */
+.adm-page__title:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.adm-page-header__desc {
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+.adm-page-header__tools {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--adm-space-2);
+  min-width: 0;
+}
+
+.adm-page-header__basis {
+  margin: 0;
+  font-size: var(--adm-fs-xs);
+  color: var(--adm-text-3);
+}
+
+/* Page chunk states */
+.adm-page__loading {
+  margin: 0;
+  padding: var(--adm-space-10) 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+  text-align: center;
+}
+
+.adm-page__failure {
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-lg);
+  box-shadow: var(--adm-shadow-card);
+}
+
+.adm-page__failure-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--adm-space-2);
+}
+
+.adm-page__failure-note {
+  margin: 0;
+  font-size: var(--adm-fs-xs);
+  color: var(--adm-text-3);
 }
 
 .adm-shell__footer {
@@ -446,22 +560,22 @@ body {
   color: var(--adm-text-3);
 }
 
-/* Side menu: horizontal tab bar that scrolls inside itself below 960px */
+/* Menus: grouped sidebar (.adm-menu--side) and group switch + tabs (.adm-menu--mobile) */
 .adm-menu {
   background: var(--adm-surface);
   border-bottom: 1px solid var(--adm-border);
 }
 
 .adm-menu__list {
-  display: flex;
-  gap: var(--adm-space-1);
   margin: 0;
-  padding: var(--adm-space-2) var(--adm-space-4);
+  padding: 0;
   list-style: none;
-  overflow-x: auto;
 }
 
 .adm-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--adm-space-3);
   min-height: var(--adm-hit);
   padding: 0 var(--adm-space-4);
   border: 0;
@@ -476,6 +590,17 @@ body {
   transition: background-color var(--adm-duration) ease;
 }
 
+.adm-menu__icon {
+  flex: none;
+}
+
+/* A long label ends in an ellipsis instead of pushing the sidebar wider; the button's title has the full text. */
+.adm-menu__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .adm-menu__item:hover {
   background: var(--adm-surface-muted);
 }
@@ -484,6 +609,114 @@ body {
   background: var(--adm-accent-soft);
   color: var(--adm-accent);
   font-weight: var(--adm-fw-bold);
+}
+
+/* Sidebar (960px and up). The nav is the surface; .adm-menu__scroll inside it holds the padding and scrolls. */
+.adm-menu__scroll {
+  padding: var(--adm-space-2) var(--adm-space-4);
+  overflow-x: hidden;
+}
+
+.adm-menu__section + .adm-menu__section {
+  margin-top: var(--adm-space-2);
+}
+
+.adm-menu__group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--adm-hit);
+  padding: 0 var(--adm-space-4);
+  border: 0;
+  border-radius: var(--adm-radius-md);
+  background: transparent;
+  color: var(--adm-text-3);
+  font: inherit;
+  font-size: var(--adm-fs-xs);
+  font-weight: var(--adm-fw-bold);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--adm-duration) ease;
+}
+
+.adm-menu__group:hover {
+  background: var(--adm-surface-muted);
+}
+
+.adm-menu__chevron {
+  flex: none;
+  transition: transform var(--adm-duration) ease;
+}
+
+.adm-menu__group[aria-expanded='false'] .adm-menu__chevron {
+  transform: rotate(-90deg);
+}
+
+.adm-menu--side .adm-menu__item {
+  width: 100%;
+  text-align: left;
+}
+
+/* Mobile: pill group switch above a horizontally scrolling tab list */
+.adm-menu--mobile {
+  padding: var(--adm-space-2) var(--adm-space-4);
+}
+
+.adm-menu__switch {
+  display: flex;
+  gap: var(--adm-space-1);
+  margin-bottom: var(--adm-space-2);
+  padding: var(--adm-space-1);
+  border-radius: var(--adm-radius-pill);
+  background: var(--adm-surface-muted);
+}
+
+.adm-menu__segment {
+  flex: 1;
+  min-height: var(--adm-hit);
+  padding: 0 var(--adm-space-3);
+  border: 0;
+  border-radius: var(--adm-radius-pill);
+  background: transparent;
+  color: var(--adm-text-2);
+  font: inherit;
+  font-size: var(--adm-fs-sm);
+  font-weight: var(--adm-fw-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--adm-duration) ease;
+}
+
+.adm-menu__segment:not([aria-pressed='true']):hover {
+  background: var(--adm-surface);
+}
+
+.adm-menu__segment[aria-pressed='true'] {
+  background: var(--adm-surface);
+  color: var(--adm-text-1);
+  font-weight: var(--adm-fw-bold);
+  box-shadow: var(--adm-shadow-card);
+}
+
+.adm-menu--mobile .adm-menu__list {
+  display: flex;
+  gap: var(--adm-space-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.adm-menu--mobile .adm-menu__list::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tabs keep their full label; the list scrolls sideways instead. */
+.adm-menu--mobile .adm-menu__list > li {
+  flex: none;
+}
+
+.adm-menu--mobile .adm-menu__label {
+  overflow: visible;
 }
 
 /* Period filter */
@@ -565,31 +798,72 @@ body {
 }
 
 @media (min-width: 960px) {
+  /* The brand fills the sidebar column, so the search field starts on the page's left edge. */
   .adm-topbar {
+    gap: var(--adm-space-8);
     padding: var(--adm-space-4) var(--adm-space-8);
+  }
+
+  .adm-topbar__brand {
+    flex: 0 0 calc(var(--adm-sidebar-width) - var(--adm-space-8));
+  }
+
+  .adm-topbar__search {
+    flex: 0 1 280px;
+    margin-left: 0;
+  }
+
+  .adm-topbar__logout {
+    margin-left: auto;
+  }
+
+  .adm-page-header {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--adm-space-6);
+  }
+
+  /* The text keeps its own width; the tools take the rest and wrap inside it, right-aligned. */
+  .adm-page-header__text {
+    flex: 0 1 auto;
+    max-width: 50%;
+  }
+
+  .adm-page-header__tools {
+    flex: 1 1 0;
+    align-items: flex-end;
+  }
+
+  .adm-page-header__tools .adm-period,
+  .adm-page-header__tools .adm-period__custom {
+    justify-content: flex-end;
   }
 
   .adm-shell__body {
     flex-direction: row;
   }
 
-  .adm-menu {
-    flex: 0 0 220px;
+  /* Stretches to the full height of the shell body, so the surface and its border never stop short. */
+  .adm-menu--side {
+    flex: 0 0 var(--adm-sidebar-width);
+    min-width: 0;
     border-bottom: 0;
     border-right: 1px solid var(--adm-border);
   }
 
-  .adm-menu__list {
+  /*
+   * Sticks once the top bar has scrolled away, and is then exactly one viewport tall at most.
+   * Before that its lower part is below the fold like the rest of the page, and it scrolls
+   * inside itself.
+   */
+  .adm-menu__scroll {
     position: sticky;
     top: 0;
-    flex-direction: column;
+    max-height: 100vh;
+    max-height: 100dvh;
     padding: var(--adm-space-4);
-    overflow-x: visible;
-  }
-
-  .adm-menu__item {
-    width: 100%;
-    text-align: left;
+    overflow-y: auto;
   }
 
   .adm-page {
@@ -597,19 +871,23 @@ body {
   }
 
   .adm-shell__footer {
-    padding: 0 var(--adm-space-8) var(--adm-space-6) calc(220px + var(--adm-space-8));
+    padding: 0 var(--adm-space-8) var(--adm-space-6) calc(var(--adm-sidebar-width) + var(--adm-space-8));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .adm-menu__item {
+  .adm-topbar__search,
+  .adm-menu__item,
+  .adm-menu__group,
+  .adm-menu__segment,
+  .adm-menu__chevron {
     transition: none;
   }
 }
 
 /* Page content: lead sentence, card grids, charts, tags */
 .adm-page__lead {
-  margin: calc(var(--adm-space-2) * -1) 0 var(--adm-space-6);
+  margin: 0 0 var(--adm-space-6);
   font-size: var(--adm-fs-xl);
   font-weight: var(--adm-fw-bold);
   line-height: var(--adm-lh-tight);
@@ -661,7 +939,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: var(--adm-space-1) var(--adm-space-3);
-  margin: calc(var(--adm-space-2) * -1) 0 var(--adm-space-6);
+  margin: 0 0 var(--adm-space-6);
   font-size: var(--adm-fs-sm);
   color: var(--adm-text-2);
 }
@@ -828,4 +1106,178 @@ body {
   height: 100%;
   border-radius: var(--adm-radius-pill);
   background: var(--adm-accent);
+}
+
+/* Quick navigation (⌘K) */
+.adm-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.adm-command__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  /* Dims the page in both themes: text-1 is dark in light mode, bg is dark in dark mode. */
+  background: color-mix(in srgb, var(--adm-text-1) 40%, transparent);
+  animation: adm-command-fade var(--adm-duration) ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .adm-command__overlay {
+    background: color-mix(in srgb, var(--adm-bg) 70%, transparent);
+  }
+}
+
+.adm-command {
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+  width: min(560px, calc(100vw - 2 * var(--adm-space-4)));
+  max-height: min(480px, 70vh);
+  transform: translateX(-50%);
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-lg);
+  box-shadow: var(--adm-shadow-pop);
+  overflow: hidden;
+  animation: adm-command-in var(--adm-duration) ease;
+}
+
+.adm-command__root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.adm-command__search {
+  display: flex;
+  align-items: center;
+  gap: var(--adm-space-3);
+  min-height: var(--adm-hit);
+  padding: var(--adm-space-2) var(--adm-space-5);
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.adm-command__search-icon {
+  flex: none;
+  color: var(--adm-text-3);
+}
+
+.adm-command__input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--adm-hit);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--adm-text-1);
+  font: inherit;
+  font-size: var(--adm-fs-md);
+  outline: none;
+}
+
+.adm-command__input::placeholder {
+  color: var(--adm-text-3);
+}
+
+.adm-command__list {
+  min-height: 0;
+  padding: var(--adm-space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.adm-command__empty {
+  padding: var(--adm-space-8) var(--adm-space-4);
+  color: var(--adm-text-2);
+  font-size: var(--adm-fs-sm);
+  text-align: center;
+}
+
+.adm-command__group + .adm-command__group {
+  margin-top: var(--adm-space-2);
+}
+
+.adm-command__group [cmdk-group-heading] {
+  padding: var(--adm-space-2) var(--adm-space-3);
+  color: var(--adm-text-3);
+  font-size: var(--adm-fs-xs);
+  font-weight: var(--adm-fw-bold);
+}
+
+.adm-command__item {
+  display: flex;
+  align-items: center;
+  gap: var(--adm-space-3);
+  min-height: var(--adm-hit);
+  padding: var(--adm-space-2) var(--adm-space-3);
+  border-radius: var(--adm-radius-md);
+  color: var(--adm-text-1);
+  cursor: pointer;
+}
+
+.adm-command__item[data-selected='true'] {
+  background: var(--adm-accent-soft);
+}
+
+.adm-command__icon {
+  flex: none;
+  color: var(--adm-text-2);
+}
+
+.adm-command__item[data-selected='true'] .adm-command__icon {
+  color: var(--adm-accent);
+}
+
+.adm-command__label {
+  flex: none;
+  font-size: var(--adm-fs-md);
+  font-weight: var(--adm-fw-medium);
+}
+
+.adm-command__desc {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--adm-text-2);
+  font-size: var(--adm-fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .adm-command__desc {
+    display: none;
+  }
+}
+
+@keyframes adm-command-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes adm-command-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-command__overlay,
+  .adm-command {
+    animation: none;
+  }
 }

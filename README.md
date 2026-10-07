@@ -50,8 +50,75 @@ export const OAUTH_CLIENT_ID = '' // 3번에서 만든 OAuth client ID
 ### 수동 확인
 
 1. `npm run dev` 후 http://localhost:5173/temp-parfait-multi-link-web/admin/ 접속
-2. 권한 있는 계정으로 로그인, 메뉴 6개에 데이터 표시 확인
+2. 권한 있는 계정으로 로그인, 지표 메뉴마다 데이터 표시 확인
 3. 기간 필터 변경, CSV 다운로드 확인
 4. 권한 없는 계정으로 로그인해 안내 화면 확인
 5. DevTools Application 탭에서 저장소에 토큰이 없는지 확인
 6. 멀티링크를 iOS, Android, 카카오톡 인앱에서 확인
+
+## 어드민 메뉴 추가하기
+
+새 메뉴는 폴더 하나만 만들면 돼요. 공용 파일은 고치지 않아요.
+
+1. `src/admin/pages/<그룹>/` 아래에 페이지 컴포넌트와 `<이름>.menu.ts`를 만들어요. `<그룹>`은 `metrics`, `devtools`, `ops` 중 하나예요(`src/admin/menu/groups.ts`).
+2. 필요하면 같은 폴더에 아래 파일도 둬요.
+   - `<이름>.css`: 페이지 컴포넌트가 import해요. 클래스 이름은 `adm-<메뉴 id>-`로 시작해요.
+   - `config.ts`: 이 페이지만 쓰는 설정 값이에요.
+   - `<이름>.csp.json`: 이 페이지가 연결할 외부 주소예요. 아래 CSP 규칙을 지켜요.
+3. URL에 페이지 상태를 두려면 `src/admin/menu/NavContext.tsx`의 `usePageParam(key)`를 써요. `[값, 설정 함수]`를 돌려주고, 설정 함수에 `null`을 넘기면 그 파라미터가 지워져요. `menu`, `period`, `start`, `end`는 셸이 쓰는 이름이라 key로 쓸 수 없어요.
+4. 페이지 옆에 `<이름>.test.tsx`로 테스트를 써요.
+
+`*.menu.ts`는 이렇게 써요(`src/admin/pages/OverviewPage.menu.ts`).
+
+```ts
+import { LayoutDashboard } from 'lucide-react'
+import { defineMenu } from '../menu/defineMenu'
+
+export default defineMenu({
+  id: 'overview',
+  group: 'metrics',
+  order: 10,
+  label: '한눈에 보기',
+  description: '핵심 지표와 추이를 한 화면에서 봐요',
+  icon: LayoutDashboard,
+  keywords: ['요약', '대시보드', 'overview'],
+  load: () => import('./OverviewPage').then((m) => ({ default: m.OverviewPage })),
+  usesPeriod: true,
+  usesGa: true,
+})
+```
+
+`keywords`, `usesPeriod`, `usesGa`, `scopes`는 안 써도 돼요. `usesPeriod`와 `usesGa`는 안 쓰면 `false`예요. 나머지는 꼭 써야 해요.
+
+새 폴더에 두면 `import` 경로는 `../../menu/defineMenu`처럼 한 단계 더 깊어져요. `id`는 모든 메뉴에서 유일해야 하고, 겹치면 레지스트리가 에러를 던져요. `order`는 그룹 안 정렬 순서이고, 묶음마다 쓸 수 있는 범위가 정해져 있어요. 예약 범위는 `docs/superpowers/specs/2026-10-07-admin-menu-registry-design.md`의 2장 "묶음별 예약 범위" 표를 봐요.
+
+### CSP 규칙
+
+`<이름>.csp.json`은 빌드 때 어드민 CSP에 합쳐져요.
+
+```json
+{ "connect-src": ["https://api.github.com"] }
+```
+
+- 쓸 수 있는 키는 `connect-src`, `img-src`, `frame-src`뿐이에요.
+- 값은 `https://` 다음에 점이 들어간 호스트 이름, 그리고 선택으로 포트(`https://a.example:8443`)만 쓸 수 있어요. 경로, 끝의 `/`, 쿼리, 와일드카드(`*`), 그 밖의 문자는 안 돼요.
+- 규칙을 어기면 `npm run build`와 `npm run dev`가 실패해요.
+- CSP는 빌드한 페이지에만 들어가요. 그래서 조각을 빠뜨려도 `npm run dev`에서는 티가 나지 않아요. 외부 주소를 쓰는 페이지는 `npm run build && npm run preview`로 확인해요.
+
+### 페이지 모듈 규칙
+
+`load()`는 로그인한 모든 사용자의 브라우저에서, 한가할 때 미리 실행돼요. 그 페이지를 열지 않아도 실행되고, 여러 번 실행될 수도 있어요(미리 받기, 화면 그리기, 다시 시도). 그래서 페이지 모듈의 최상위에는 부수 효과를 두지 않아요. 요청, 이벤트 리스너, 타이머, 저장소 쓰기는 컴포넌트 안에서 해요.
+
+### 고치지 않는 파일
+
+아래 파일은 고치지 않아요.
+
+- `src/admin/components/Shell.tsx`
+- `src/admin/components/SideMenu.tsx`
+- `src/admin/menu/registry.ts`
+- `src/admin/lib/urlState.ts`
+- `src/admin/styles/admin.css`
+- `vite.config.ts`
+- `src/admin/config.ts`
+
+메뉴 목록, 모바일 메뉴, `⌘K` 빠른 이동은 레지스트리에서 저절로 만들어져요.
