@@ -64,6 +64,59 @@ describe('NavProvider', () => {
     expect(warn.mock.calls[0].join(' ')).toContain('nope')
   })
 
+  it('opens a menu with page params in one history entry', () => {
+    const { result, pushSpy } = setup()
+    act(() => result.current.nav.setMenu('utm', { q: 'a b&c=한' }))
+    expect(pushSpy).toHaveBeenCalledTimes(1)
+    expect(new URLSearchParams(window.location.search).get('q')).toBe('a b&c=한')
+    expect(result.current.nav.menu).toBe('utm')
+    expect(result.current.param[0]).toBe('a b&c=한')
+  })
+
+  it('drops reserved keys from params', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { result } = setup()
+    act(() => result.current.nav.setMenu('users', { menu: 'tech', period: '90d', q: 'x' }))
+    expect(result.current.nav.menu).toBe('users')
+    expect(window.location.search).toBe('?menu=users&period=7d&q=x')
+    expect(warn).toHaveBeenCalled()
+  })
+
+  it('replaces page params without a history entry when already on the menu', () => {
+    const { result, pushSpy, replaceSpy } = setup('/admin/?menu=utm&q=old&z=1')
+    pushSpy.mockClear()
+    act(() => result.current.nav.setMenu('utm', { q: 'new' }))
+    expect(pushSpy).not.toHaveBeenCalled()
+    expect(replaceSpy).toHaveBeenLastCalledWith(null, '', '/admin/?menu=utm&q=new')
+  })
+
+  it('does nothing when the menu and params are already current', () => {
+    const { result, pushSpy, replaceSpy } = setup('/admin/?menu=utm&q=same')
+    pushSpy.mockClear()
+    replaceSpy.mockClear()
+    act(() => result.current.nav.setMenu('utm', { q: 'same' }))
+    expect(pushSpy).not.toHaveBeenCalled()
+    expect(replaceSpy).not.toHaveBeenCalled()
+  })
+
+  it('still ignores the same menu without params and clears params on a plain change', () => {
+    const { result, pushSpy } = setup('/admin/?menu=utm&q=old')
+    pushSpy.mockClear()
+    act(() => result.current.nav.setMenu('utm'))
+    expect(pushSpy).not.toHaveBeenCalled()
+    expect(result.current.param[0]).toBe('old')
+    act(() => result.current.nav.setMenu('users'))
+    expect(window.location.search).toBe('?menu=users&period=7d')
+  })
+
+  it('ignores an unknown menu even with params', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { result, pushSpy } = setup()
+    pushSpy.mockClear()
+    act(() => result.current.nav.setMenu('nope', { q: 'x' }))
+    expect(pushSpy).not.toHaveBeenCalled()
+  })
+
   it('clears page params on a menu change', () => {
     const { result, pushSpy } = setup('/admin/?menu=utm&q=hello')
     expect(result.current.param[0]).toBe('hello')
