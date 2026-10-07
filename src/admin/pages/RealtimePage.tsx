@@ -36,7 +36,6 @@ export function RealtimePage() {
 
   return (
     <>
-      <h1 className="adm-page__title">지금 접속 중</h1>
       {data && (
         <p className="adm-page__lead adm-realtime__headline">
           최근 30분 동안 <strong className="adm-realtime__count">{formatNumber(data.activeUsers)}</strong>명이 앱을

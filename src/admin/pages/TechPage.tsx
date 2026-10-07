@@ -88,7 +88,6 @@ export function TechPage() {
 
   return (
     <>
-      <h1 className="adm-page__title">기기·지역</h1>
       <div className="adm-grid">
         <Card title={PLATFORM_TITLE} subtitle="platform">
           <CardState query={query} isEmpty={data !== undefined && platforms.length === 0}>

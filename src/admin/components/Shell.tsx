@@ -1,61 +1,60 @@
+import { Search } from 'lucide-react'
+import { useEffect, useState, type ReactElement } from 'react'
 import { useAuth } from '../auth/AuthContext'
-import { useGa } from '../hooks/useGa'
-import type { MenuId } from '../lib/urlState'
 import { useNav } from '../menu/NavContext'
-import { REGISTRY } from '../menu/registry'
-import { EventsPage } from '../pages/EventsPage'
-import { OverviewPage } from '../pages/OverviewPage'
-import { RealtimePage } from '../pages/RealtimePage'
-import { RetentionPage } from '../pages/RetentionPage'
-import { TechPage } from '../pages/TechPage'
-import { UsersPage } from '../pages/UsersPage'
-import { PeriodFilter } from './PeriodFilter'
+import { REGISTRY, type Registry } from '../menu/registry'
+import { useIsDesktop } from '../menu/useIsDesktop'
+import { CommandMenu } from './CommandMenu'
+import { MobileMenu } from './MobileMenu'
+import { PageHeader } from './PageHeader'
+import { PageOutlet, prefetchPages } from './PageOutlet'
 import { QuotaBadge } from './QuotaBadge'
 import { SideMenu } from './SideMenu'
 
-function Page({ menu }: { menu: MenuId }) {
-  switch (menu) {
-    case 'overview':
-      return <OverviewPage />
-    case 'users':
-      return <UsersPage />
-    case 'events':
-      return <EventsPage />
-    case 'retention':
-      return <RetentionPage />
-    case 'tech':
-      return <TechPage />
-    case 'realtime':
-      return <RealtimePage />
-  }
-}
+const shortcutLabel = () => (navigator.platform.startsWith('Mac') ? '⌘K' : 'Ctrl K')
 
-export function Shell() {
+/** App frame: top bar, menu, page header and page. Knows menus only through the registry. */
+export function Shell({ registry = REGISTRY }: { registry?: Registry }): ReactElement {
   const { logout } = useAuth()
   const { menu, setMenu } = useNav()
-  const { period, periodError, today, setPeriod } = useGa()
+  const isDesktop = useIsDesktop()
+  const [commandOpen, setCommandOpen] = useState(false)
+  const current = registry.findMenu(menu) ?? registry.findMenu(registry.lookup.defaultMenu)
+  const Menu = isDesktop ? SideMenu : MobileMenu
+
+  useEffect(() => prefetchPages(registry.menus), [registry])
 
   return (
     <div className="adm-shell">
       <header className="adm-topbar">
         <p className="adm-topbar__brand">파르페 대시보드</p>
-        <div className="adm-topbar__filter">
-          <PeriodFilter period={period} today={today} error={periodError} onChange={setPeriod} />
-          <p className="adm-topbar__basis">기준: 어제까지, 한국 시간</p>
-        </div>
+        <button
+          type="button"
+          className="adm-topbar__search"
+          aria-label="메뉴 검색"
+          onClick={() => setCommandOpen(true)}
+        >
+          <Search className="adm-topbar__search-icon" size={18} aria-hidden="true" />
+          <span className="adm-topbar__search-text">검색</span>
+          {isDesktop && <kbd className="adm-topbar__kbd">{shortcutLabel()}</kbd>}
+        </button>
         <button type="button" className="adm-button adm-button--ghost adm-topbar__logout" onClick={() => void logout()}>
           로그아웃
         </button>
       </header>
       <div className="adm-shell__body">
-        <SideMenu groups={REGISTRY.groups} active={menu} onSelect={setMenu} />
+        <Menu groups={registry.groups} active={current?.id ?? menu} onSelect={setMenu} />
         <main className="adm-page">
-          <Page menu={menu} />
+          {current && (
+            <>
+              <PageHeader menu={current} />
+              <PageOutlet menu={current} />
+            </>
+          )}
         </main>
       </div>
-      <footer className="adm-shell__footer">
-        <QuotaBadge />
-      </footer>
+      <footer className="adm-shell__footer">{current?.usesGa && <QuotaBadge />}</footer>
+      <CommandMenu groups={registry.groups} open={commandOpen} onOpenChange={setCommandOpen} onSelect={setMenu} />
     </div>
   )
 }

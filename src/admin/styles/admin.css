@@ -385,7 +385,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--adm-space-3) var(--adm-space-6);
+  gap: var(--adm-space-2);
   padding: var(--adm-space-4);
   background: var(--adm-surface);
   border-bottom: 1px solid var(--adm-border);
@@ -396,25 +396,64 @@ body {
   font-size: var(--adm-fs-lg);
   font-weight: var(--adm-fw-bold);
   color: var(--adm-text-1);
+  white-space: nowrap;
 }
 
-.adm-topbar__filter {
-  display: flex;
-  flex-wrap: wrap;
+/* Quick-navigation opener, shaped like a search field. Below 960px it sits next to logout. */
+.adm-topbar__search {
+  display: inline-flex;
   align-items: center;
-  gap: var(--adm-space-2) var(--adm-space-4);
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.adm-topbar__basis {
-  margin: 0;
-  font-size: var(--adm-fs-xs);
-  color: var(--adm-text-3);
-}
-
-.adm-topbar__logout {
+  gap: var(--adm-space-2);
+  min-width: var(--adm-hit);
+  min-height: var(--adm-hit);
   margin-left: auto;
+  padding: 0 var(--adm-space-3);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-md);
+  background: var(--adm-surface-muted);
+  color: var(--adm-text-2);
+  font: inherit;
+  font-size: var(--adm-fs-sm);
+  font-weight: var(--adm-fw-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--adm-duration) ease,
+    border-color var(--adm-duration) ease;
+}
+
+.adm-topbar__search:hover {
+  background: var(--adm-surface);
+  border-color: var(--adm-border-strong);
+}
+
+.adm-topbar__search-icon {
+  flex: none;
+}
+
+.adm-topbar__kbd {
+  margin-left: auto;
+  padding: 2px var(--adm-space-2);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-text-3);
+  font: inherit;
+  font-size: var(--adm-fs-xs);
+  font-weight: var(--adm-fw-medium);
+  line-height: var(--adm-lh-tight);
+  white-space: nowrap;
+}
+
+/* Narrow phones: icon-only, so brand, search and logout stay on one row. */
+@media (max-width: 480px) {
+  .adm-topbar__search {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .adm-topbar__search-text {
+    display: none;
+  }
 }
 
 .adm-shell__body {
@@ -430,11 +469,77 @@ body {
   padding: var(--adm-space-6) var(--adm-space-4);
 }
 
+/* Page header: title and description on the left, tools (period filter) on the right */
+.adm-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--adm-space-4);
+  margin-bottom: var(--adm-space-6);
+}
+
+.adm-page-header__text {
+  min-width: 0;
+}
+
 .adm-page__title {
-  margin: 0 0 var(--adm-space-6);
+  margin: 0 0 var(--adm-space-1);
   font-size: var(--adm-fs-2xl);
   font-weight: var(--adm-fw-bold);
   line-height: var(--adm-lh-tight);
+}
+
+/* Focused by script after navigation: no ring then, but keyboard users keep the :focus-visible one. */
+.adm-page__title:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.adm-page-header__desc {
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+.adm-page-header__tools {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--adm-space-2);
+  min-width: 0;
+}
+
+.adm-page-header__basis {
+  margin: 0;
+  font-size: var(--adm-fs-xs);
+  color: var(--adm-text-3);
+}
+
+/* Page chunk states */
+.adm-page__loading {
+  margin: 0;
+  padding: var(--adm-space-10) 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+  text-align: center;
+}
+
+.adm-page__failure {
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-lg);
+  box-shadow: var(--adm-shadow-card);
+}
+
+.adm-page__failure-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--adm-space-2);
+}
+
+.adm-page__failure-note {
+  margin: 0;
+  font-size: var(--adm-fs-xs);
+  color: var(--adm-text-3);
 }
 
 .adm-shell__footer {
@@ -491,7 +596,7 @@ body {
   font-weight: var(--adm-fw-bold);
 }
 
-/* Sidebar (stacks above the page below 960px until the mobile menu is wired in) */
+/* Sidebar (960px and up) */
 .adm-menu--side {
   padding: var(--adm-space-2) var(--adm-space-4);
 }
@@ -664,8 +769,46 @@ body {
 }
 
 @media (min-width: 960px) {
+  /* The brand fills the sidebar column, so the search field starts on the page's left edge. */
   .adm-topbar {
+    gap: var(--adm-space-8);
     padding: var(--adm-space-4) var(--adm-space-8);
+  }
+
+  .adm-topbar__brand {
+    flex: 0 0 calc(var(--adm-sidebar-width) - var(--adm-space-8));
+  }
+
+  .adm-topbar__search {
+    flex: 0 1 280px;
+    margin-left: 0;
+  }
+
+  .adm-topbar__logout {
+    margin-left: auto;
+  }
+
+  .adm-page-header {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--adm-space-6);
+  }
+
+  /* The text keeps its own width; the tools take the rest and wrap inside it, right-aligned. */
+  .adm-page-header__text {
+    flex: 0 1 auto;
+    max-width: 50%;
+  }
+
+  .adm-page-header__tools {
+    flex: 1 1 0;
+    align-items: flex-end;
+  }
+
+  .adm-page-header__tools .adm-period,
+  .adm-page-header__tools .adm-period__custom {
+    justify-content: flex-end;
   }
 
   .adm-shell__body {
@@ -694,6 +837,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .adm-topbar__search,
   .adm-menu__item,
   .adm-menu__group,
   .adm-menu__segment,
@@ -704,7 +848,7 @@ body {
 
 /* Page content: lead sentence, card grids, charts, tags */
 .adm-page__lead {
-  margin: calc(var(--adm-space-2) * -1) 0 var(--adm-space-6);
+  margin: 0 0 var(--adm-space-6);
   font-size: var(--adm-fs-xl);
   font-weight: var(--adm-fw-bold);
   line-height: var(--adm-lh-tight);

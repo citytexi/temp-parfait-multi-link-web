@@ -45,7 +45,6 @@ export function OverviewPage() {
 
   return (
     <>
-      <h1 className="adm-page__title">한눈에 보기</h1>
       {summary && <p className="adm-page__lead">{summary}</p>}
       <div className="adm-grid adm-grid--stats">
         <StatSlot

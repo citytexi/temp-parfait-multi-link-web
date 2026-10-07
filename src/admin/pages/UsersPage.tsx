@@ -42,7 +42,6 @@ export function UsersPage() {
 
   return (
     <>
-      <h1 className="adm-page__title">사용자</h1>
       <div className="adm-grid">
         <Card title={TREND_TITLE} subtitle="DAU · WAU · MAU" info={TREND_INFO}>
           <CardState query={query} isEmpty={data !== undefined && data.trend.length === 0}>
