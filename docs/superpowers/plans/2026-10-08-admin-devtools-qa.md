@@ -1265,8 +1265,7 @@ it('uses menu-prefixed query keys', async () => {
 - Create: `src/admin/pages/devtools/event-dictionary/DictionaryTable.tsx`, `EventDictionaryPage.tsx`, `EventDictionaryPage.menu.ts`, `EventDictionaryPage.test.tsx`, `event-dictionary.css`
 
 **Interfaces:**
-- Consumes: Task 10과 11의 모든 것, `EVENT_CATALOG` (Task 1), `client.runReport`/`runRealtimeReport`/`getMetadata` (Task 2), `SearchField` (Task 4), `usePageParam`, `useGa`, `Card`, `CardState`, `CsvButton`, `formatNumber`, `displayDim`
-- Consumes: `useEventDictionary`, `EventDictionary` (Task 12a)
+- Consumes: `useEventDictionary`, `EventDictionary` (Task 12a. 기간은 `range`로 받는다), `DictionaryEntry`, `STATUS_LABEL`, `statusCounts`, `parseStatus`, `filterEntries`, `catalogSnippet`, `unlistedParams`, `toCsvRows`, `CSV_HEADERS` (Task 11), `GaParam` (Task 10), `SearchField` (Task 4), `usePageParam`, `Card`, `CardState`, `CsvButton`, `formatNumber`, `displayDim`
 - Produces: `export function EventDictionaryPage(): ReactElement`, 메뉴 정의
 
 정한 것:
