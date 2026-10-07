@@ -108,6 +108,14 @@ describe('CommandMenu', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
+  it('does not toggle on repeated keydown while the shortcut is held, but still prevents the default', () => {
+    const { onOpenChange } = renderMenu(false)
+    const held = new KeyboardEvent('keydown', { key: 'k', metaKey: true, repeat: true, cancelable: true })
+    fireEvent(window, held)
+    expect(onOpenChange).not.toHaveBeenCalled()
+    expect(held.defaultPrevented).toBe(true)
+  })
+
   it('ignores K without a modifier', () => {
     const { onOpenChange } = renderMenu(false)
     const event = new KeyboardEvent('keydown', { key: 'k', cancelable: true })

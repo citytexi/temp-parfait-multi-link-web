@@ -36,6 +36,8 @@ export function CommandMenu({ groups, open, onOpenChange, onSelect }: CommandMen
     const onKeyDown = (e: KeyboardEvent) => {
       if (!isToggleShortcut(e)) return
       e.preventDefault()
+      // A held shortcut keeps firing keydown; toggling on each one would flicker the dialog.
+      if (e.repeat) return
       onOpenChange(!open)
     }
     window.addEventListener('keydown', onKeyDown)
@@ -70,9 +72,12 @@ export function CommandMenu({ groups, open, onOpenChange, onSelect }: CommandMen
           }}
           onCloseAutoFocus={(e) => {
             // Radix only restores focus to a Dialog.Trigger, and the shell has none, so do it here.
-            // After a pick the shell moves focus to the new page's <h1>; restoring would undo that.
+            // After a pick the shell moves focus to the page's <h1>; restoring would undo that. The same
+            // holds when the dialog closed because the page changed under it and focus already moved
+            // on: restore only while nothing else holds focus.
             e.preventDefault()
-            if (!pickedRef.current) openerRef.current?.focus()
+            const active = document.activeElement
+            if (!pickedRef.current && (active === null || active === document.body)) openerRef.current?.focus()
           }}
         >
           <Dialog.Title className="adm-sr-only">빠른 이동</Dialog.Title>

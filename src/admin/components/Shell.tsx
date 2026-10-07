@@ -11,7 +11,9 @@ import { PageOutlet, prefetchPages } from './PageOutlet'
 import { QuotaBadge } from './QuotaBadge'
 import { SideMenu } from './SideMenu'
 
-const shortcutLabel = () => (navigator.platform.startsWith('Mac') ? '⌘K' : 'Ctrl K')
+const isMac = () => navigator.platform.startsWith('Mac')
+const shortcutLabel = () => (isMac() ? '⌘K' : 'Ctrl K')
+const shortcutKeys = () => (isMac() ? 'Meta+K' : 'Control+K')
 
 /** App frame: top bar, menu, page header and page. Knows menus only through the registry. */
 export function Shell({ registry = REGISTRY }: { registry?: Registry }): ReactElement {
@@ -21,6 +23,33 @@ export function Shell({ registry = REGISTRY }: { registry?: Registry }): ReactEl
   const [commandOpen, setCommandOpen] = useState(false)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const focusTitle = useCallback(() => titleRef.current?.focus(), [])
+  // Set by a pick in the command menu, used once the dialog has closed and released focus.
+  const focusTitleOnClose = useRef(false)
+
+  // The menu changed while the command menu was open (back or forward button): close it in
+  // the same render, so the new page is never shown under a dialog that still holds focus.
+  const [seenMenu, setSeenMenu] = useState(menu)
+  if (seenMenu !== menu) {
+    setSeenMenu(menu)
+    setCommandOpen(false)
+  }
+
+  // A pick always ends on the page title, also when it picked the menu already shown: then the
+  // menu id does not change and PageHeader's own focus move does not run.
+  const selectFromCommand = useCallback(
+    (id: string) => {
+      focusTitleOnClose.current = true
+      setMenu(id)
+    },
+    [setMenu],
+  )
+
+  useEffect(() => {
+    if (commandOpen || !focusTitleOnClose.current) return
+    focusTitleOnClose.current = false
+    focusTitle()
+  }, [commandOpen, focusTitle])
+
   const current = registry.findMenu(menu) ?? registry.findMenu(registry.lookup.defaultMenu)
   const Menu = isDesktop ? SideMenu : MobileMenu
 
@@ -34,6 +63,8 @@ export function Shell({ registry = REGISTRY }: { registry?: Registry }): ReactEl
           type="button"
           className="adm-topbar__search"
           aria-label="메뉴 검색"
+          aria-haspopup="dialog"
+          aria-keyshortcuts={shortcutKeys()}
           onClick={() => setCommandOpen(true)}
         >
           <Search className="adm-topbar__search-icon" size={18} aria-hidden="true" />
@@ -56,7 +87,7 @@ export function Shell({ registry = REGISTRY }: { registry?: Registry }): ReactEl
         </main>
       </div>
       <footer className="adm-shell__footer">{current?.usesGa && <QuotaBadge />}</footer>
-      <CommandMenu groups={registry.groups} open={commandOpen} onOpenChange={setCommandOpen} onSelect={setMenu} />
+      <CommandMenu groups={registry.groups} open={commandOpen} onOpenChange={setCommandOpen} onSelect={selectFromCommand} />
     </div>
   )
 }

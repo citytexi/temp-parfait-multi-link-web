@@ -52,6 +52,14 @@ function tree(): ReactElement {
 const menuButton = (name: string) =>
   within(screen.getByRole('navigation', { name: '메뉴' })).getByRole('button', { name })
 
+/** What the back or forward button does: the URL changes first, then popstate fires. */
+function goTo(search: string) {
+  window.history.replaceState(null, '', `/admin/${search}`)
+  act(() => {
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  })
+}
+
 function stubPlatform(platform: string) {
   vi.spyOn(window.navigator, 'platform', 'get').mockReturnValue(platform)
 }
@@ -250,6 +258,64 @@ describe('Shell', () => {
     await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: '비' })).toHaveFocus())
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(await screen.findByText('비 내용')).toBeInTheDocument()
+  })
+
+  it('moves focus to the heading when the current menu is picked in the command menu', async () => {
+    render(<StrictMode>{tree()}</StrictMode>)
+    expect(await screen.findByText('에이 내용')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '메뉴 검색' }))
+    const dialog = await screen.findByRole('dialog', { name: '빠른 이동' })
+    await userEvent.click(within(dialog).getByRole('option', { name: /에이/ }))
+
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: '에이' })).toHaveFocus())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(window.location.pathname + window.location.search).toBe('/admin/')
+    // Still there after the dialog's own close handling has run.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)))
+    expect(screen.getByRole('heading', { level: 1, name: '에이' })).toHaveFocus()
+  })
+
+  it('closes the command menu when the menu changes under it and leaves focus on the new heading', async () => {
+    render(<StrictMode>{tree()}</StrictMode>)
+    expect(await screen.findByText('에이 내용')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '메뉴 검색' }))
+    expect(await screen.findByRole('dialog', { name: '빠른 이동' })).toBeInTheDocument()
+
+    goTo('?menu=b')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(await screen.findByText('비 내용')).toBeInTheDocument()
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)))
+    expect(screen.getByRole('heading', { level: 1, name: '비' })).toHaveFocus()
+  })
+
+  it('moves focus to the heading and updates the title on back-button navigation', async () => {
+    render(<StrictMode>{tree()}</StrictMode>)
+    expect(await screen.findByText('에이 내용')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: '에이' })).not.toHaveFocus()
+
+    goTo('?menu=b')
+    expect(screen.getByRole('heading', { level: 1, name: '비' })).toHaveFocus()
+    expect(document.title).toBe('비 · 파르페 대시보드')
+    expect(await screen.findByText('비 내용')).toBeInTheDocument()
+
+    goTo('')
+    expect(screen.getByRole('heading', { level: 1, name: '에이' })).toHaveFocus()
+    expect(document.title).toBe('에이 · 파르페 대시보드')
+  })
+
+  it('marks the search button as a dialog opener with its platform shortcut', async () => {
+    stubPlatform('MacIntel')
+    const mac = render(tree())
+    const macButton = screen.getByRole('button', { name: '메뉴 검색' })
+    expect(macButton).toHaveAttribute('aria-haspopup', 'dialog')
+    expect(macButton).toHaveAttribute('aria-keyshortcuts', 'Meta+K')
+    expect(await screen.findByText('에이 내용')).toBeInTheDocument()
+    mac.unmount()
+
+    stubPlatform('Win32')
+    render(tree())
+    expect(screen.getByRole('button', { name: '메뉴 검색' })).toHaveAttribute('aria-keyshortcuts', 'Control+K')
+    expect(await screen.findByText('에이 내용')).toBeInTheDocument()
   })
 
   it('labels the shortcut by platform', async () => {
