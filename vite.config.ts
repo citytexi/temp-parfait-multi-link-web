@@ -17,10 +17,15 @@ function adminCsp(): Plugin {
       order: 'post',
       handler(html, ctx) {
         if (!ctx.path.endsWith('/admin/index.html')) return html
-        return html.replace(
-          /<head>/i,
-          `<head>\n  <meta http-equiv="Content-Security-Policy" content="${escapeHtmlAttribute(csp)}">`,
-        )
+        const meta = `<meta http-equiv="Content-Security-Policy" content="${escapeHtmlAttribute(csp)}">`
+        let inserted = false
+        // A function replacer: a replacement string would interpret `$` sequences in the policy.
+        const out = html.replace(/<head>/i, () => {
+          inserted = true
+          return `<head>\n  ${meta}`
+        })
+        if (!inserted) throw new Error(`admin-csp: no <head> tag in ${ctx.path}, so the CSP meta was not inserted`)
+        return out
       },
     },
   }
