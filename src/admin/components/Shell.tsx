@@ -2,6 +2,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useGa } from '../hooks/useGa'
 import type { MenuId } from '../lib/urlState'
 import { useNav } from '../menu/NavContext'
+import { REGISTRY } from '../menu/registry'
 import { EventsPage } from '../pages/EventsPage'
 import { OverviewPage } from '../pages/OverviewPage'
 import { RealtimePage } from '../pages/RealtimePage'
@@ -47,7 +48,7 @@ export function Shell() {
         </button>
       </header>
       <div className="adm-shell__body">
-        <SideMenu active={menu} onSelect={setMenu} />
+        <SideMenu groups={REGISTRY.groups} active={menu} onSelect={setMenu} />
         <main className="adm-page">
           <Page menu={menu} />
         </main>

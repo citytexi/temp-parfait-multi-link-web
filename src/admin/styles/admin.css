@@ -446,22 +446,22 @@ body {
   color: var(--adm-text-3);
 }
 
-/* Side menu: horizontal tab bar that scrolls inside itself below 960px */
+/* Menus: grouped sidebar (.adm-menu--side) and group switch + tabs (.adm-menu--mobile) */
 .adm-menu {
   background: var(--adm-surface);
   border-bottom: 1px solid var(--adm-border);
 }
 
 .adm-menu__list {
-  display: flex;
-  gap: var(--adm-space-1);
   margin: 0;
-  padding: var(--adm-space-2) var(--adm-space-4);
+  padding: 0;
   list-style: none;
-  overflow-x: auto;
 }
 
 .adm-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--adm-space-3);
   min-height: var(--adm-hit);
   padding: 0 var(--adm-space-4);
   border: 0;
@@ -476,6 +476,10 @@ body {
   transition: background-color var(--adm-duration) ease;
 }
 
+.adm-menu__icon {
+  flex: none;
+}
+
 .adm-menu__item:hover {
   background: var(--adm-surface-muted);
 }
@@ -484,6 +488,100 @@ body {
   background: var(--adm-accent-soft);
   color: var(--adm-accent);
   font-weight: var(--adm-fw-bold);
+}
+
+/* Sidebar (stacks above the page below 960px until the mobile menu is wired in) */
+.adm-menu--side {
+  padding: var(--adm-space-2) var(--adm-space-4);
+}
+
+.adm-menu__section + .adm-menu__section {
+  margin-top: var(--adm-space-2);
+}
+
+.adm-menu__group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--adm-hit);
+  padding: 0 var(--adm-space-4);
+  border: 0;
+  border-radius: var(--adm-radius-md);
+  background: transparent;
+  color: var(--adm-text-3);
+  font: inherit;
+  font-size: var(--adm-fs-xs);
+  font-weight: var(--adm-fw-bold);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--adm-duration) ease;
+}
+
+.adm-menu__group:hover {
+  background: var(--adm-surface-muted);
+}
+
+.adm-menu__chevron {
+  flex: none;
+  transition: transform var(--adm-duration) ease;
+}
+
+.adm-menu__group[aria-expanded='false'] .adm-menu__chevron {
+  transform: rotate(-90deg);
+}
+
+.adm-menu--side .adm-menu__item {
+  width: 100%;
+  text-align: left;
+}
+
+/* Mobile: pill group switch above a horizontally scrolling tab list */
+.adm-menu--mobile {
+  padding: var(--adm-space-2) var(--adm-space-4);
+}
+
+.adm-menu__switch {
+  display: flex;
+  gap: var(--adm-space-1);
+  margin-bottom: var(--adm-space-2);
+  padding: var(--adm-space-1);
+  border-radius: var(--adm-radius-pill);
+  background: var(--adm-surface-muted);
+}
+
+.adm-menu__segment {
+  flex: 1;
+  min-height: var(--adm-hit);
+  padding: 0 var(--adm-space-3);
+  border: 0;
+  border-radius: var(--adm-radius-pill);
+  background: transparent;
+  color: var(--adm-text-2);
+  font: inherit;
+  font-size: var(--adm-fs-sm);
+  font-weight: var(--adm-fw-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--adm-duration) ease;
+}
+
+.adm-menu__segment[aria-pressed='true'] {
+  background: var(--adm-surface);
+  color: var(--adm-text-1);
+  font-weight: var(--adm-fw-bold);
+  box-shadow: var(--adm-shadow-card);
+}
+
+.adm-menu--mobile .adm-menu__list {
+  display: flex;
+  gap: var(--adm-space-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.adm-menu--mobile .adm-menu__list::-webkit-scrollbar {
+  display: none;
 }
 
 /* Period filter */
@@ -573,23 +671,16 @@ body {
     flex-direction: row;
   }
 
-  .adm-menu {
-    flex: 0 0 220px;
-    border-bottom: 0;
-    border-right: 1px solid var(--adm-border);
-  }
-
-  .adm-menu__list {
+  .adm-menu--side {
     position: sticky;
     top: 0;
-    flex-direction: column;
+    flex: 0 0 240px;
+    align-self: flex-start;
+    max-height: 100dvh;
     padding: var(--adm-space-4);
-    overflow-x: visible;
-  }
-
-  .adm-menu__item {
-    width: 100%;
-    text-align: left;
+    border-bottom: 0;
+    border-right: 1px solid var(--adm-border);
+    overflow-y: auto;
   }
 
   .adm-page {
@@ -602,7 +693,10 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .adm-menu__item {
+  .adm-menu__item,
+  .adm-menu__group,
+  .adm-menu__segment,
+  .adm-menu__chevron {
     transition: none;
   }
 }
