@@ -1,6 +1,7 @@
 import { useAuth } from '../auth/AuthContext'
 import { useGa } from '../hooks/useGa'
 import type { MenuId } from '../lib/urlState'
+import { useNav } from '../menu/NavContext'
 import { EventsPage } from '../pages/EventsPage'
 import { OverviewPage } from '../pages/OverviewPage'
 import { RealtimePage } from '../pages/RealtimePage'
@@ -30,7 +31,8 @@ function Page({ menu }: { menu: MenuId }) {
 
 export function Shell() {
   const { logout } = useAuth()
-  const { menu, period, periodError, today, setMenu, setPeriod } = useGa()
+  const { menu, setMenu } = useNav()
+  const { period, periodError, today, setPeriod } = useGa()
 
   return (
     <div className="adm-shell">

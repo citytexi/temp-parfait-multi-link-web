@@ -1,4 +1,4 @@
-import { createContext, createElement, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, createElement, useContext, useMemo, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { GA_PROPERTY_ID } from '../config'
 import { createGaClient, type GaClient } from '../ga/client'
@@ -12,7 +12,7 @@ import {
   type DateRange,
   type Period,
 } from '../lib/period'
-import { parseUrlState, toSearch, type MenuId, type UrlState } from '../lib/urlState'
+import { useNav } from '../menu/NavContext'
 
 export type Ranges = { current: DateRange; previous: DateRange; days: number }
 
@@ -23,10 +23,8 @@ type GaValue = {
   periodLabel: string
   /** Seoul date (YYYY-MM-DD) fixed when the dashboard mounted. */
   today: string
-  menu: MenuId
   period: Period
   periodError: string | null
-  setMenu(menu: MenuId): void
   setPeriod(period: Period): void
 }
 
@@ -49,7 +47,7 @@ function quotaPercent(q: PropertyQuota): number | null {
 
 export function GaProvider({ children }: { children: ReactNode }) {
   const { getToken } = useAuth()
-  const [state, setState] = useState<UrlState>(() => parseUrlState(window.location.search))
+  const { period, setPeriod } = useNav()
   const [today] = useState(() => seoulToday(new Date()))
   const [quota, setQuota] = useState<number | null>(null)
 
@@ -66,28 +64,18 @@ export function GaProvider({ children }: { children: ReactNode }) {
     [getToken],
   )
 
-  const update = useCallback((next: UrlState) => {
-    setState(next)
-    window.history.replaceState(null, '', window.location.pathname + toSearch(next))
-  }, [])
-
-  const setMenu = useCallback((menu: MenuId) => update({ ...state, menu }), [state, update])
-  const setPeriod = useCallback((period: Period) => update({ ...state, period }), [state, update])
-
   const value = useMemo<GaValue>(() => {
-    const periodError = validatePeriod(state.period, today)
+    const periodError = validatePeriod(period, today)
     return {
       client,
-      ranges: periodError ? null : resolveRanges(state.period, today),
-      periodLabel: toPeriodLabel(state.period),
+      ranges: periodError ? null : resolveRanges(period, today),
+      periodLabel: toPeriodLabel(period),
       today,
-      menu: state.menu,
-      period: state.period,
+      period,
       periodError,
-      setMenu,
       setPeriod,
     }
-  }, [client, state, today, setMenu, setPeriod])
+  }, [client, period, today, setPeriod])
 
   return createElement(
     GaContext.Provider,
