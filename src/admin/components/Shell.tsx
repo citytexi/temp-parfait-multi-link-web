@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react'
-import { useEffect, useState, type ReactElement } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { useNav } from '../menu/NavContext'
 import { REGISTRY, type Registry } from '../menu/registry'
@@ -19,6 +19,8 @@ export function Shell({ registry = REGISTRY }: { registry?: Registry }): ReactEl
   const { menu, setMenu } = useNav()
   const isDesktop = useIsDesktop()
   const [commandOpen, setCommandOpen] = useState(false)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const focusTitle = useCallback(() => titleRef.current?.focus(), [])
   const current = registry.findMenu(menu) ?? registry.findMenu(registry.lookup.defaultMenu)
   const Menu = isDesktop ? SideMenu : MobileMenu
 
@@ -47,8 +49,8 @@ export function Shell({ registry = REGISTRY }: { registry?: Registry }): ReactEl
         <main className="adm-page">
           {current && (
             <>
-              <PageHeader menu={current} />
-              <PageOutlet menu={current} />
+              <PageHeader menu={current} titleRef={titleRef} />
+              <PageOutlet menu={current} onRetry={focusTitle} />
             </>
           )}
         </main>

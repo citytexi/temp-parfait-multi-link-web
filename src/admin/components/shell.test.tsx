@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Circle } from 'lucide-react'
 import { StrictMode, type ComponentType, type ReactElement } from 'react'
@@ -26,6 +26,7 @@ vi.mock('../ga/client', () => ({
 
 import { GaProvider } from '../hooks/useGa'
 import { NavProvider } from '../menu/NavContext'
+import { prefetchPages } from './PageOutlet'
 import { Shell } from './Shell'
 
 type Load = MenuDef['load']
@@ -189,6 +190,44 @@ describe('Shell', () => {
     expect(b.load).toHaveBeenCalledTimes(2)
   })
 
+  it('loads again after a load that failed while the user was on another menu', async () => {
+    let reject!: (reason: Error) => void
+    b.load.mockImplementationOnce(
+      () =>
+        new Promise((_, rej) => {
+          reject = rej
+        }),
+    )
+    render(tree())
+    await userEvent.click(menuButton('비'))
+    expect(screen.getByRole('status')).toHaveTextContent('불러오는 중이에요')
+
+    await userEvent.click(menuButton('에이'))
+    expect(await screen.findByText('에이 내용')).toBeInTheDocument()
+    await act(async () => {
+      reject(new Error('chunk failed'))
+    })
+
+    await userEvent.click(menuButton('비'))
+    expect(await screen.findByText('비 내용')).toBeInTheDocument()
+    expect(screen.queryByText('화면을 불러오지 못했어요')).not.toBeInTheDocument()
+    expect(b.load).toHaveBeenCalledTimes(2)
+  })
+
+  it('moves focus to the heading after a retry', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    b.load.mockRejectedValueOnce(new Error('chunk failed'))
+    render(<StrictMode>{tree()}</StrictMode>)
+    await userEvent.click(menuButton('비'))
+    const retry = await screen.findByRole('button', { name: '다시 시도' })
+    retry.focus()
+
+    await userEvent.click(retry)
+    expect(screen.getByRole('heading', { level: 1, name: '비' })).toHaveFocus()
+    expect(await screen.findByText('비 내용')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: '비' })).toHaveFocus()
+  })
+
   it('renders the mobile menu instead of the side menu below 960px', async () => {
     vi.spyOn(window, 'matchMedia').mockImplementation(
       (media: string) =>
@@ -240,6 +279,68 @@ describe('Shell', () => {
       expect(b.load).toHaveBeenCalledTimes(1)
     } finally {
       vi.useRealTimers()
+    }
+  })
+
+  it('renders a prefetched page at once, with no loading status', async () => {
+    vi.useFakeTimers()
+    const added: Node[] = []
+    const observer = new MutationObserver((records) => {
+      for (const r of records) added.push(...r.addedNodes)
+    })
+    try {
+      render(<StrictMode>{tree()}</StrictMode>)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1500)
+      })
+      expect(b.load).toHaveBeenCalledTimes(1)
+      observer.observe(document.body, { childList: true, subtree: true })
+
+      // fireEvent renders inside one synchronous act; nothing is awaited before the assertions,
+      // so the page is there before any promise could settle.
+      fireEvent.click(menuButton('비'))
+      expect(screen.getByRole('heading', { level: 1, name: '비' })).toBeInTheDocument()
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+      expect(screen.getByText('비 내용')).toBeInTheDocument()
+      await act(async () => {})
+      expect(screen.getByText('비 내용')).toBeInTheDocument()
+      for (const r of observer.takeRecords()) added.push(...r.addedNodes)
+      const statuses = added.filter(
+        (n) => n instanceof Element && (n.matches('[role="status"]') || n.querySelector('[role="status"]') !== null),
+      )
+      expect(statuses).toEqual([])
+      // The prefetched module is reused; the chunk is not requested again.
+      expect(b.load).toHaveBeenCalledTimes(1)
+    } finally {
+      observer.disconnect()
+      vi.useRealTimers()
+    }
+  })
+
+  it('prefetches through requestIdleCallback when the browser has it, and cancels through cancelIdleCallback', () => {
+    let idle: (() => void) | undefined
+    const request = vi.fn((cb: () => void) => {
+      idle = cb
+      return 7
+    })
+    const cancel = vi.fn()
+    vi.stubGlobal('requestIdleCallback', request)
+    vi.stubGlobal('cancelIdleCallback', cancel)
+    try {
+      const stop = prefetchPages([a, b])
+      expect(request).toHaveBeenCalledTimes(1)
+      expect(a.load).not.toHaveBeenCalled()
+      expect(b.load).not.toHaveBeenCalled()
+
+      idle?.()
+      expect(a.load).toHaveBeenCalledTimes(1)
+      expect(b.load).toHaveBeenCalledTimes(1)
+
+      expect(cancel).not.toHaveBeenCalled()
+      stop()
+      expect(cancel).toHaveBeenCalledWith(7)
+    } finally {
+      vi.unstubAllGlobals()
     }
   })
 

@@ -12,16 +12,39 @@ import type { MenuDef } from '../menu/defineMenu'
 
 const PREFETCH_DELAY_MS = 1500
 
-// Keyed by the definition object, not its id: a rebuilt registry never inherits stale entries.
+// Both caches are keyed by the definition object, not its id: a rebuilt registry never inherits stale entries.
+// Components whose chunk has arrived, filled by the idle prefetch and by the lazy loader alike.
+const resolvedPages = new WeakMap<MenuDef, ComponentType>()
+// Lazy wrappers for chunks still on their way. A wrapper whose load failed is dropped.
 const lazyPages = new WeakMap<MenuDef, LazyExoticComponent<ComponentType>>()
 
+function loadPage(menu: MenuDef): Promise<{ default: ComponentType }> {
+  return menu.load().then((mod) => {
+    resolvedPages.set(menu, mod.default)
+    return mod
+  })
+}
+
 function lazyPage(menu: MenuDef): LazyExoticComponent<ComponentType> {
-  let page = lazyPages.get(menu)
-  if (!page) {
-    page = lazy(menu.load)
-    lazyPages.set(menu, page)
-  }
+  const cached = lazyPages.get(menu)
+  if (cached) return cached
+  const page: LazyExoticComponent<ComponentType> = lazy(() =>
+    loadPage(menu).catch((error: unknown) => {
+      // A failed load must not stay cached, whether or not anything is mounted to see it fail.
+      // Compare first: a rejection that arrives late must not drop a newer wrapper.
+      if (lazyPages.get(menu) === page) lazyPages.delete(menu)
+      throw error
+    }),
+  )
+  lazyPages.set(menu, page)
   return page
+}
+
+type Picked = { menu: MenuDef; Page: ComponentType; ready: boolean }
+
+function pickPage(menu: MenuDef): Picked {
+  const Ready = resolvedPages.get(menu)
+  return Ready ? { menu, Page: Ready, ready: true } : { menu, Page: lazyPage(menu), ready: false }
 }
 
 /**
@@ -31,7 +54,9 @@ function lazyPage(menu: MenuDef): LazyExoticComponent<ComponentType> {
  */
 export function prefetchPages(menus: readonly MenuDef[]): () => void {
   const run = () => {
-    for (const menu of menus) menu.load().catch(() => {})
+    for (const menu of menus) {
+      if (!resolvedPages.has(menu)) loadPage(menu).catch(() => {})
+    }
   }
   if (typeof window.requestIdleCallback === 'function') {
     const handle = window.requestIdleCallback(run)
@@ -41,7 +66,7 @@ export function prefetchPages(menus: readonly MenuDef[]): () => void {
   return () => window.clearTimeout(timer)
 }
 
-type BoundaryProps = { fallback: ReactNode; onError(): void; children: ReactNode }
+type BoundaryProps = { fallback: ReactNode; children: ReactNode }
 
 class PageErrorBoundary extends Component<BoundaryProps, { failed: boolean }> {
   state = { failed: false }
@@ -50,27 +75,46 @@ class PageErrorBoundary extends Component<BoundaryProps, { failed: boolean }> {
     return { failed: true }
   }
 
-  componentDidCatch(): void {
-    this.props.onError()
-  }
-
   render(): ReactNode {
     return this.state.failed ? this.props.fallback : this.props.children
   }
 }
 
-/** Renders the menu's page from its lazily loaded chunk, with loading and failure states. */
-export function PageOutlet({ menu }: { menu: MenuDef }): ReactElement {
+/** The page itself: at once when its chunk has already arrived, behind a loading status otherwise. */
+function PageBody({ menu }: { menu: MenuDef }): ReactElement {
+  // Chosen once per mount. Swapping the lazy wrapper for the resolved component on a later
+  // render would change the element type and remount the page, losing its state.
+  const [picked, setPicked] = useState(() => pickPage(menu))
+  if (picked.menu !== menu) setPicked(pickPage(menu))
+  const { Page, ready } = picked.menu === menu ? picked : pickPage(menu)
+
+  if (ready) return <Page />
+  return (
+    <Suspense
+      fallback={
+        <p className="adm-page__loading" role="status">
+          불러오는 중이에요
+        </p>
+      }
+    >
+      <Page />
+    </Suspense>
+  )
+}
+
+/**
+ * Renders the menu's page with loading and failure states. `onRetry` runs when the user asks
+ * for another try, so the shell can move focus before the retry button goes away.
+ */
+export function PageOutlet({ menu, onRetry }: { menu: MenuDef; onRetry?: () => void }): ReactElement {
   // Retries made for the menu `id`; a different menu starts again from 0.
   const [tries, setTries] = useState({ id: menu.id, attempt: 0 })
   if (tries.id !== menu.id) setTries({ id: menu.id, attempt: 0 })
   const attempt = tries.id === menu.id ? tries.attempt : 0
 
-  const Page = lazyPage(menu)
-
   const retry = () => {
-    lazyPages.delete(menu)
     setTries({ id: menu.id, attempt: attempt + 1 })
+    onRetry?.()
   }
 
   const failure = (
@@ -91,17 +135,9 @@ export function PageOutlet({ menu }: { menu: MenuDef }): ReactElement {
   )
 
   return (
-    // A failed chunk is dropped from the cache, so retrying or coming back fetches it again.
-    <PageErrorBoundary key={`${menu.id}:${attempt}`} fallback={failure} onError={() => lazyPages.delete(menu)}>
-      <Suspense
-        fallback={
-          <p className="adm-page__loading" role="status">
-            불러오는 중이에요
-          </p>
-        }
-      >
-        <Page />
-      </Suspense>
+    // A new key remounts the boundary and the page, which then loads a failed chunk again.
+    <PageErrorBoundary key={`${menu.id}:${attempt}`} fallback={failure}>
+      <PageBody menu={menu} />
     </PageErrorBoundary>
   )
 }

@@ -1,12 +1,17 @@
-import { useEffect, useRef, type ReactElement } from 'react'
+import { useEffect, useRef, type ReactElement, type RefObject } from 'react'
 import { useGa } from '../hooks/useGa'
 import type { MenuDef } from '../menu/defineMenu'
 import { PeriodFilter } from './PeriodFilter'
 
+type PageHeaderProps = {
+  menu: MenuDef
+  /** Points at the page `<h1>`, so the shell can move focus there without knowing this markup. */
+  titleRef: RefObject<HTMLHeadingElement | null>
+}
+
 /** Page title, description and (for menus that use it) the period filter, all from the menu definition. */
-export function PageHeader({ menu }: { menu: MenuDef }): ReactElement {
+export function PageHeader({ menu, titleRef }: PageHeaderProps): ReactElement {
   const { period, today, periodError, setPeriod } = useGa()
-  const titleRef = useRef<HTMLHeadingElement>(null)
   const prevId = useRef(menu.id)
 
   useEffect(() => {
@@ -19,7 +24,7 @@ export function PageHeader({ menu }: { menu: MenuDef }): ReactElement {
     if (prevId.current === menu.id) return
     prevId.current = menu.id
     titleRef.current?.focus()
-  }, [menu.id])
+  }, [menu.id, titleRef])
 
   return (
     <header className="adm-page-header">
