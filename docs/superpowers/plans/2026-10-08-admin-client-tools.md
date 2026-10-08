@@ -85,6 +85,7 @@ Task 1~3은 랜딩, 4~7은 공용 코드, 8~10은 캠페인 링크, 11은 분기
 - `fireEvent.click`은 포커스를 옮기지 않는다. 포커스를 확인하는 테스트는 먼저 `.focus()`를 부른다.
 - jsdom에는 `navigator.clipboard`가 없다. `Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })`로 넣고 `afterEach`에서 `Reflect.deleteProperty(navigator, 'clipboard')`로 지운다.
 - 저장소는 `beforeEach(() => localStorage.clear())`. 저장된 값은 `localStorage.setItem(KEY, JSON.stringify({ v: 1, items }))`로 넣는다. 쓰기 실패는 `vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('full', 'QuotaExceededError') })`로 만든다.
+- 타이머나 spy를 쓰는 테스트 파일에는 `afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })`를 둔다. `src/test/setup.ts`는 `cleanup`만 한다. 두지 않으면 던지는 `setItem` spy나 가짜 타이머가 같은 파일의 다음 테스트로 샌다.
 - 페이지 테스트는 아래 틀을 쓴다. 이 묶음의 페이지는 `QueryClientProvider`와 `useGa`가 필요 없다.
 
 ```tsx
@@ -234,40 +235,40 @@ export function landingView(platform: Platform, pageUrl: string): LandingView
 - [ ] **Step 1: 실패하는 테스트를 더한다**
 
 ```ts
-// ua.test.ts
-const U = 'https://x/y?utm_source=kakaotalk&utm_medium=social&utm_campaign=c#f'
-const R = 'utm_source=kakaotalk&utm_medium=social&utm_campaign=c'
+// ua.test.ts — Task 1이 같은 파일에 `R`을 두었으므로 이름을 달리한다
+const UK = 'https://x/y?utm_source=kakaotalk&utm_medium=social&utm_campaign=c#f'
+const RK = 'utm_source=kakaotalk&utm_medium=social&utm_campaign=c'
 const store = (href: string) => ({ id: 'store', label: 'Google Play에서 다운로드', href, variant: 'primary' })
 const appstore = { id: 'appstore', label: 'App Store에서 다운로드', href: APP_STORE_URL, variant: 'primary' }
 
 describe('landingView', () => {
   it('sends a plain Android browser to the intent with the referrer', () => {
-    expect(landingView({ os: 'android', inApp: false, kakao: false }, U)).toEqual({
-      autoRedirect: playIntentUrl(R), noRedirectReason: null,
-      buttons: [store(playIntentUrl(R))], showInAppHint: false, referrer: R,
+    expect(landingView({ os: 'android', inApp: false, kakao: false }, UK)).toEqual({
+      autoRedirect: playIntentUrl(RK), noRedirectReason: null,
+      buttons: [store(playIntentUrl(RK))], showInAppHint: false, referrer: RK,
     })
   })
   it('keeps an Android in-app browser on the page with both buttons and the hint', () => {
-    expect(landingView({ os: 'android', inApp: true, kakao: true }, U)).toEqual({
+    expect(landingView({ os: 'android', inApp: true, kakao: true }, UK)).toEqual({
       autoRedirect: null, noRedirectReason: 'in-app',
       buttons: [
-        store(playIntentUrl(R)),
-        { id: 'external', label: '외부 브라우저로 열기', href: externalBrowserUrl(U, true), variant: 'secondary' },
+        store(playIntentUrl(RK)),
+        { id: 'external', label: '외부 브라우저로 열기', href: externalBrowserUrl(UK, true), variant: 'secondary' },
       ],
-      showInAppHint: true, referrer: R,
+      showInAppHint: true, referrer: RK,
     })
   })
   it('shows only the App Store on iOS, in-app or not, and passes nothing to Play', () => {
     for (const inApp of [false, true]) {
-      expect(landingView({ os: 'ios', inApp, kakao: inApp }, U)).toEqual({
+      expect(landingView({ os: 'ios', inApp, kakao: inApp }, UK)).toEqual({
         autoRedirect: null, noRedirectReason: 'not-android', buttons: [appstore], showInAppHint: false, referrer: '',
       })
     }
   })
   it('shows both stores elsewhere, with the referrer on the Play web url', () => {
-    expect(landingView({ os: 'other', inApp: false, kakao: false }, U)).toEqual({
+    expect(landingView({ os: 'other', inApp: false, kakao: false }, UK)).toEqual({
       autoRedirect: null, noRedirectReason: 'not-android',
-      buttons: [store(playWebUrl(R)), appstore], showInAppHint: false, referrer: R,
+      buttons: [store(playWebUrl(RK)), appstore], showInAppHint: false, referrer: RK,
     })
   })
   it('is unchanged without campaign params', () => {
@@ -279,7 +280,7 @@ describe('landingView', () => {
 })
 ```
 
-`Landing.test.tsx`에는 두 가지를 더한다(`pageUrl`을 받는 `view` 변형을 쓴다): Android 인앱에서 `pageUrl`이 `U`면 `Google Play에서 다운로드`의 `href`가 `playIntentUrl(R)`이고 `외부 브라우저로 열기`의 `href`가 `externalBrowserUrl(U, false)`다. `other`에서 `U`면 Play 버튼의 `href`가 `playWebUrl(R)`이다. 그리고 `other`에서 `container.querySelectorAll('.actions a')`의 `id` 순서가 `['store', 'appstore']`, 클래스가 둘 다 `btn primary`다.
+`Landing.test.tsx`에는 두 가지를 더한다(`pageUrl`을 받는 `view` 변형을 쓴다): Android 인앱에서 `pageUrl`이 `UK`면 `Google Play에서 다운로드`의 `href`가 `playIntentUrl(RK)`이고 `외부 브라우저로 열기`의 `href`가 `externalBrowserUrl(UK, false)`다. `other`에서 `UK`면 Play 버튼의 `href`가 `playWebUrl(RK)`이다. 그리고 `other`에서 `container.querySelectorAll('.actions a')`의 `id` 순서가 `['store', 'appstore']`, 클래스가 둘 다 `btn primary`다.
 
 - [ ] **Step 2: 실패를 확인한다.** Run: `npx vitest run src/landing` Expected: FAIL
 - [ ] **Step 3: `landingView`를 스펙 표대로 구현하고 `Landing.tsx`를 고친다.**
@@ -323,10 +324,10 @@ export const UA_PRESETS: readonly UaPreset[]
 
 인라인 스크립트의 규칙:
 - ES5만 쓴다(`var`, `function`, 문자열 더하기). 화살표 함수, `const`, `let`, 백틱, `URL`, `URLSearchParams`를 쓰지 않는다.
-- 순서: UA에 `iPhone|iPad|iPod`가 있으면 끝낸다 → `Android`가 없거나 인앱이면 끝낸다 → referrer를 만든다 → `location.replace`를 한 번 부른다.
+- 순서: UA가 `/iPhone|iPad|iPod/i`에 맞으면 끝낸다(`detectPlatform`처럼 대소문자를 가리지 않는다. `i` 플래그를 빠뜨리면 안 된다) → `Android`가 없거나 인앱이면 끝낸다 → referrer를 만든다 → `location.replace`를 한 번 부른다.
 - 페이지 주소는 `location.href`에서 읽는다. referrer는 Task 1의 `campaignReferrer`와 같은 절차로 만든다(같은 key 순서, 같은 정규식, 디코딩 없음).
 - referrer를 만드는 부분만 `try`/`catch`로 감싼다. 예외가 나면 referrer 없는 지금의 intent 주소로 보낸다.
-- 스크립트 위의 주석을 고친다: 이 스크립트는 `src/landing/ua.ts`의 `landingView().autoRedirect`와 같아야 하고 `src/landing/inlineScript.test.ts`가 그것을 확인한다. `ua.ts`의 `IN_APP` 위 주석도 같은 내용으로 고친다.
+- 스크립트 위의 주석을 고친다: 이 스크립트는 `src/landing/ua.ts`의 `landingView().autoRedirect`와 같아야 하고 `src/landing/inlineScript.test.ts`가 그것을 확인한다. `ua.ts`의 `IN_APP` 위 주석도 같은 내용으로 고친다. 인라인 스크립트 안의 주석에는 백틱, `=>`, `const`, `let`을 쓰지 않는다(이름은 백틱 없이 적는다). ES5 테스트는 주석을 떼고 보지만, 떼는 정규식이 놓칠 수 있다.
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
@@ -360,6 +361,7 @@ const MIXED: [string, string][] = [
   ['android and kakaotalk', `${ANDROID} KAKAOTALK/10.0.0`],
   ['android and line', `${ANDROID} Line/13.0.0`],
   ['lower-case android', 'mozilla/5.0 (linux; android 14) chrome/124.0 mobile'],
+  ['lower-case iphone with android', 'mozilla/5.0 (linux; android 14) like iphone'],
 ]
 const UAS: [string, string][] = [...UA_PRESETS.map((p): [string, string] => [p.id, p.ua]), ...MIXED]
 
@@ -368,7 +370,7 @@ function inlineBody(): string {
   expect(found).toHaveLength(1)
   return found[0][1]
 }
-function run(nav: object, loc: object & { replace: ReturnType<typeof vi.fn> }): string | null {
+function run(nav: object, loc: { replace: ReturnType<typeof vi.fn>; href?: string }): string | null {
   new Function('navigator', 'location', inlineBody())(nav, loc)
   expect(loc.replace.mock.calls.length).toBeLessThanOrEqual(1)
   return (loc.replace.mock.calls[0]?.[0] as string | undefined) ?? null
@@ -393,7 +395,8 @@ it('does nothing and does not throw without a user agent', () => {
   expect(run({}, { href: BASE, replace: vi.fn() })).toBeNull()
 })
 it('is written in ES5', () => {
-  expect(inlineBody()).not.toMatch(/=>|\bconst\b|\blet\b|`|URLSearchParams|new URL\b/)
+  const code = inlineBody().replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')   // 주석은 보지 않는다
+  expect(code).not.toMatch(/=>|\bconst\b|\blet\b|`|URLSearchParams|new URL\b/)
 })
 ```
 
@@ -524,6 +527,7 @@ export const LANDING_URL = 'https://citytexi.github.io/temp-parfait-multi-link-w
 - 한글 조합은 훅이 `document`의 `compositionstart`와 `compositionend`를 들어서 안다(시그니처에 칸이 없어서 칸의 이벤트를 받을 수 없다). 조합 중에는 타이머가 끝나도 쓰지 않고, 조합이 끝나면 `delayMs`를 다시 잰다. `flush()`는 조합 중에도 쓴다.
 - URL의 값이 이 훅이 마지막으로 쓴 값과 다르게 바뀌면(뒤로 가기, 다른 코드의 쓰기) 칸의 값을 그것으로 바꾸고 타이머를 지운다. 자기가 쓴 값이 돌아온 것이면 칸을 건드리지 않는다. 그 사이에 더 친 글자가 남아야 한다.
 - 화면을 떠날 때는 타이머를 지우고 쓰지 않는다. 떠난 뒤에 쓰면 새 메뉴의 URL에 이 화면의 파라미터가 붙는다.
+- 훅은 `useNav().menu`도 읽는다. 메뉴가 바뀌면 타이머를 지우고 칸의 값을 URL의 값으로 되돌린다. `setMenu`는 페이지 파라미터를 모두 비우므로, 파라미터가 없던 key는 값이 `null`에서 `null`로 그대로라 위의 "바깥에서 바뀜" 규칙에 걸리지 않는다. 셸은 메뉴가 바뀌면 페이지를 떼지만, 이 규칙은 훅이 붙어 있는 채로도 지켜져야 한다.
 
 `downloadBlob`은 `csv.ts`의 `downloadCsv`와 같은 순서다: `URL.createObjectURL` → `<a download>`를 `body`에 붙여 `click()` → 떼기 → `setTimeout(…, 0)`으로 `revokeObjectURL`.
 
@@ -545,7 +549,7 @@ it('removes the param for an empty value', () => {
 })
 it('does not write during IME composition, then writes 300ms after it ends', () => {
   // fireEvent.compositionStart(document.body) → set('ㅎ') → 500ms: 쓰기 없음
-  // set('한') → fireEvent.compositionEnd(document.body) → 299ms: 없음 → 1ms: camp=한
+  // set('한') → fireEvent.compositionEnd(document.body) → 299ms: 없음 → 1ms: new URLSearchParams(location.search).get('camp') === '한' (주소 문자열은 퍼센트 인코딩돼 있다)
 })
 it('takes an outside change and drops the pending write', () => {
   // set('typed') → 100ms → act(() => raw[1]('outside')) → field[0] === 'outside' → 300ms 뒤에도 URL은 camp=outside
@@ -553,9 +557,11 @@ it('takes an outside change and drops the pending write', () => {
 it('keeps what the user typed when its own write comes back', () => {
   // set('ab') → 300ms(쓰임) → set('abc') → rerender → field[0] === 'abc'
 })
-it('does not write after unmount or after leaving the menu', () => {
+it('does not write after unmount', () => {
   // set('x') → unmount → 300ms → replaceState 호출 없음
-  // set('x') → act(() => nav.setMenu('link-hub')) → 300ms → location.search === '?menu=link-hub'
+})
+it('drops the pending write and resets the field when the menu changes under it', () => {
+  // 훅은 붙어 있는 채로: set('x') → act(() => nav.setMenu('link-hub')) → field[0] === '' → 300ms → location.search === '?menu=link-hub'
 })
 it('keeps one timer and one pair of listeners under StrictMode', () => {
   // StrictMode wrapper. set('a') → 300ms → 쓰기 1회
@@ -624,7 +630,7 @@ export function CheckboxField(props: { label: string; checked: boolean; onChange
 정한 것:
 - `StatusRegion`은 `children`을 그리고 그 뒤에 `<div role="status" className="adm-status-region adm-sr-only">`를 하나 둔다. 이 영역은 처음부터 그려져 있고 비어 있다. 페이지는 내용 전체를 `StatusRegion`으로 감싼다.
 - `useAnnounce()`는 안정된 함수를 돌려준다. `StatusRegion` 밖에서는 아무 일도 하지 않는 함수다(버튼을 혼자 그려도 동작한다).
-- 직전과 같은 문구를 다시 알리면 끝에 ` `를 붙였다 뗐다 해서 글자가 달라지게 한다. 같은 글자는 스크린 리더가 다시 읽지 않는다.
+- 직전과 같은 문구를 다시 알리면 끝에 `\u00A0`(NBSP)를 붙였다 뗐다 해서 글자가 달라지게 한다. 같은 글자는 스크린 리더가 다시 읽지 않는다.
 - 세 필드는 `useId()`로 id를 만들고 `<label htmlFor>`로 잇는다. `help`와 `error`는 각각 `<p id>`로 그리고, 있는 것의 id를 `aria-describedby`에 공백으로 이어 넣는다. `error`가 있으면 `aria-invalid="true"`다. `TextField`의 나머지 props(`type`, `inputMode`, `autoCapitalize`, `onBlur`, `onCompositionEnd` 등)는 `<input>`에 그대로 넘긴다.
 - `CheckboxField`는 `<label>`이 `<input type="checkbox">`와 글자를 감싼다. 줄 전체가 눌린다.
 - 클래스: `adm-field`, `adm-field__label`, `adm-field__input`, `adm-field__help`, `adm-field__error`, `adm-field--checkbox`. 각 컴포넌트 파일이 `./form.css`를 import한다.
@@ -1062,6 +1068,15 @@ it('previews the Play url the landing would use', () => {
   // LINK 상태 → 'https://play.google.com/store/apps/details?id=com.teamyg.parfait&referrer=utm_source%3Dinstagram%26utm_medium%3Dsocial%26utm_campaign%3D202610-launch%26utm_content%3Dstory'
   // 'iOS 설치는 캠페인별로 측정되지 않아요'
 })
+it('normalises the field when IME composition ends', () => {
+  // 캠페인 칸에 ' Launch ' → fireEvent.compositionEnd(칸) → 칸의 value 'launch' (blur 없이)
+})
+it('sets the input attributes that keep phones from rewriting the text', () => {
+  // '캠페인 이름', '소재 구분 (선택)', 그리고 '직접 입력'일 때의 '출처 (source)', '매체 (medium)' 칸: autocapitalize 'none', autocorrect 'off', spellcheck 'false'
+})
+it('shows the day a record was made, in Seoul time', () => {
+  // 저장된 createdAt '2026-10-07T16:00:00.000Z'(서울 10월 8일 01:00) → 그 줄에 '10월 8일'
+})
 it('copies the link and records it', async () => {
   // '링크 복사' → writeText(LINK) → 최근 목록에 '인스타그램 · 202610-launch · story'
   // 저장소 RECENT_KEY의 items[0]은 { channel: 'instagram', source: 'instagram', medium: 'social', campaign: '202610-launch', content: 'story', createdAt: <ISO> }이고 url 필드가 없다
@@ -1128,6 +1143,7 @@ export function UaTesterPage(): ReactElement
 - `내 브라우저`는 프리셋이 아니라 채우는 버튼이다. `preset`을 지우고 `ua`에 `navigator.userAgent`를 쓰고(`flush()`) `touch`에 `touchParam(null, navigator.maxTouchPoints > 0)`을 쓴다. `aria-pressed`가 없다. 프리셋으로 두면 이 링크를 받은 사람의 화면에는 받은 사람의 브라우저가 나온다.
 - 프리셋 버튼 묶음은 `role="group"`, 이름 `기기`. 각 버튼은 `aria-pressed`를 가진다.
 - 랜딩 주소 칸: `url` 파라미터가 없으면 `LANDING_URL`을 보이고, 칸의 값이 `LANDING_URL`과 같으면 파라미터를 지운다. 사용자가 칸을 다 지우면 빈 채로 둔다(페이지가 "비웠음"을 state로 기억한다. 기본값으로 되돌리면 지우고 새로 칠 수 없다). `isLandingAddress`가 `false`면 칸의 `error`는 `https://로 시작하는 주소를 넣어 주세요`이고, 결과의 주소 자리(자동 이동 주소, 버튼의 주소, 캠페인)는 `—`가 되며 그 줄의 복사 버튼은 그리지 않는다. 판정 줄과 버튼 이름은 그대로 보인다.
+- 결과의 주소는 모두 글자로만 그린다. `<a href>`로 만들지 않는다. `intent://`와 `kakaotalk://` 주소이고 URL 파라미터에서 온 값으로 만들어진다.
 - 결과는 `<dl>`이다. 줄:
   - `판정`: `iOS` / `Android` / `그 밖의 기기`, 그 뒤에 ` · 인앱 브라우저` 또는 ` · 일반 브라우저`, 카카오면 ` · 카카오톡`.
   - `자동 이동`: `Play로 바로 보내요`와 그 주소(복사 버튼 이름 `자동 이동 주소 복사`) / `하지 않아요 (인앱 브라우저라서)` / `하지 않아요 (Android가 아니라서)`.
@@ -1215,6 +1231,12 @@ it('stays empty when the address is cleared, and drops the param for the default
 it('names each copy button after what it copies', async () => {
   // android-chrome → getByRole('button', { name: 'Google Play에서 다운로드 주소 복사' }) → 누름 → writeText(playIntentUrl())
   // '자동 이동 주소 복사'도 있다
+})
+it('renders result addresses as text, never as links', () => {
+  // kakaotalk-android + UTM 주소 → 결과 영역에 a 요소가 없다(container.querySelector('dl a') === null)
+})
+it('sets the input attributes that keep phones from rewriting the text', () => {
+  // 'UA 문자열'과 '랜딩 주소' 칸: autocapitalize 'none', autocorrect 'off', spellcheck 'false'. '랜딩 주소' 칸은 inputmode 'url'도
 })
 it('does not make the result a live region', () => {
   // 결과 dl과 그 조상에 aria-live 속성이 없다(StatusRegion의 role="status"는 결과를 감싸지 않는다)
@@ -1480,7 +1502,7 @@ export function shareUrl(release: Pick<Release, 'name' | 'platforms' | 'checked'
 
 규칙:
 - 구역 id와 제목: `prepare` 준비, `verify` 확인, `android` Android, `ios` iOS, `after` 출시 후. 항목의 id, 글자, 플랫폼, `menu`는 스펙 표 그대로다. `events-arrive`에는 `menu`를 두지 않는다(묶음 2가 머지된 뒤에 더한다). `help`는 어느 항목에도 두지 않는다.
-- `validateName`: 앞뒤 공백을 지운다. 비면 `버전 이름을 넣어 주세요`, `/[\u0000-\u001f\u007f-\u009f  ]/`에 걸리면 `버전 이름에 줄바꿈이나 제어 문자는 쓸 수 없어요`, `[...이름].length`가 40을 넘으면 `버전 이름은 40자까지 쓸 수 있어요`. 제어 문자 검사는 공백을 지우기 전의 값에 한다(끝의 줄바꿈도 거절한다).
+- `validateName`: 앞뒤 공백을 지운다. 비면 `버전 이름을 넣어 주세요`, `/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/`에 걸리면 `버전 이름에 줄바꿈이나 제어 문자는 쓸 수 없어요`, `[...이름].length`가 40을 넘으면 `버전 이름은 40자까지 쓸 수 있어요`. 제어 문자 검사는 공백을 지우기 전의 값에 한다(끝의 줄바꿈도 거절한다).
 - `checked`는 `Object.create(null)`로 만든 객체로 다루고 `Object.hasOwn`으로만 읽는다. `newRelease`의 `checked`(항목 id 배열)는 모두 `now`로 찍는다. `toggleItem`은 새 객체를 돌려준다.
 - `parseReleases`: 배열이 아니면 `null`. 항목은 `id`가 비지 않은 문자열, `validateName(name)`이 통과하고 그 결과가 `name`과 같음, `normalizePlatforms(platforms)`가 `null`이 아님, `createdAt`이 문자열일 때만 남긴다. `checked`는 객체가 아니면 빈 것으로, 객체면 자기 속성 가운데 값이 문자열인 것만 옮긴다. 같은 `id`는 첫 번째만. 앞에서 `RELEASES_MAX`개까지다.
 - `visibleSections`: 항목은 `platforms`가 없거나 릴리즈의 플랫폼과 겹칠 때 보인다. 보이는 항목이 없는 구역은 빠진다. `done`은 그 구역의 보이는 항목 가운데 체크된 수다. 템플릿에 없는 체크는 세지 않는다.
@@ -1493,7 +1515,7 @@ export function shareUrl(release: Pick<Release, 'name' | 'platforms' | 'checked'
 
 ```ts
 const ALL_IDS = CHECKLIST.flatMap((s) => s.items.map((i) => i.id))
-const rel = (o: Partial<Release> = {}): Release =>
+const rel = (o: Partial<Parameters<typeof newRelease>[0]> = {}): Release =>
   newRelease({ id: 'r1', name: '1.5.0', platforms: ['android', 'ios'], now: '2026-10-08T00:00:00.000Z', ...o })
 const b64url = (s: string) => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 
@@ -1513,7 +1535,7 @@ it('validates a version name', () => {
   expect(validateName('🍨'.repeat(40))).toMatchObject({ ok: true })
   expect(validateName('  ')).toEqual({ ok: false, error: '버전 이름을 넣어 주세요' })
   expect(validateName('a'.repeat(41))).toEqual({ ok: false, error: '버전 이름은 40자까지 쓸 수 있어요' })
-  for (const bad of ['1.5\n.0', '1.5.0\n', 'a\u0007b', 'a b']) {
+  for (const bad of ['1.5\n.0', '1.5.0\n', 'a\u0007b', 'a\u2028b']) {
     expect(validateName(bad)).toEqual({ ok: false, error: '버전 이름에 줄바꿈이나 제어 문자는 쓸 수 없어요' })
   }
 })
@@ -1612,6 +1634,7 @@ it.each([
   ['bytes that are not UTF-8', 'wyg'],
   ['text that is not JSON', b64url('hello')],
   ['a JSON array', b64url('[]')],
+  ['JSON null', b64url('null')],
   ['another version', b64url(JSON.stringify({ v: 2, name: 'x', platforms: ['ios'], checked: [] }))],
   ['a missing name', b64url(JSON.stringify({ v: 1, platforms: ['ios'], checked: [] }))],
   ['a 41-character name', b64url(JSON.stringify({ v: 1, name: 'a'.repeat(41), platforms: ['ios'], checked: [] }))],
@@ -1620,9 +1643,14 @@ it.each([
   ['an unknown platform', b64url(JSON.stringify({ v: 1, name: 'x', platforms: ['web'], checked: [] }))],
   ['no platform', b64url(JSON.stringify({ v: 1, name: 'x', platforms: [], checked: [] }))],
   ['checked that is not an array of strings', b64url(JSON.stringify({ v: 1, name: 'x', platforms: ['ios'], checked: [1] }))],
-  ['more than 4,000 characters', 'A'.repeat(4001)],
 ])('rejects %s', (_name, param) => {
   expect(decodeShare(param)).toBeNull()
+})
+it('rejects a well-formed value longer than 4,000 characters before decoding it', () => {
+  // 'A'.repeat(4001) 같은 값은 base64가 깨져서 길이 검사 없이도 거절된다. 길이 검사를 묶으려면 풀리는 값을 쓴다
+  const long = b64url(JSON.stringify({ v: 1, name: 'x', platforms: ['ios'], checked: Array(400).fill('no-crash') }))
+  expect(long.length).toBeGreaterThan(4000)
+  expect(decodeShare(long)).toBeNull()
 })
 it('merges duplicate platforms and drops unknown and repeated item ids', () => {
   const param = b64url(JSON.stringify({ v: 1, name: 'x', platforms: ['ios', 'ios', 'android'], checked: ['nope', 'no-crash', 'no-crash', '__proto__'] }))
@@ -1652,9 +1680,9 @@ it('merges duplicate platforms and drops unknown and repeated item ids', () => {
 export function ReleaseChecklistPage(): ReactElement
 // Task 16이 이 페이지에 끼워 넣을 때 쓰는 것. 같은 파일에서 내보낸다
 export type ReleaseActions = {
-  /** 맨 앞에 넣고, 그 릴리즈를 고르고, 다음 렌더 뒤 그 릴리즈의 제목으로 포커스를 보낸다. 저장소의 최신 목록이 이미 RELEASES_MAX개면 아무것도 하지 않고 false. */
+  /** 맨 앞에 넣고, 그 릴리즈를 고르고, 다음 렌더 뒤 그 릴리즈의 제목으로 포커스를 보낸다. 돌려주는 값은 "목록에 넣었는지"다(저장에 성공했는지가 아니다). 최신 목록이 이미 RELEASES_MAX개면 아무것도 하지 않고 false. */
   addRelease(release: Release): boolean
-  /** 릴리즈 선택 상자로, 릴리즈가 없으면 버전 이름 칸으로 포커스를 보낸다. */
+  /** 다음 렌더 뒤에 릴리즈 선택 상자로, 릴리즈가 없으면 버전 이름 칸으로 포커스를 보낸다. 부르는 시점에 그 요소가 아직 없어도 된다. */
   focusPicker(): void
 }
 ```
@@ -1666,6 +1694,8 @@ export type ReleaseActions = {
 - 릴리즈가 없으면 `아직 릴리즈가 없어요. 버전 이름을 정해서 시작해 보세요.`와 새 릴리즈 폼을 보인다. 폼: `TextField`(이름 `버전 이름`, 도움말 `예: 1.5.0`), `CheckboxField` 둘(`Android`, `iOS`, 처음에는 둘 다 체크), 버튼 `만들기`. 릴리즈가 있을 때는 버튼 `새 릴리즈`가 같은 폼을 열고 폼에 `취소`가 더 있다. `<form>`이라 Enter로 만들어진다.
 - 만들 때 `validateName`의 오류는 이름 칸의 `error`로, 플랫폼이 하나도 없으면 `플랫폼을 하나 이상 골라 주세요`를 폼에 보인다. 릴리즈가 `RELEASES_MAX`개인데 `새 릴리즈`를 누르면 폼 대신 `LIMIT_MESSAGE`를 보인다.
 - `addRelease`는 `update((list) => list.length >= RELEASES_MAX ? list : [release, ...list])`이고, 넣었으면 `release` 파라미터를 그 id로 쓰고 제목이 그려진 뒤 거기로 포커스를 보내며 `true`를 돌려준다. 새 릴리즈 폼과 Task 16의 가져오기가 이 함수 하나를 쓴다.
+- `addRelease`가 돌려주는 값은 `update`의 반환값이 아니다. `update`는 "저장소에 들어갔는지"를 돌려주고, 저장에 실패해도 화면의 목록에는 들어간다(Task 4). `update`에 넘긴 `fn` 안에서 "넣었다"는 표시를 세우고(`fn`은 `update` 안에서 동기로 정확히 한 번 불린다) 그 표시를 돌려준다. 저장소가 가득 차도 릴리즈는 만들어지고 `true`다.
+- `focusPicker()`와 제목으로 가는 포커스는 둘 다 "다음 렌더 뒤"에 옮긴다(옮길 곳을 state나 ref에 적어 두고 effect에서 옮긴다). 지우기, 닫기, 가져오기 모두 부르는 시점에는 옮길 요소가 아직 그려지지 않았다.
 - 릴리즈가 있을 때의 화면, 위에서부터: `SelectField`(이름 `릴리즈`, 항목 글자 `` `${name} · ${platformsLabel}` ``, 값은 id)와 `새 릴리즈` → 제목 `<h2 tabIndex={-1}>`(글자 `` `${name} 릴리즈` ``) → `<progress value={done} max={total} aria-label="진행률">`과 글자 `` `${done} / ${total}` ``, 전부 체크했으면 그 옆에 `모두 확인했어요` → `CopyButton` `진행 상황 복사`(`text`는 `releaseText(release)`), `CopyButton` `링크로 공유`(`text`는 `shareUrl(release, window.location)`), `ConfirmButton` `이 릴리즈 지우기`(`confirmLabel="정말 지울까요?"`) → 구역마다 `Card`(`title`은 구역 제목, `subtitle`은 `` `${done} / ${total}` ``) → `체크한 내용은 이 브라우저에만 저장돼요.`
 - 항목은 `CheckboxField`다. 체크하면 `update`로 그 릴리즈에 `toggleItem(release, id, new Date().toISOString())`을 적용한다(저장소의 최신 목록에서 id로 찾아 바꾼다). 이 체크로 전부 채워졌으면 `모두 확인했어요`를 알린다. 화면을 열었을 때 이미 다 채워진 릴리즈는 알리지 않는다.
 - 항목의 `menu`가 `REGISTRY.findMenu(menu)`로 찾아지면 항목 옆에 버튼 `` `${찾은 메뉴의 label} 열기` ``를 두고 `useNav().setMenu(menu)`를 부른다. 못 찾으면 버튼이 없다.
@@ -1725,6 +1755,10 @@ it('does not overwrite a check made in another tab', () => {
   // 그린 뒤 저장소에 같은 릴리즈의 'release-notes' 체크를 직접 써 넣는다(이벤트 없이) → 화면에서 'version-bumped' 체크
   // → 저장소에 두 체크가 모두 있다
 })
+it('creates a release in memory when storage is full', () => {
+  // setItem이 던짐 → 이름 '1.5.0' → '만들기' → h2 '1.5.0 릴리즈'에 포커스, '0 / 22', LIMIT_MESSAGE는 없다
+  // '이 브라우저에는 저장되지 않았어요. 창을 닫으면 사라져요.'
+})
 it('keeps checks on screen and says they were not saved when storage is full', () => {
   // setItem이 던짐 → 항목 체크 → 체크됨, '1 / 22', '이 브라우저에는 저장되지 않았어요. 창을 닫으면 사라져요.'
 })
@@ -1757,7 +1791,7 @@ it('defines the menu', () => {
 - Produces: `export function SharedRelease(props: { payload: SharePayload; actions: ReleaseActions; onClose(): void }): ReactElement`
 
 정한 것:
-- `ReleaseChecklistPage`가 `share` 파라미터를 읽는다. 없으면 Task 15의 화면 그대로다. `decodeShare`가 `null`이면 평소 화면 위에 `공유 링크를 읽지 못했어요`를 `role="alert"`로 보인다. 값이 있으면 평소 화면 대신 `SharedRelease`만 그린다. `onClose`는 `share`를 지우고 `actions.focusPicker()`를 부른다.
+- `ReleaseChecklistPage`가 `share` 파라미터를 읽는다. 없으면 Task 15의 화면 그대로다. `decodeShare`가 `null`이면 평소 화면 위에 `공유 링크를 읽지 못했어요`를 `role="alert"`로 보인다. 값이 있으면 평소 화면 대신 `SharedRelease`만 그린다. `onClose`는 `share`를 지우고 `actions.focusPicker()`를 부른다. 이때는 아직 `SharedRelease`가 평소 화면 자리에 그려져 있으므로, 포커스는 `focusPicker`가 다음 렌더 뒤에 옮긴다(Task 15).
 - `SharedRelease`, 위에서부터: `공유받은 릴리즈예요. 읽기 전용이에요.` → 버튼 `내 브라우저로 가져오기`(`adm-button--primary`)와 `닫기` → 제목 `<h2>`(`` `${name} 릴리즈` ``)와 `` `${platformsLabel}` `` → `<progress>`와 `` `${done} / ${total}` `` → 구역마다 `Card`(제목과 `subtitle`은 Task 15와 같다) 안에 `<ul>`, 항목마다 글자와 `확인함` 또는 `아직`.
 - 체크박스를 그리지 않는다. `disabled` 체크박스는 Tab으로 갈 수 없다.
 - 진행은 `visibleSections({ platforms, checked: <payload.checked로 만든 객체> })`로 센다. `newRelease({ id: 'shared', … })`로 임시 릴리즈를 만들어 넘겨도 된다.
@@ -1784,6 +1818,10 @@ it('imports it as a new release stamped now, clears share and focuses its headin
 })
 it('imports next to a release with the same name instead of overwriting it', () => {
   // 같은 이름의 내 릴리즈가 하나 있음 → 가져오기 → 저장소에 2개, 원래 것의 id와 checked는 그대로
+})
+it('imports in memory when storage is full', () => {
+  // setItem이 던짐 → 가져오기 → LIMIT_MESSAGE는 없다, URL에 share가 없다, h2 '1.5.0 핫픽스 🍨 릴리즈'와 체크박스 17개
+  // '이 브라우저에는 저장되지 않았어요. 창을 닫으면 사라져요.'
 })
 it('keeps the share link and shows the limit when 30 releases exist', () => {
   // 저장된 30개 → 가져오기 → LIMIT_MESSAGE(alert), URL의 share는 그대로, 저장소는 30개
@@ -1833,8 +1871,8 @@ it('drops unknown item ids from the link', () => {
 
 - [ ] **Step 3: 규칙 점검.**
   - `git diff develop --stat`에 Global Constraints의 고치지 않는 파일(7개와 `NavContext.tsx`, `src/admin/ga/`, `csv.ts`, `collapsed.ts`)이 없고, `src/admin/pages/devtools/shared/`, `event-stream/`, `event-dictionary/`가 없다.
-  - `git diff develop -- package.json`의 변경이 `uqr` 한 줄뿐이다.
-  - `grep -rn "localStorage" src/admin --include="*.ts" --include="*.tsx" | grep -v "\.test\." | grep -v "lib/localStore.ts" | grep -v "menu/collapsed.ts"`의 결과가 없다.
+  - `git diff develop -- package.json`에서 더해진 의존성이 `uqr` 하나뿐이다(앞 줄에 쉼표가 붙는 것은 괜찮다). 다른 의존성의 버전은 그대로다.
+  - `grep -rn "localStorage" src/admin --include="*.ts" --include="*.tsx" | grep -v "\.test\." | grep -v "lib/localStore.ts" | grep -v "menu/collapsed.ts" | grep -v "components/SideMenu.tsx"`의 결과가 없다(`SideMenu.tsx`에는 원래 주석 한 줄이 있고 이 파일은 고치지 않는다).
   - `grep -rn "parfait-admin:" src/admin --include="*.ts" | grep -v "\.test\."`에 나오는 키가 `menu-collapsed`와 Global Constraints의 셋, 그리고 `STORE_PREFIX`뿐이다.
   - `find src/admin -name "*.csp.json"`의 결과가 없다.
   - `grep -rhn "className=" src/admin/pages/devtools/utm-builder src/admin/pages/devtools/ua-tester src/admin/pages/ops src/admin/components/form`에 나오는 새 클래스가 정한 접두사로 시작한다(Global Constraints에 적은 기존 클래스는 예외).
