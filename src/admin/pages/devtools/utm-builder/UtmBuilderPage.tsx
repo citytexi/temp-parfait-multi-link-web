@@ -1,4 +1,4 @@
-import { useMemo, useRef, type ReactElement, type Ref } from 'react'
+import { useMemo, useRef, useState, type ReactElement, type Ref } from 'react'
 import { campaignReferrer, playWebUrl } from '../../../../landing/ua'
 import { Card } from '../../../components/Card'
 import { CopyButton } from '../../../components/form/CopyButton'
@@ -29,6 +29,7 @@ import './utm-builder.css'
 const CHANNEL_OPTIONS = CHANNELS.map((c) => ({ value: c.id, label: c.label }))
 const NO_RECENT: RecentLink[] = []
 const PNG_FAILED = 'PNG를 만들지 못했어요. SVG로 받아 주세요.'
+const QR_FAILED = 'QR을 만들지 못했어요. 링크는 복사해서 쓸 수 있어요.'
 
 /** What useDebouncedPageParam returns: [field value, set it, write it to the URL now]. */
 type Param = readonly [string, (value: string) => void, () => void]
@@ -45,7 +46,10 @@ function setNow([, set, flush]: Param, value: string): void {
   flush()
 }
 
-/** A utm_* field. Its text is normalised on blur and when IME composition ends, never while typing. */
+/**
+ * A utm_* field. Its text is normalised on blur only: Android keyboards compose every Latin word,
+ * so a rewrite at composition end would eat the space before the next word.
+ */
 function UtmField({
   label,
   help,
@@ -60,10 +64,6 @@ function UtmField({
   ref?: Ref<HTMLInputElement>
 }): ReactElement {
   const [value, set, flush] = param
-  const normalize = (current: string) => {
-    const normalized = normalizeUtm(current)
-    if (normalized !== current) set(normalized)
-  }
   return (
     <TextField
       ref={ref}
@@ -76,10 +76,11 @@ function UtmField({
       autoCorrect="off"
       spellCheck={false}
       onBlur={(e) => {
-        normalize(e.currentTarget.value)
+        const current = e.currentTarget.value
+        const normalized = normalizeUtm(current)
+        if (normalized !== current) set(normalized)
         flush()
       }}
-      onCompositionEnd={(e) => normalize(e.currentTarget.value)}
     />
   )
 }
@@ -87,6 +88,9 @@ function UtmField({
 /** The finished link with everything that takes it away: copy, the QR downloads and the Play preview. */
 function FinishedLink({ url, values, onTake }: { url: string; values: UtmValues; onTake(): void }): ReactElement {
   const announce = useAnnounce()
+  // The link whose PNG failed; another link starts clean.
+  const [pngFailedFor, setPngFailedFor] = useState<string | null>(null)
+  const pngFailed = pngFailedFor === url
   const matrix = useMemo<QrMatrix | null>(() => {
     // qrMatrix throws past QR capacity. A campaign link is far below it; the page must not crash either way.
     try {
@@ -101,17 +105,29 @@ function FinishedLink({ url, values, onTake }: { url: string; values: UtmValues;
     downloadBlob(qrFilename(values, 'svg'), new Blob([qrSvg(m)], { type: 'image/svg+xml' }))
   }
   const downloadPng = async (m: QrMatrix) => {
-    onTake()
     const filename = qrFilename(values, 'png')
-    const blob = await qrPngBlob(m).catch(() => null)
-    if (blob) downloadBlob(filename, blob)
-    else announce(PNG_FAILED)
+    let blob: Blob | null = null
+    try {
+      blob = await qrPngBlob(m)
+    } catch {
+      blob = null
+    }
+    if (!blob) {
+      setPngFailedFor(url)
+      announce(PNG_FAILED)
+      return
+    }
+    setPngFailedFor(null)
+    // Only a PNG that exists counts as a link that was taken.
+    onTake()
+    downloadBlob(filename, blob)
   }
 
   return (
     <div className="adm-utm-builder-finished">
       <p className="adm-utm-builder-link">{url}</p>
       <CopyButton label="링크 복사" text={url} variant="primary" onCopy={onTake} />
+      {!matrix && <p className="adm-utm-builder-text">{QR_FAILED}</p>}
       {matrix && (
         <div className="adm-utm-builder-qr">
           <div className="adm-utm-builder-qr__box">
@@ -125,6 +141,7 @@ function FinishedLink({ url, values, onTake }: { url: string; values: UtmValues;
               SVG 받기
             </button>
           </div>
+          {pngFailed && <p className="adm-utm-builder-text adm-utm-builder-qr__note">{PNG_FAILED}</p>}
         </div>
       )}
       <div className="adm-utm-builder-preview">

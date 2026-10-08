@@ -1026,7 +1026,7 @@ it('renders the same cells on screen', () => {
 - `ch`는 `usePageParam`, `src`·`med`·`camp`·`content`는 `useDebouncedPageParam`이다. 링크는 매 렌더에 `buildCampaign({ channel: ch, source, medium, campaign, content })`로 만든다(칸에 보이는 값으로).
 - 칸의 이름과 도움말: 선택 상자 `어디에 올리나요?`(placeholder `골라 주세요`), `출처 (source)`(도움말 `예: google, meta`), `매체 (medium)`(도움말 `예: social, email, cpc`), `캠페인 이름`(도움말 `예: 202610-launch`), `소재 구분 (선택)`(도움말 `예: story, feed`). 출처 칸은 채널의 `source`가 `null`일 때, 매체 칸은 `medium`이 `null`일 때만 그린다.
 - 채널이 정한 값은 선택 상자의 도움말로 보인다: 둘 다 정해졌으면 `` `source ${source} · medium ${medium}` ``, `유료 광고`면 `medium cpc`.
-- 네 글자 칸에는 `autoCapitalize="none"`, `autoCorrect="off"`, `spellCheck={false}`를 준다. 칸의 `blur`와 `compositionEnd`에서 `normalizeUtm(값)`이 값과 다르면 칸을 그것으로 바꾸고, `blur`에서는 `flush()`도 부른다. 치는 도중에는 칸을 고치지 않는다.
+- 네 글자 칸에는 `autoCapitalize="none"`, `autoCorrect="off"`, `spellCheck={false}`를 준다. 칸의 `blur`에서 `normalizeUtm(값)`이 값과 다르면 칸을 그것으로 바꾸고 `flush()`를 부른다. 치는 도중에는, `compositionEnd`에서도 칸을 고치지 않는다(Android 키보드는 영문 단어도 조합으로 넣는다).
 - 채널을 바꾸면 새 채널이 직접 입력받지 않는 `src`, `med`를 비운다(`set('')` 뒤 `flush()`).
 - 카드 셋: `링크 정보`, `완성된 링크`, `최근 만든 링크`. `buildCampaign`이 실패하면 `완성된 링크` 카드에는 `hint` 문장만 있고 링크, 복사, QR, 받기 버튼, 미리보기를 그리지 않는다. 칸별 `errors`는 그 칸의 `error`로 넘긴다.
 - 성공하면: 링크 글자, `CopyButton`(`링크 복사`, `variant="primary"`), `QrCode`, 버튼 `PNG 받기`와 `SVG 받기`, 그리고 `Android에서는 이렇게 Play로 넘어가요` 아래에 `playWebUrl(campaignReferrer(url))`, 그 아래에 `iOS 설치는 캠페인별로 측정되지 않아요`.
@@ -1068,8 +1068,8 @@ it('previews the Play url the landing would use', () => {
   // LINK 상태 → 'https://play.google.com/store/apps/details?id=com.teamyg.parfait&referrer=utm_source%3Dinstagram%26utm_medium%3Dsocial%26utm_campaign%3D202610-launch%26utm_content%3Dstory'
   // 'iOS 설치는 캠페인별로 측정되지 않아요'
 })
-it('normalises the field when IME composition ends', () => {
-  // 캠페인 칸에 ' Launch ' → fireEvent.compositionEnd(칸) → 칸의 value 'launch' (blur 없이)
+it('leaves the typed text alone when IME composition ends', () => {
+  // 캠페인 칸에 ' Launch ' → fireEvent.compositionEnd(칸) → 칸의 value는 그대로 ' Launch ', 링크에는 utm_campaign=launch
 })
 it('sets the input attributes that keep phones from rewriting the text', () => {
   // '캠페인 이름', '소재 구분 (선택)', 그리고 '직접 입력'일 때의 '출처 (source)', '매체 (medium)' 칸: autocapitalize 'none', autocorrect 'off', spellcheck 'false'

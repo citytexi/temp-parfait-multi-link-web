@@ -81,6 +81,10 @@
   gap: var(--adm-space-2);
 }
 
+.adm-utm-builder-qr__note {
+  flex-basis: 100%;
+}
+
 .adm-utm-builder-preview {
   display: flex;
   flex-direction: column;

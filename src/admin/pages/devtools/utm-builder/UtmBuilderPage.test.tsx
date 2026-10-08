@@ -5,19 +5,20 @@ import { downloadBlob } from '../../../lib/download'
 import { NavProvider } from '../../../menu/NavContext'
 import type { MenuLookup } from '../../../menu/registry'
 import { RECENT_KEY } from './config'
-import { QR_LABEL, qrPngBlob } from './qr'
+import { QR_LABEL, qrMatrix, qrPngBlob } from './qr'
 import { UtmBuilderPage } from './UtmBuilderPage'
 import menu from './UtmBuilderPage.menu'
 
 vi.mock('../../../lib/download', () => ({ downloadBlob: vi.fn() }))
-vi.mock('./qr', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./qr')>()),
-  qrPngBlob: vi.fn(async () => new Blob(['png'])),
-}))
+vi.mock('./qr', async (importOriginal) => {
+  const original = await importOriginal<typeof import('./qr')>()
+  return { ...original, qrMatrix: vi.fn(original.qrMatrix), qrPngBlob: vi.fn(async () => new Blob(['png'])) }
+})
 
 const LINK =
   'https://citytexi.github.io/temp-parfait-multi-link-web/?utm_source=instagram&utm_medium=social&utm_campaign=202610-launch&utm_content=story'
 const LINK_STATE = '?menu=utm-builder&ch=instagram&camp=202610-launch&content=story'
+const PNG_FAILED = 'PNG를 만들지 못했어요. SVG로 받아 주세요.'
 const NOT_SAVED = '이 브라우저에는 저장되지 않았어요. 창을 닫으면 사라져요.'
 
 const lookup: MenuLookup = {
@@ -62,7 +63,8 @@ const record = (over: Record<string, string> = {}) => ({
 
 beforeEach(() => {
   localStorage.clear()
-  vi.clearAllMocks()
+  // Back to the implementations given in the mock factories, with no recorded calls.
+  vi.resetAllMocks()
   vi.useFakeTimers()
 })
 afterEach(() => {
@@ -100,6 +102,7 @@ it('shows what is missing and no copy or QR until the link is valid', () => {
   type('캠페인 이름', 'c')
   expect(button('링크 복사')).toBeInTheDocument()
   expect(screen.getByRole('img', { name: QR_LABEL })).toBeInTheDocument()
+  expect(screen.queryByText('QR을 만들지 못했어요. 링크는 복사해서 쓸 수 있어요.')).toBeNull()
   expect(button('PNG 받기')).toBeInTheDocument()
   expect(button('SVG 받기')).toBeInTheDocument()
 })
@@ -194,11 +197,18 @@ it('previews the Play url the landing would use', () => {
   expect(screen.getByText('iOS 설치는 캠페인별로 측정되지 않아요')).toBeInTheDocument()
 })
 
-it('normalises the field when IME composition ends', () => {
+it('leaves the typed text alone when IME composition ends', () => {
   renderAt('?menu=utm-builder&ch=instagram', <UtmBuilderPage />)
+  fireEvent.compositionStart(field('캠페인 이름'))
   type('캠페인 이름', ' Launch ')
-  expect(field('캠페인 이름')).toHaveValue(' Launch ')
   fireEvent.compositionEnd(field('캠페인 이름'))
+  expect(field('캠페인 이름')).toHaveValue(' Launch ')
+  expect(
+    screen.getByText(
+      'https://citytexi.github.io/temp-parfait-multi-link-web/?utm_source=instagram&utm_medium=social&utm_campaign=launch',
+    ),
+  ).toBeInTheDocument()
+  fireEvent.blur(field('캠페인 이름'))
   expect(field('캠페인 이름')).toHaveValue('launch')
 })
 
@@ -272,11 +282,68 @@ it('downloads the SVG and the PNG with the channel in the file name and records 
 it('says so when the PNG cannot be made', async () => {
   vi.mocked(qrPngBlob).mockResolvedValueOnce(null)
   renderAt(LINK_STATE, <UtmBuilderPage />)
-  expect(screen.getByRole('status')).toBeEmptyDOMElement()
+  const status = screen.getByRole('status')
+  // The sentence outside the hidden status region: the one a sighted user reads.
+  const visible = () => screen.queryAllByText(PNG_FAILED).filter((el) => !status.contains(el))
+  expect(status).toBeEmptyDOMElement()
+  expect(visible()).toHaveLength(0)
   fireEvent.click(button('PNG 받기'))
   await flush()
   expect(downloadBlob).not.toHaveBeenCalled()
-  expect(screen.getByRole('status')).toHaveTextContent('PNG를 만들지 못했어요. SVG로 받아 주세요.')
+  expect(status).toHaveTextContent(PNG_FAILED)
+  expect(visible()).toHaveLength(1)
+  // A PNG that was not made is not a link that was taken.
+  expect(localStorage.getItem(RECENT_KEY)).toBeNull()
+  expect(screen.getByText('아직 만든 링크가 없어요')).toBeInTheDocument()
+
+  fireEvent.click(button('PNG 받기'))
+  await flush()
+  expect(downloadBlob).toHaveBeenCalledTimes(1)
+  expect(visible()).toHaveLength(0)
+  expect(storedItems()).toHaveLength(1)
+  expect(screen.getByText('인스타그램 · 202610-launch · story')).toBeInTheDocument()
+})
+
+it('drops the PNG failure sentence when the link changes', async () => {
+  vi.mocked(qrPngBlob).mockResolvedValueOnce(null)
+  renderAt(LINK_STATE, <UtmBuilderPage />)
+  const status = screen.getByRole('status')
+  const visible = () => screen.queryAllByText(PNG_FAILED).filter((el) => !status.contains(el))
+  fireEvent.click(button('PNG 받기'))
+  await flush()
+  expect(visible()).toHaveLength(1)
+  type('소재 구분 (선택)', 'feed')
+  expect(visible()).toHaveLength(0)
+})
+
+it('takes the failure path when making the PNG throws', async () => {
+  vi.mocked(qrPngBlob).mockImplementationOnce(() => {
+    throw new Error('no canvas')
+  })
+  renderAt(LINK_STATE, <UtmBuilderPage />)
+  const status = screen.getByRole('status')
+  fireEvent.click(button('PNG 받기'))
+  await flush()
+  expect(downloadBlob).not.toHaveBeenCalled()
+  expect(status).toHaveTextContent(PNG_FAILED)
+  expect(screen.queryAllByText(PNG_FAILED).filter((el) => !status.contains(el))).toHaveLength(1)
+  expect(localStorage.getItem(RECENT_KEY)).toBeNull()
+})
+
+it('keeps the link and its copy button when the QR cannot be made', async () => {
+  const writeText = setClipboard()
+  vi.mocked(qrMatrix).mockImplementation(() => {
+    throw new Error('too long')
+  })
+  renderAt(LINK_STATE, <UtmBuilderPage />)
+  expect(screen.getByText('QR을 만들지 못했어요. 링크는 복사해서 쓸 수 있어요.')).toBeInTheDocument()
+  expect(screen.queryByRole('img', { name: QR_LABEL })).toBeNull()
+  noButton('PNG 받기')
+  noButton('SVG 받기')
+  expect(screen.getByText(LINK)).toBeInTheDocument()
+  fireEvent.click(button('링크 복사'))
+  await flush()
+  expect(writeText).toHaveBeenCalledWith(LINK)
 })
 
 it('reopens a record, including one whose channel is gone', () => {
@@ -326,6 +393,7 @@ it('keeps the record on screen and says it was not saved when storage is full', 
   // The page keeps working: the copy went through and the link is still there.
   expect(button('복사했어요')).toBeInTheDocument()
   expect(screen.getByText(LINK)).toBeInTheDocument()
+  expect(screen.getByRole('img', { name: QR_LABEL })).toBeInTheDocument()
 })
 
 it('defines the menu', () => {
