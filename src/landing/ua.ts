@@ -5,7 +5,8 @@ export const PACKAGE = 'com.teamyg.parfait'
 export const APP_STORE_URL =
   'https://apps.apple.com/kr/app/%ED%8C%8C%EB%A5%B4%ED%8E%98-parfait-%EC%82%AC%EC%A7%84-%EA%B3%B5%EC%9C%A0-%EC%BA%94%EB%B2%84%EC%8A%A4-sns/id6806914364'
 
-// 아래 정규식과 playIntentUrl 조립은 index.html <head>의 인라인 스크립트와 같아야 한다.
+// index.html <head>의 인라인 스크립트는 landingView().autoRedirect와 같아야 한다.
+// src/landing/inlineScript.test.ts가 그것을 확인한다.
 const IN_APP = /Instagram|FBAN|FBAV|FB_IAB|KAKAOTALK|NAVER|Line\/|Threads/i
 
 export function detectPlatform(ua: string, maxTouchPoints: number): Platform {
