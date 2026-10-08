@@ -348,6 +348,20 @@ it('opens the form on the name field and returns to the button on cancel', () =>
   expect(document.activeElement).toBe(button('새 릴리즈'))
 })
 
+it('returns focus to 새 릴리즈 when 만들기 is refused because another tab filled the list', () => {
+  store([rel('a', '1.5.0')])
+  renderPage()
+  press('새 릴리즈')
+  fireEvent.change(field('버전 이름'), { target: { value: '2.0.0' } })
+  // Written straight to storage, without a storage event: the form is still open.
+  store(Array.from({ length: 30 }, (_, i) => rel(`r${i}`, `1.0.${i}`)))
+  press('만들기')
+  expect(shown(LIMIT_MESSAGE)).toBe(1)
+  expect(screen.queryByLabelText('버전 이름')).toBeNull()
+  expect(storedItems()).toHaveLength(30)
+  expect(document.activeElement).toBe(button('새 릴리즈'))
+})
+
 it('defines the menu', () => {
   expect(menu).toMatchObject({ id: 'release-checklist', group: 'ops', order: 120, label: '릴리즈 체크리스트', description: '배포 전에 확인할 것을 빠짐없이 챙겨요', keywords: ['배포', '출시', '릴리즈', '체크', 'QA'] })
   expect(menu.usesPeriod).toBe(false)

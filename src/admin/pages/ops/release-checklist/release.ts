@@ -16,20 +16,16 @@ export type Release = {
 }
 
 const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/
-// Direction overrides, isolates and zero-width characters: invisible, and they reorder the text around a name.
-const FORMAT = /[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/
+// Direction marks, overrides, isolates and invisible characters: they reorder or hide the text around a name.
+// U+200C and U+200D stay allowed: they join emoji and letters and reorder nothing.
+const FORMAT = /[\u061c\u200b\u200e\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/
 // In unicode mode a surrogate matches only when it is not part of a pair.
 const LONE_SURROGATE = /[\ud800-\udfff]/u
-
-function isWellFormed(text: string): boolean {
-  const native = (text as { isWellFormed?: () => boolean }).isWellFormed
-  return typeof native === 'function' ? native.call(text) : !LONE_SURROGATE.test(text)
-}
 
 export function validateName(raw: string): { ok: true; name: string } | { ok: false; error: string } {
   const name = raw.trim()
   if (name === '') return { ok: false, error: '버전 이름을 넣어 주세요' }
-  if (CONTROL.test(raw) || FORMAT.test(raw) || !isWellFormed(raw)) return { ok: false, error: '버전 이름에 줄바꿈이나 제어 문자는 쓸 수 없어요' }
+  if (CONTROL.test(raw) || FORMAT.test(raw) || LONE_SURROGATE.test(raw)) return { ok: false, error: '버전 이름에 줄바꿈이나 제어 문자는 쓸 수 없어요' }
   if ([...name].length > NAME_MAX) return { ok: false, error: '버전 이름은 40자까지 쓸 수 있어요' }
   return { ok: true, name }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactElement, type RefObject } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactElement, type RefObject } from 'react'
 import { Card } from '../../../components/Card'
 import { CheckboxField } from '../../../components/form/CheckboxField'
 import { ConfirmButton } from '../../../components/form/ConfirmButton'
@@ -25,7 +25,8 @@ import {
   visibleSections,
   type Release,
 } from './release'
-import { shareUrl } from './share'
+import { decodeShare, shareUrl } from './share'
+import { SharedRelease } from './SharedRelease'
 import { PLATFORM_LABEL, PLATFORMS, type ChecklistItem, type ReleasePlatform } from './template'
 import './release-checklist.css'
 
@@ -47,6 +48,7 @@ export type ReleaseActions = {
 const NO_RELEASES: Release[] = []
 const ALL_DONE = '모두 확인했어요'
 const NO_PLATFORM = '플랫폼을 하나 이상 골라 주세요'
+const SHARE_UNREADABLE = '공유 링크를 읽지 못했어요'
 
 /** Where focus goes once the next render is on screen. A new object each time, so it runs again. */
 type FocusTarget = { to: 'heading' | 'picker' | 'name' | 'new' }
@@ -166,6 +168,10 @@ function ReleaseChecklist(): ReactElement {
   const announce = useAnnounce()
   const releases = useStored(RELEASES_KEY, parseReleases, NO_RELEASES)
   const [releaseParam, setReleaseParam] = usePageParam('release')
+  const [shareParam, setShareParam] = usePageParam('share')
+  // The value comes from a link anyone can craft; null when it does not decode.
+  const payload = useMemo(() => (shareParam === null ? null : decodeShare(shareParam)), [shareParam])
+  const shared = payload !== null
   const [formOpen, setFormOpen] = useState(false)
   // Set by a refused 새 릴리즈; the message shows only while the list is still full.
   const [limitAsked, setLimitAsked] = useState(false)
@@ -174,10 +180,13 @@ function ReleaseChecklist(): ReactElement {
   const pickerRef = useRef<HTMLSelectElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const newRef = useRef<HTMLButtonElement>(null)
+  const focused = useRef<FocusTarget | null>(null)
 
   // Runs after the render that drew the target: a new release's heading, the picker after a delete.
+  // The shared view has none of the targets, so a request made there waits until it is gone.
   useEffect(() => {
-    if (!focus) return
+    if (!focus || shared || focused.current === focus) return
+    focused.current = focus
     const picker = pickerRef.current ?? nameRef.current
     const target =
       focus.to === 'heading'
@@ -188,7 +197,7 @@ function ReleaseChecklist(): ReactElement {
             ? (newRef.current ?? picker)
             : picker
     target?.focus()
-  }, [focus])
+  }, [focus, shared])
 
   const list = releases.value
   const current = list.find((r) => r.id === releaseParam) ?? list[0] ?? null
@@ -235,8 +244,28 @@ function ReleaseChecklist(): ReactElement {
 
   const create = (name: string, platforms: ReleasePlatform[]) => {
     const release = newRelease({ id: newId(), name, platforms, now: new Date().toISOString() })
-    // Full only when another tab filled the list while the form was open.
-    if (!actions.addRelease(release)) refuse()
+    if (actions.addRelease(release)) return
+    // Full only when another tab filled the list while the form was open. The form goes away
+    // holding the pressed button, so focus returns to the button that opened it.
+    refuse()
+    setFocus({ to: 'new' })
+  }
+
+  const sharedActions: ReleaseActions = {
+    addRelease(release) {
+      const added = actions.addRelease(release)
+      // A refused import keeps the link, so it can be imported once there is room.
+      if (added) setShareParam(null)
+      else setLimitAsked(true)
+      return added
+    },
+    focusPicker: actions.focusPicker,
+  }
+
+  const closeShared = () => {
+    setShareParam(null)
+    setLimitAsked(false)
+    actions.focusPicker()
   }
 
   const cancel = () => {
@@ -271,8 +300,17 @@ function ReleaseChecklist(): ReactElement {
   const sections = current ? visibleSections(current) : []
   const { done, total } = progress(sections)
 
+  if (payload) {
+    return <SharedRelease payload={payload} actions={sharedActions} limitReached={showLimit} onClose={closeShared} />
+  }
+
   return (
     <div className="adm-release-checklist-layout">
+      {shareParam !== null && (
+        <p role="alert" className="adm-release-checklist-text adm-release-checklist-text--warn">
+          {SHARE_UNREADABLE}
+        </p>
+      )}
       {current ? (
         <div className="adm-release-checklist-toolbar">
           <SelectField

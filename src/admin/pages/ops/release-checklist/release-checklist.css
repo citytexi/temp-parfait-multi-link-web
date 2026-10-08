@@ -107,6 +107,34 @@
   margin: 0 0 var(--adm-space-2) calc(20px + var(--adm-space-3));
 }
 
+/* Read-only rows of a shared release: the item text and its state at the two ends. */
+.adm-release-checklist-shared-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--adm-space-3);
+  min-width: 0;
+  min-height: var(--adm-hit);
+  padding: var(--adm-space-2) 0;
+  font-size: var(--adm-fs-md);
+  line-height: var(--adm-lh-body);
+  color: var(--adm-text-1);
+}
+
+.adm-release-checklist-shared-item__label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.adm-release-checklist-shared-item__state {
+  flex: none;
+}
+
+.adm-release-checklist-shared-item__state--todo {
+  font-size: var(--adm-fs-xs);
+  color: var(--adm-text-3);
+}
+
 .adm-release-checklist-text {
   margin: 0;
   font-size: var(--adm-fs-sm);

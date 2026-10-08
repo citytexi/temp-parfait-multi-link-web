@@ -148,7 +148,7 @@ it('merges duplicate platforms and drops unknown and repeated item ids', () => {
 })
 it('rejects direction-override, zero-width and ill-formed names', () => {
   const error = '버전 이름에 줄바꿈이나 제어 문자는 쓸 수 없어요'
-  for (const bad of ['\u200b', '\u200d', '\u200f', '\u202a', '\u202e', '\u2066', '\u2069', '\ufeff']) {
+  for (const bad of ['\u061c', '\u200b', '\u200e', '\u200f', '\u202a', '\u202e', '\u2060', '\u2064', '\u2066', '\u2069', '\ufeff']) {
     expect(validateName(`1.5${bad}.0`)).toEqual({ ok: false, error })
   }
   expect(validateName('\ufeff1.5.0')).toEqual({ ok: false, error })
@@ -156,6 +156,15 @@ it('rejects direction-override, zero-width and ill-formed names', () => {
   expect(validateName('1.5.0 🍨')).toEqual({ ok: true, name: '1.5.0 🍨' })
   const good = { id: 'a', name: '1.5.0', platforms: ['android'], checked: {}, createdAt: 't' }
   expect(parseReleases([{ ...good, name: '1.5\u202e.0' }, { ...good, id: 'b', name: 'a\ud800' }, { ...good, id: 'c' }])!.map((r) => r.id)).toEqual(['c'])
+})
+it('accepts emoji joiners in a name and keeps them through the share codec', () => {
+  const family = '\u{1f468}\u200d\u{1f469}\u200d\u{1f467}'
+  const name = `1.5.0 ${family}`
+  expect(validateName(name)).toEqual({ ok: true, name })
+  expect(validateName('a\u200cb')).toEqual({ ok: true, name: 'a\u200cb' })
+  const param = new URLSearchParams(`share=${encodeShare(rel({ name }))}`).get('share')!
+  expect(decodeShare(param)).toEqual({ name, platforms: ['android', 'ios'], checked: [] })
+  expect(parseReleases([rel({ name })])!.map((r) => r.name)).toEqual([name])
 })
 it('reads a stored checked that is an array as empty', () => {
   const out = parseReleases([{ id: 'a', name: '1.5.0', platforms: ['android'], checked: ['version-bumped', 'a'], createdAt: 't' }])!
