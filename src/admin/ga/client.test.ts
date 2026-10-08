@@ -52,12 +52,36 @@ describe('createGaClient', () => {
     })
   })
 
-  it('runRealtimeReport does not add returnPropertyQuota', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(200, {}))
-    await setup(fetchImpl).runRealtimeReport({ metrics: [{ name: 'activeUsers' }] })
+  it('runRealtimeReport asks for quota but does not report it to onQuota', async () => {
+    const onQuota = vi.fn()
+    const quota = { tokensPerHour: { consumed: 3, remaining: 39997 } }
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(200, { propertyQuota: quota }))
+    const res = await setup(fetchImpl, { onQuota }).runRealtimeReport({ metrics: [{ name: 'activeUsers' }] })
     const [url, init] = fetchImpl.mock.calls[0]
     expect(url).toBe('https://analyticsdata.googleapis.com/v1beta/properties/123:runRealtimeReport')
-    expect(JSON.parse(init.body)).toEqual({ metrics: [{ name: 'activeUsers' }] })
+    expect(JSON.parse(init.body)).toEqual({ metrics: [{ name: 'activeUsers' }], returnPropertyQuota: true })
+    expect(res.propertyQuota).toEqual(quota)
+    expect(onQuota).not.toHaveBeenCalled()
+  })
+
+  it('getMetadata sends GET without a body', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(200, { dimensions: [{ apiName: 'customEvent:item_id' }] }))
+    const res = await setup(fetchImpl).getMetadata()
+    const [url, init] = fetchImpl.mock.calls[0]
+    expect(url).toBe('https://analyticsdata.googleapis.com/v1beta/properties/123/metadata')
+    expect(init.method).toBe('GET')
+    expect(init.body).toBeUndefined()
+    expect(init.headers.Authorization).toBe('Bearer tok')
+    expect(res.dimensions).toEqual([{ apiName: 'customEvent:item_id' }])
+  })
+
+  it('getMetadata classifies errors like POST', async () => {
+    const e403 = await kindOf(setup(vi.fn().mockResolvedValue(jsonResponse(403, {}))).getMetadata())
+    expect(e403.kind).toBe('forbidden')
+    const eNet = await kindOf(setup(vi.fn().mockRejectedValue(new Error('offline'))).getMetadata())
+    expect(eNet.kind).toBe('network')
+    const eAuth = await kindOf(setup(vi.fn(), { token: null }).getMetadata())
+    expect(eAuth.kind).toBe('auth')
   })
 
   it.each<[number, GaErrorKind]>([

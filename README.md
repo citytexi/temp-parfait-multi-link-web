@@ -65,7 +65,7 @@ export const OAUTH_CLIENT_ID = '' // 3번에서 만든 OAuth client ID
    - `<이름>.css`: 페이지 컴포넌트가 import해요. 클래스 이름은 `adm-<메뉴 id>-`로 시작해요.
    - `config.ts`: 이 페이지만 쓰는 설정 값이에요.
    - `<이름>.csp.json`: 이 페이지가 연결할 외부 주소예요. 아래 CSP 규칙을 지켜요.
-3. URL에 페이지 상태를 두려면 `src/admin/menu/NavContext.tsx`의 `usePageParam(key)`를 써요. `[값, 설정 함수]`를 돌려주고, 설정 함수에 `null`을 넘기면 그 파라미터가 지워져요. `menu`, `period`, `start`, `end`는 셸이 쓰는 이름이라 key로 쓸 수 없어요.
+3. URL에 페이지 상태를 두려면 `src/admin/menu/NavContext.tsx`의 `usePageParam(key)`를 써요. `[값, 설정 함수]`를 돌려주고, 설정 함수에 `null`을 넘기면 그 파라미터가 지워져요. `menu`, `period`, `start`, `end`는 셸이 쓰는 이름이라 key로 쓸 수 없어요. 다른 메뉴를 페이지 상태와 함께 열려면 `useNav().setMenu(id, { key: 값 })`을 써요.
 4. 페이지 옆에 `<이름>.test.tsx`로 테스트를 써요.
 
 `*.menu.ts`는 이렇게 써요(`src/admin/pages/OverviewPage.menu.ts`).

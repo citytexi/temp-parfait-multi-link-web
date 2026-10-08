@@ -1,0 +1,166 @@
+.adm-event-stream-status {
+  margin-bottom: var(--adm-space-4);
+}
+
+.adm-event-stream-status__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--adm-space-2) var(--adm-space-4);
+}
+
+.adm-event-stream-status__text {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--adm-space-1) var(--adm-space-3);
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+.adm-event-stream-status__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--adm-space-2);
+}
+
+.adm-event-stream-status__actions .adm-button {
+  min-height: var(--adm-hit);
+  min-width: var(--adm-hit);
+}
+
+.adm-event-stream-star,
+.adm-event-stream-dict {
+  min-width: var(--adm-hit);
+  min-height: var(--adm-hit);
+}
+
+.adm-event-stream-event {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--adm-space-1) var(--adm-space-2);
+}
+
+.adm-event-stream-name {
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.adm-event-stream-label {
+  font-size: var(--adm-fs-md);
+  color: var(--adm-text-1);
+}
+
+.adm-event-stream-raw {
+  font-size: var(--adm-fs-xs);
+  color: var(--adm-text-3);
+}
+
+.adm-event-stream-marks {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--adm-space-1) var(--adm-space-2);
+}
+
+.adm-event-stream-up {
+  font-size: var(--adm-fs-sm);
+  font-weight: var(--adm-fw-medium);
+  color: var(--adm-accent);
+}
+
+.adm-event-stream-trend {
+  display: block;
+  width: 90px;
+  height: 24px;
+  fill: var(--adm-accent);
+}
+
+.adm-event-stream-flash {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  animation: adm-event-stream-flash 2s ease-out forwards;
+}
+
+@keyframes adm-event-stream-flash {
+  from {
+    background: var(--adm-accent-soft);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-event-stream-flash {
+    animation: none;
+    display: none;
+  }
+}
+
+@media (max-width: 959px) {
+  .adm-event-stream-trend-col {
+    display: none;
+  }
+
+  .adm-event-stream-event {
+    flex-direction: column;
+    align-items: flex-start;
+    white-space: normal;
+  }
+
+  .adm-event-stream-marks {
+    display: flex;
+    margin-top: var(--adm-space-1);
+  }
+}
+
+/* Selects in the filter row keep a 16px font so iOS does not zoom. */
+.adm-event-stream-select {
+  font: inherit;
+  font-size: var(--adm-fs-md);
+  min-height: var(--adm-hit);
+  padding: 0 var(--adm-space-3);
+  border: 1px solid var(--adm-border-strong);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-text-1);
+}
+
+.adm-event-stream-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--adm-space-3) var(--adm-space-4);
+  margin-bottom: var(--adm-space-4);
+}
+
+.adm-event-stream-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--adm-space-1);
+}
+
+.adm-event-stream-filter__label {
+  font-size: var(--adm-fs-sm);
+  font-weight: var(--adm-fw-medium);
+  color: var(--adm-text-2);
+}
+
+.adm-event-stream-truncated {
+  margin: var(--adm-space-3) 0 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+/* Under watched rows the empty state is a short notice, not a full-height placeholder. */
+.adm-event-stream-table + .adm-event-stream-empty,
+.adm-event-stream-truncated + .adm-event-stream-empty {
+  min-height: 0;
+}
