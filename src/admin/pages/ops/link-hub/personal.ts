@@ -3,23 +3,38 @@ import type { Parser } from '../../../lib/localStore'
 export const PERSONAL_KEY = 'parfait-admin:link-hub:personal'
 export const PERSONAL_MAX = 50
 export const LABEL_MAX = 40
+export const URL_MAX = 2000
 
 export type PersonalLink = { id: string; label: string; url: string }
 export type PersonalErrors = { label?: string; url?: string }
 
 const URL_ERROR = 'https://로 시작하는 주소만 넣을 수 있어요'
+const URL_TOO_LONG = '주소는 2,000자까지 쓸 수 있어요'
+const URL_CREDENTIALS = '아이디나 비밀번호가 들어간 주소는 넣을 수 없어요'
 
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/
 
-/** The parsed address when it is an https URL, otherwise null. Control characters (which URL parsing silently strips) are refused. */
-function parseHttps(text: string): string | null {
-  if (CONTROL_CHARS.test(text)) return null
+type CheckedUrl = { ok: true; url: string } | { ok: false; error: string }
+
+/**
+ * The parsed address when it is an https URL without credentials, within URL_MAX. Control characters
+ * (which URL parsing silently strips) are refused. The parsed form is measured too: percent-encoding
+ * can grow it, and what is stored must pass this same check when it is read back.
+ */
+function checkUrl(text: string): CheckedUrl {
+  if (text.length > URL_MAX) return { ok: false, error: URL_TOO_LONG }
+  if (CONTROL_CHARS.test(text)) return { ok: false, error: URL_ERROR }
+  let url: URL
   try {
-    const url = new URL(text)
-    return url.protocol === 'https:' ? url.href : null
+    url = new URL(text)
   } catch {
-    return null
+    return { ok: false, error: URL_ERROR }
   }
+  if (url.protocol !== 'https:') return { ok: false, error: URL_ERROR }
+  // https://bank.com@evil.example opens evil.example while reading like bank.com.
+  if (url.username !== '' || url.password !== '') return { ok: false, error: URL_CREDENTIALS }
+  if (url.href.length > URL_MAX) return { ok: false, error: URL_TOO_LONG }
+  return { ok: true, url: url.href }
 }
 
 export function validatePersonal(input: {
@@ -34,9 +49,9 @@ export function validatePersonal(input: {
   let url = ''
   if (rawUrl === '') errors.url = '주소를 넣어 주세요'
   else {
-    const parsed = parseHttps(rawUrl)
-    if (parsed === null) errors.url = URL_ERROR
-    else url = parsed
+    const checked = checkUrl(rawUrl)
+    if (checked.ok) url = checked.url
+    else errors.url = checked.error
   }
   if (errors.label !== undefined || errors.url !== undefined) return { ok: false, errors }
   return { ok: true, label, url }

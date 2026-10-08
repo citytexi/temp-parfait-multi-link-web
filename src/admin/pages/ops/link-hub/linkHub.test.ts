@@ -53,6 +53,33 @@ describe('link hub rules', () => {
     const stored = urls.map((url, i) => ({ id: String(i), label: 'x', url }))
     expect(parsePersonal(stored)).toEqual([])
   })
+  it('rejects an address longer than 2,000 characters, typed or after parsing', () => {
+    const tooLong = { ok: false, errors: { url: '주소는 2,000자까지 쓸 수 있어요' } }
+    const fits = `https://a.b/${'x'.repeat(2000 - 'https://a.b/'.length)}`
+    expect(fits).toHaveLength(2000)
+    expect(validatePersonal({ label: 'x', url: `  ${fits}  ` })).toEqual({ ok: true, label: 'x', url: fits })
+    expect(validatePersonal({ label: 'x', url: `${fits}x` })).toEqual(tooLong)
+    // Not an address at all, but the length is checked before parsing.
+    expect(validatePersonal({ label: 'x', url: 'x'.repeat(2001) })).toEqual(tooLong)
+    // 300 typed characters that percent-encoding grows past the limit: it would not survive the next read.
+    expect(validatePersonal({ label: 'x', url: `https://a.b/${'가'.repeat(300)}` })).toEqual(tooLong)
+  })
+  it('rejects an address with a username or a password', () => {
+    const credentials = { ok: false, errors: { url: '아이디나 비밀번호가 들어간 주소는 넣을 수 없어요' } }
+    expect(validatePersonal({ label: 'x', url: 'https://evil@good.com' })).toEqual(credentials)
+    expect(validatePersonal({ label: 'x', url: 'https://user:pw@good.com/path' })).toEqual(credentials)
+    expect(validatePersonal({ label: 'x', url: 'https://:pw@good.com' })).toEqual(credentials)
+    expect(validatePersonal({ label: 'x', url: 'https://good.com/@evil' })).toMatchObject({ ok: true })
+  })
+  it('drops stored links that are too long or carry credentials', () => {
+    const good = { id: '1', label: 'ok', url: 'https://a.b/' }
+    expect(parsePersonal([
+      { id: '2', label: 'long', url: `https://a.b/${'x'.repeat(2000)}` },
+      { id: '3', label: 'user', url: 'https://evil@good.com/' },
+      { id: '4', label: 'password', url: 'https://user:pw@good.com/' },
+      good,
+    ])).toEqual([good])
+  })
   it('searches name, description and url literally', () => {
     const link = { label: 'Firebase 콘솔', description: '앱 설정을 봐요', url: 'https://console.firebase.google.com/x' }
     expect(matchesQuery(link, '')).toBe(true)
