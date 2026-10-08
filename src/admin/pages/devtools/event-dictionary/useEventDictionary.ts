@@ -45,8 +45,19 @@ export function useEventDictionary(): EventDictionary {
     gcTime: Infinity,
   })
 
+  // Hold the verdict until today's check settles, so statuses do not flip when it arrives.
+  const recentSettled = recentQuery.isSuccess || recentQuery.isError
+  const hasPeriodData = observedQuery.data !== undefined
   const observed: EventDictionary['observed'] =
-    ranges === null ? 'invalid-period' : observedQuery.isSuccess ? 'ready' : observedQuery.isError ? 'error' : 'pending'
+    ranges === null
+      ? 'invalid-period'
+      : hasPeriodData
+        ? recentSettled
+          ? 'ready'
+          : 'pending'
+        : observedQuery.isError
+          ? 'error'
+          : 'pending'
 
   const observedData = observed === 'ready' ? (observedQuery.data ?? null) : null
   const recentData = recentQuery.data ?? null

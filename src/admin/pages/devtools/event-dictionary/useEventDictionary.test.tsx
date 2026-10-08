@@ -88,7 +88,12 @@ describe('useEventDictionary', () => {
     expect(result.current.entries).toHaveLength(6)
     expect(h.client.runReport).toHaveBeenCalledTimes(1)
 
+    let release!: (v: unknown) => void
+    h.client.runReport.mockReturnValueOnce(new Promise((r) => (release = r)))
     act(() => result.current.retryObserved())
+    await waitFor(() => expect(h.client.runReport).toHaveBeenCalledTimes(2))
+    expect(result.current.observed).toBe('pending')
+    release(observedFixture)
     await waitFor(() => expect(result.current.observed).toBe('ready'))
     expect(h.client.runReport).toHaveBeenCalledTimes(2)
   })
@@ -132,5 +137,57 @@ describe('useEventDictionary', () => {
     const all = queryClient.getQueryCache().getAll()
     expect(all).toHaveLength(3)
     expect(all.every((q) => q.queryKey[0] === 'event-dictionary')).toBe(true)
+  })
+
+  it('stays pending until the recent check settles', async () => {
+    let release!: (v: unknown) => void
+    h.client.runRealtimeReport = vi.fn().mockReturnValue(new Promise((r) => (release = r)))
+    const { result } = renderHook(() => useEventDictionary(), { wrapper })
+    await waitFor(() => expect(queryClient.getQueryState(['event-dictionary', 'observed', goodRanges])?.status).toBe('success'))
+    expect(result.current.observed).toBe('pending')
+    expect(result.current.entries).toHaveLength(6)
+    expect(result.current.entries.every((e) => e.count === null)).toBe(true)
+
+    release(recentFixture)
+    await waitFor(() => expect(result.current.observed).toBe('ready'))
+    expect(result.current.entries.some((e) => e.name === 'today_only')).toBe(true)
+  })
+
+  it('keeps the counts when a later refetch fails', async () => {
+    const { result } = renderHook(() => useEventDictionary(), { wrapper })
+    await waitFor(() => expect(result.current.observed).toBe('ready'))
+    h.client.runReport.mockRejectedValueOnce(new GaError('server'))
+    act(() => result.current.retryObserved())
+    await waitFor(() => expect(h.client.runReport).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(queryClient.getQueryState(['event-dictionary', 'observed', goodRanges])?.status).toBe('error'))
+    expect(result.current.observed).toBe('ready')
+    expect(result.current.entries.find((e) => e.name === 'screen_view')!.count).toBe(160)
+  })
+
+  it('drops the old counts when the period changes, then loads the new one', async () => {
+    const { result, rerender } = renderHook(() => useEventDictionary(), { wrapper })
+    await waitFor(() => expect(result.current.observed).toBe('ready'))
+    let release!: (v: unknown) => void
+    h.client.runReport.mockReturnValueOnce(new Promise((r) => (release = r)))
+    h.ranges = {
+      current: { startDate: '2026-09-01', endDate: '2026-09-07' },
+      previous: { startDate: '2026-08-25', endDate: '2026-08-31' },
+      days: 7,
+    }
+    rerender()
+    expect(result.current.observed).toBe('pending')
+    expect(result.current.entries).toHaveLength(6)
+    expect(result.current.entries.every((e) => e.count === null)).toBe(true)
+    release(observedFixture)
+    await waitFor(() => expect(result.current.observed).toBe('ready'))
+    expect(result.current.entries.find((e) => e.name === 'screen_view')!.count).toBe(160)
+  })
+
+  it('keeps the entries identity across a rerender with no change', async () => {
+    const { result, rerender } = renderHook(() => useEventDictionary(), { wrapper })
+    await waitFor(() => expect(result.current.observed).toBe('ready'))
+    const first = result.current.entries
+    rerender()
+    expect(result.current.entries).toBe(first)
   })
 })
