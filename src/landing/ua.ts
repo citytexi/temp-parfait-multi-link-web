@@ -75,3 +75,66 @@ export function externalBrowserUrl(pageUrl: string, kakao: boolean): string {
     `S.browser_fallback_url=${encodeURIComponent(url)};end`
   )
 }
+
+export type LandingButton = {
+  id: 'store' | 'appstore' | 'external'
+  label: string
+  href: string
+  variant: 'primary' | 'secondary'
+}
+export type LandingView = {
+  /** 인라인 스크립트가 페이지를 그리기 전에 보내는 주소. 보내지 않으면 null. */
+  autoRedirect: string | null
+  /** 자동 이동을 하지 않는 이유. 하면 null. */
+  noRedirectReason: 'in-app' | 'not-android' | null
+  buttons: LandingButton[]
+  /** 인앱 브라우저 안내 문구를 보이는지. */
+  showInAppHint: boolean
+  /** Play로 넘기는 캠페인 문자열. 없으면 ''. */
+  referrer: string
+}
+
+// 랜딩이 어떤 버튼을 어느 주소로 보일지의 판정. Landing.tsx와 어드민 분기 테스트가 함께 쓴다.
+export function landingView(platform: Platform, pageUrl: string): LandingView {
+  const { os, inApp, kakao } = platform
+  const referrer = os === 'ios' ? '' : campaignReferrer(pageUrl)
+  const appstore: LandingButton = {
+    id: 'appstore',
+    label: 'App Store에서 다운로드',
+    href: APP_STORE_URL,
+    variant: 'primary',
+  }
+  const store = (href: string): LandingButton => ({
+    id: 'store',
+    label: 'Google Play에서 다운로드',
+    href,
+    variant: 'primary',
+  })
+
+  if (os === 'ios') {
+    return { autoRedirect: null, noRedirectReason: 'not-android', buttons: [appstore], showInAppHint: false, referrer }
+  }
+  if (os === 'other') {
+    return {
+      autoRedirect: null,
+      noRedirectReason: 'not-android',
+      buttons: [store(playWebUrl(referrer)), appstore],
+      showInAppHint: false,
+      referrer,
+    }
+  }
+  const intent = playIntentUrl(referrer)
+  if (!inApp) {
+    return { autoRedirect: intent, noRedirectReason: null, buttons: [store(intent)], showInAppHint: false, referrer }
+  }
+  return {
+    autoRedirect: null,
+    noRedirectReason: 'in-app',
+    buttons: [
+      store(intent),
+      { id: 'external', label: '외부 브라우저로 열기', href: externalBrowserUrl(pageUrl, kakao), variant: 'secondary' },
+    ],
+    showInAppHint: true,
+    referrer,
+  }
+}
