@@ -37,6 +37,8 @@
 }
 
 .adm-event-stream-event {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -78,8 +80,12 @@
   fill: var(--adm-accent);
 }
 
-.adm-event-stream-event--hot {
-  animation: adm-event-stream-flash 2s ease-out;
+.adm-event-stream-flash {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  animation: adm-event-stream-flash 2s ease-out forwards;
 }
 
 @keyframes adm-event-stream-flash {
@@ -92,8 +98,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .adm-event-stream-event--hot {
+  .adm-event-stream-flash {
     animation: none;
+    display: none;
   }
 }
 

@@ -95,10 +95,8 @@ export function StreamTable(props: {
                     </button>
                   </td>
                   <td>
-                    <div
-                      key={hot ? hot.at : 'idle'}
-                      className={hot ? 'adm-event-stream-event adm-event-stream-event--hot' : 'adm-event-stream-event'}
-                    >
+                    <div className="adm-event-stream-event">
+                      {hot && <span key={hot.at} className="adm-event-stream-flash" aria-hidden="true" />}
                       <span className="adm-event-stream-name">
                         {line.inCatalog && line.label !== line.name ? (
                           <>

@@ -214,17 +214,43 @@ describe('StreamTable', () => {
     expect(cell.children).toHaveLength(1)
   })
 
-  it('remounts the flash element when a fresh change arrives', () => {
+  it('remounts only the decorative flash element when a fresh change arrives', () => {
     vi.useFakeTimers()
     const at = Date.now()
     const first = new Map<string, Highlight>([['screen_view', { kind: 'up', delta: 1, at }]])
     const { container, rerender } = render(<StreamTable {...tableProps({ highlights: first })} />)
-    const before = container.querySelector('.adm-event-stream-event--hot')
-    expect(before).not.toBeNull()
+    const wrapperBefore = container.querySelector('.adm-event-stream-event')
+    const flashBefore = container.querySelector('.adm-event-stream-flash')
+    expect(flashBefore).toHaveAttribute('aria-hidden', 'true')
+    expect(flashBefore?.children).toHaveLength(0)
     const second = new Map<string, Highlight>([['screen_view', { kind: 'up', delta: 2, at: at + 3000 }]])
     rerender(<StreamTable {...tableProps({ highlights: second })} />)
-    const after = container.querySelector('.adm-event-stream-event--hot')
-    expect(after).not.toBe(before)
+    expect(container.querySelector('.adm-event-stream-event')).toBe(wrapperBefore)
+    const flashAfter = container.querySelector('.adm-event-stream-flash')
+    expect(flashAfter).not.toBeNull()
+    expect(flashAfter).not.toBe(flashBefore)
+  })
+
+  it('keeps focus on the dictionary button as the highlight appears, changes and expires', () => {
+    vi.useFakeTimers()
+    const at = Date.now()
+    const outside = line({ name: 'purchase_done', label: 'purchase_done', inCatalog: false })
+    const props = (highlights: Map<string, Highlight>) => tableProps({ lines: [outside], highlights })
+    const { rerender } = render(<StreamTable {...props(new Map())} />)
+    const button = screen.getByRole('button', { name: '사전에서 보기' })
+    button.focus()
+    expect(document.activeElement).toBe(button)
+    rerender(<StreamTable {...props(new Map([['purchase_done', { kind: 'new', delta: 0, at }]]))} />)
+    expect(document.activeElement).toBe(button)
+    rerender(<StreamTable {...props(new Map([['purchase_done', { kind: 'up', delta: 2, at: at + 3000 }]]))} />)
+    expect(document.activeElement).toBe(button)
+    expect(screen.getByRole('button', { name: '사전에서 보기' })).toBe(button)
+    act(() => {
+      vi.advanceTimersByTime(HIGHLIGHT_TTL_MS + 4000)
+    })
+    expect(screen.queryByText(/▲/)).toBeNull()
+    expect(screen.getByRole('button', { name: '사전에서 보기' })).toBe(button)
+    expect(document.activeElement).toBe(button)
   })
 
   it('fills the star only when watched', () => {
