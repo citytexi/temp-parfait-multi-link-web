@@ -45,10 +45,7 @@ export function StreamTable(props: {
 }): ReactElement {
   const { lines, highlights, onToggleWatch, onOpenDictionary } = props
   const [now, setNow] = useState(() => Date.now())
-  const active = useMemo(
-    () => [...highlights.values()].some((h) => now - h.at < HIGHLIGHT_TTL_MS),
-    [highlights, now],
-  )
+  const active = useMemo(() => [...highlights.values()].some((h) => now - h.at < HIGHLIGHT_TTL_MS), [highlights, now])
 
   // The ticker runs only while a highlight is on screen.
   useEffect(() => {
@@ -66,10 +63,18 @@ export function StreamTable(props: {
             <tr>
               <th scope="col">지켜보기</th>
               <th scope="col">이벤트</th>
-              <th scope="col" className="adm-num">방금</th>
-              <th scope="col" className="adm-num">5분</th>
-              <th scope="col" className="adm-num">30분</th>
-              <th scope="col" className="adm-event-stream-trend-col">30분 추이</th>
+              <th scope="col" className="adm-num">
+                방금
+              </th>
+              <th scope="col" className="adm-num">
+                5분
+              </th>
+              <th scope="col" className="adm-num">
+                30분
+              </th>
+              <th scope="col" className="adm-event-stream-trend-col">
+                30분 추이
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -77,7 +82,7 @@ export function StreamTable(props: {
               const h = highlights.get(line.name)
               const hot = h !== undefined && now - h.at < HIGHLIGHT_TTL_MS ? h : undefined
               return (
-                <tr key={line.name} className={hot ? 'adm-event-stream-row--hot' : undefined}>
+                <tr key={line.name}>
                   <td>
                     <button
                       type="button"
@@ -89,37 +94,42 @@ export function StreamTable(props: {
                       <Star size={18} aria-hidden="true" fill={line.watched ? 'currentColor' : 'none'} />
                     </button>
                   </td>
-                  <td className="adm-event-stream-event">
-                    <span className="adm-event-stream-name">
-                      {line.inCatalog && line.label !== line.name ? (
-                        <>
-                          <span className="adm-event-stream-label">{line.label}</span>
-                          <span className="adm-event-stream-raw">{line.name}</span>
-                        </>
-                      ) : (
-                        <span className="adm-event-stream-label">{line.name}</span>
-                      )}
-                    </span>
-                    <span className="adm-event-stream-marks">
-                      {!line.inCatalog && (
-                        <>
-                          <span className="adm-tag">사전에 없음</span>
-                          <button
-                            type="button"
-                            className="adm-button adm-button--ghost adm-event-stream-dict"
-                            onClick={() => onOpenDictionary(line.name)}
-                          >
-                            사전에서 보기
-                          </button>
-                        </>
-                      )}
-                      {hot?.kind === 'new' && (
-                        <span className="adm-tag">{`새로 들어옴 · ${secondsAgo(now, hot.at)}초 전`}</span>
-                      )}
-                      {hot?.kind === 'up' && hot.delta > 0 && (
-                        <span className="adm-event-stream-up">{`▲ +${hot.delta} · ${secondsAgo(now, hot.at)}초 전`}</span>
-                      )}
-                    </span>
+                  <td>
+                    <div
+                      key={hot ? hot.at : 'idle'}
+                      className={hot ? 'adm-event-stream-event adm-event-stream-event--hot' : 'adm-event-stream-event'}
+                    >
+                      <span className="adm-event-stream-name">
+                        {line.inCatalog && line.label !== line.name ? (
+                          <>
+                            <span className="adm-event-stream-label">{line.label}</span>
+                            <span className="adm-event-stream-raw">{line.name}</span>
+                          </>
+                        ) : (
+                          <span className="adm-event-stream-label">{line.name}</span>
+                        )}
+                      </span>
+                      <span className="adm-event-stream-marks">
+                        {!line.inCatalog && (
+                          <>
+                            <span className="adm-tag">사전에 없음</span>
+                            <button
+                              type="button"
+                              className="adm-button adm-button--ghost adm-event-stream-dict"
+                              onClick={() => onOpenDictionary(line.name)}
+                            >
+                              사전에서 보기
+                            </button>
+                          </>
+                        )}
+                        {hot?.kind === 'new' && (
+                          <span className="adm-tag">{`새로 들어옴 · ${secondsAgo(now, hot.at)}초 전`}</span>
+                        )}
+                        {hot?.kind === 'up' && hot.delta > 0 && (
+                          <span className="adm-event-stream-up">{`▲ +${hot.delta} · ${secondsAgo(now, hot.at)}초 전`}</span>
+                        )}
+                      </span>
+                    </div>
                   </td>
                   <td className="adm-num">{formatNumber(line.now)}</td>
                   <td className="adm-num">{formatNumber(line.last5)}</td>

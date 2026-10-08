@@ -78,7 +78,7 @@
   fill: var(--adm-accent);
 }
 
-.adm-table tbody tr.adm-event-stream-row--hot {
+.adm-event-stream-event--hot {
   animation: adm-event-stream-flash 2s ease-out;
 }
 
@@ -92,7 +92,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .adm-table tbody tr.adm-event-stream-row--hot {
+  .adm-event-stream-event--hot {
     animation: none;
   }
 }
@@ -102,8 +102,9 @@
     display: none;
   }
 
-  .adm-event-stream-table td.adm-event-stream-event {
-    display: block;
+  .adm-event-stream-event {
+    flex-direction: column;
+    align-items: flex-start;
     white-space: normal;
   }
 

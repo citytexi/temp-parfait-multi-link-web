@@ -200,6 +200,67 @@ describe('StreamTable', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
+  it('keeps every cell a table cell with the layout on an inner wrapper', () => {
+    render(<StreamTable {...tableProps()} />)
+    const row = screen.getAllByRole('row')[1]
+    for (const td of Array.from(row.querySelectorAll('td'))) {
+      expect(td.className).not.toMatch(/adm-event-stream-(event|marks|name)/)
+    }
+    const cell = row.querySelectorAll('td')[1]
+    const wrapper = cell.firstElementChild as HTMLElement
+    expect(wrapper.tagName).toBe('DIV')
+    expect(wrapper).toHaveClass('adm-event-stream-event')
+    expect(wrapper).toHaveTextContent('화면 조회')
+    expect(cell.children).toHaveLength(1)
+  })
+
+  it('remounts the flash element when a fresh change arrives', () => {
+    vi.useFakeTimers()
+    const at = Date.now()
+    const first = new Map<string, Highlight>([['screen_view', { kind: 'up', delta: 1, at }]])
+    const { container, rerender } = render(<StreamTable {...tableProps({ highlights: first })} />)
+    const before = container.querySelector('.adm-event-stream-event--hot')
+    expect(before).not.toBeNull()
+    const second = new Map<string, Highlight>([['screen_view', { kind: 'up', delta: 2, at: at + 3000 }]])
+    rerender(<StreamTable {...tableProps({ highlights: second })} />)
+    const after = container.querySelector('.adm-event-stream-event--hot')
+    expect(after).not.toBe(before)
+  })
+
+  it('fills the star only when watched', () => {
+    const { rerender } = render(<StreamTable {...tableProps()} />)
+    const icon = () => screen.getByRole('button', { name: 'screen_view 지켜보기' }).querySelector('svg') as SVGElement
+    expect(icon()).toHaveAttribute('fill', 'none')
+    rerender(<StreamTable {...tableProps({ lines: [line({ watched: true })] })} />)
+    expect(icon()).toHaveAttribute('fill', 'currentColor')
+  })
+
+  it('scales bar heights to the line maximum', () => {
+    const perMinute = Array<number>(30).fill(0)
+    perMinute[27] = 10
+    perMinute[28] = 5
+    const { container } = render(<StreamTable {...tableProps({ lines: [line({ perMinute })] })} />)
+    const rects = container.querySelectorAll('svg.adm-event-stream-trend rect')
+    const height = (i: number) => Number(rects[i].getAttribute('height'))
+    expect(height(27)).toBe(24)
+    expect(height(28)).toBe(12)
+    expect(height(0)).toBeLessThan(2)
+  })
+
+  it('hides a new-event highlight after 60 seconds', () => {
+    vi.useFakeTimers()
+    const highlights = new Map<string, Highlight>([['screen_view', { kind: 'new', delta: 0, at: Date.now() - 8000 }]])
+    render(<StreamTable {...tableProps({ highlights })} />)
+    act(() => {
+      vi.advanceTimersByTime(HIGHLIGHT_TTL_MS - 8000 - 1000)
+    })
+    expect(screen.getByText(/^새로 들어옴/)).toBeInTheDocument()
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
+    expect(screen.queryByText(/새로 들어옴/)).toBeNull()
+  })
+
   it('hides the trend from assistive tech', () => {
     const { container } = render(<StreamTable {...tableProps()} />)
     const svg = container.querySelector('svg.adm-event-stream-trend') as SVGElement
