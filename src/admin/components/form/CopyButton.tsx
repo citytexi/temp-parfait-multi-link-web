@@ -30,31 +30,51 @@ export function CopyButton({
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const box = useRef<HTMLTextAreaElement>(null)
 
-  useEffect(() => () => clearTimeout(timer.current), [])
+  const latest = useRef(0)
+
+  useEffect(() => {
+    return () => {
+      // Invalidate in-flight copies so a late result does nothing after unmount.
+      latest.current += 1
+      clearTimeout(timer.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (failures > 0) box.current?.select()
   }, [failures])
 
-  const onClick = useCallback(async () => {
-    const value = typeof text === 'function' ? text() : text
-    onCopy?.()
-    try {
-      await navigator.clipboard.writeText(value)
-    } catch {
-      setCopied(false)
+  const copy = useCallback(
+    async (token: number) => {
+      let value = ''
+      try {
+        value = typeof text === 'function' ? text() : text
+        await navigator.clipboard.writeText(value)
+      } catch {
+        if (token !== latest.current) return
+        setCopied(false)
+        clearTimeout(timer.current)
+        setFallback(value)
+        setFailures((n) => n + 1)
+        announce(FAILED)
+        return
+      }
+      if (token !== latest.current) return
+      setFallback(null)
+      setCopied(true)
+      announce(COPIED)
       clearTimeout(timer.current)
-      setFallback(value)
-      setFailures((n) => n + 1)
-      announce(FAILED)
-      return
-    }
-    setFallback(null)
-    setCopied(true)
-    announce(COPIED)
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => setCopied(false), COPIED_MS)
-  }, [text, onCopy, announce])
+      timer.current = setTimeout(() => setCopied(false), COPIED_MS)
+    },
+    [text, announce],
+  )
+
+  const onClick = () => {
+    // Called before the first await so a throwing onCopy surfaces synchronously.
+    onCopy?.()
+    latest.current += 1
+    void copy(latest.current)
+  }
 
   return (
     <div className="adm-copy-wrap">
@@ -69,14 +89,16 @@ export function CopyButton({
       {fallback !== null && (
         <>
           <p className="adm-copy__note">{FAILED}</p>
-          <textarea
-            ref={box}
-            className="adm-copy__box"
-            aria-label="복사할 내용"
-            readOnly
-            rows={3}
-            value={fallback}
-          />
+          {fallback !== '' && (
+            <textarea
+              ref={box}
+              className="adm-copy__box"
+              aria-label="복사할 내용"
+              readOnly
+              rows={3}
+              value={fallback}
+            />
+          )}
         </>
       )}
     </div>

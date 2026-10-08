@@ -90,6 +90,8 @@
 .adm-copy__box {
   box-sizing: border-box;
   width: 100%;
+  min-width: min(100%, 320px);
+  max-width: 100%;
   padding: var(--adm-space-2) var(--adm-space-3);
   border: 1px solid var(--adm-border-strong);
   border-radius: var(--adm-radius-sm);

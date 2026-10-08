@@ -1,5 +1,5 @@
 import { StrictMode } from 'react'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, createEvent, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { StatusRegion } from './StatusRegion'
 import { CopyButton } from './CopyButton'
@@ -121,6 +121,51 @@ describe('CopyButton', () => {
   })
 })
 
+describe('CopyButton late and throwing results', () => {
+  it('ignores a clipboard result that settles after unmount', async () => {
+    let resolve!: () => void
+    setClipboard(vi.fn(() => new Promise<void>((r) => { resolve = r })))
+    const view = render(<StatusRegion><CopyButton label="복사" text="abc" /></StatusRegion>)
+    fireEvent.click(screen.getByRole('button'))
+    view.unmount()
+    resolve()
+    await flush()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('ignores an older click that rejects after a newer one succeeded', async () => {
+    let reject!: (e: Error) => void
+    const writeText = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise<void>((_, r) => { reject = r }))
+      .mockResolvedValue(undefined)
+    setClipboard(writeText)
+    render(<StatusRegion><CopyButton label="복사" text="abc" /></StatusRegion>)
+    fireEvent.click(screen.getByRole('button'))
+    fireEvent.click(screen.getByRole('button'))
+    await flush()
+    reject(new Error('slow'))
+    await flush()
+    expect(screen.getByRole('button')).toHaveTextContent('복사했어요')
+    expect(screen.queryByLabelText('복사할 내용')).not.toBeInTheDocument()
+  })
+
+  it('takes the fallback path when text() throws, without a text box', async () => {
+    setClipboard(vi.fn().mockResolvedValue(undefined))
+    const onCopy = vi.fn()
+    render(
+      <StatusRegion>
+        <CopyButton label="복사" text={() => { throw new Error('boom') }} onCopy={onCopy} />
+      </StatusRegion>,
+    )
+    fireEvent.click(screen.getByRole('button'))
+    await flush()
+    expect(onCopy).toHaveBeenCalledTimes(1)
+    expect(screen.getAllByText('복사하지 못했어요. 아래 내용을 직접 복사해 주세요.').length).toBeGreaterThan(0)
+    expect(screen.queryByLabelText('복사할 내용')).not.toBeInTheDocument()
+  })
+})
+
 describe('ConfirmButton', () => {
   function setup(extra: { name?: string } = {}) {
     const onConfirm = vi.fn()
@@ -189,5 +234,39 @@ describe('ConfirmButton', () => {
     expect(screen.getByRole('button', { name: '내 링크 Figma 삭제' })).toBeInTheDocument()
     fireEvent.click(button())
     expect(screen.getByRole('button', { name: '정말 지울까요?' })).toBeInTheDocument()
+  })
+
+  it('swallows held Enter repeats but not a fresh Enter', () => {
+    const { onConfirm, button } = setup()
+    fireEvent.click(button())
+    advance(500)
+    const repeat = createEvent.keyDown(button(), { key: 'Enter', repeat: true })
+    fireEvent(button(), repeat)
+    expect(repeat.defaultPrevented).toBe(true)
+    expect(onConfirm).not.toHaveBeenCalled()
+    const fresh = createEvent.keyDown(button(), { key: 'Enter' })
+    fireEvent(button(), fresh)
+    expect(fresh.defaultPrevented).toBe(false)
+  })
+
+  it('stops Escape propagation only while armed', () => {
+    const parent = vi.fn()
+    render(
+      <StatusRegion>
+        <div onKeyDown={parent}>
+          <ConfirmButton label="기록 지우기" confirmLabel="정말 지울까요?" onConfirm={() => {}} />
+        </div>
+      </StatusRegion>,
+    )
+    const b = screen.getByRole('button')
+    const idle = createEvent.keyDown(b, { key: 'Escape' })
+    fireEvent(b, idle)
+    expect(parent).toHaveBeenCalledTimes(1)
+    expect(idle.defaultPrevented).toBe(false)
+    expect(screen.getByRole('status')).toHaveTextContent('')
+    fireEvent.click(b)
+    fireEvent.keyDown(b, { key: 'Escape' })
+    expect(parent).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('status')).toHaveTextContent('취소했어요')
   })
 })

@@ -47,7 +47,14 @@ export function ConfirmButton({
   }
 
   const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+    // A held Enter or Space repeats click; swallow the repeats so one press cannot confirm.
+    if (e.repeat && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault()
+      return
+    }
     if (e.key !== 'Escape' || !armed) return
+    // The button consumed Escape to cancel, so a parent dialog must not also close.
+    e.stopPropagation()
     setArmed(false)
     announce('취소했어요')
   }
