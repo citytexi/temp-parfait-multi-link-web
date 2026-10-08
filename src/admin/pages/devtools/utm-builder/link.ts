@@ -85,8 +85,18 @@ export function addRecent(list: readonly RecentLink[], item: RecentLink): Recent
   return [item, ...list.filter((r) => !same(r))].slice(0, RECENT_MAX)
 }
 
-export function recentTitle(item: RecentLink): string {
+/** The record's channel while its stored source and medium still match what that channel fixes. */
+function fittingChannel(item: RecentLink): Channel | undefined {
   const channel = findChannel(item.channel)
+  const fits =
+    channel !== undefined &&
+    (channel.source === null || channel.source === item.source) &&
+    (channel.medium === null || channel.medium === item.medium)
+  return fits ? channel : undefined
+}
+
+export function recentTitle(item: RecentLink): string {
+  const channel = fittingChannel(item)
   let head: string
   if (!channel) head = `${item.source} / ${item.medium}`
   else if (channel.source !== null) head = channel.label
@@ -95,12 +105,8 @@ export function recentTitle(item: RecentLink): string {
 }
 
 export function reopenParams(item: RecentLink): { ch: string; src: string; med: string; camp: string; content: string } {
-  const channel = findChannel(item.channel)
-  const fits =
-    channel !== undefined &&
-    (channel.source === null || channel.source === item.source) &&
-    (channel.medium === null || channel.medium === item.medium)
-  if (!fits) return { ch: 'custom', src: item.source, med: item.medium, camp: item.campaign, content: item.content }
+  const channel = fittingChannel(item)
+  if (!channel) return { ch: 'custom', src: item.source, med: item.medium, camp: item.campaign, content: item.content }
   return {
     ch: channel.id,
     src: channel.source === null ? item.source : '',

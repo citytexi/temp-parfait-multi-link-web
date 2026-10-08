@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { STORE_PREFIX, newId, readStored, useStored, writeStored, type Parser } from './localStore'
+import { STORE_PREFIX, forgetUnsaved, newId, readStored, useStored, writeStored, type Parser } from './localStore'
 
 const KEY = 'parfait-admin:test'
 const OTHER_KEY = 'parfait-admin:other'
@@ -16,6 +16,7 @@ const failWrites = () =>
   })
 const storageEvent = (key: string | null) => act(() => { window.dispatchEvent(new StorageEvent('storage', { key })) })
 
+// src/test/setup.ts calls forgetUnsaved() after every test.
 beforeEach(() => localStorage.clear())
 afterEach(() => {
   vi.useRealTimers()
@@ -51,6 +52,18 @@ describe('readStored and writeStored', () => {
     const circular: Record<string, unknown> = {}
     circular.self = circular
     expect(writeStored(KEY, circular)).toBe(false)
+  })
+  it('does not overwrite an envelope written by a newer version', () => {
+    const newer = '{"v":2,"items":{"shape":"new"}}'
+    localStorage.setItem(KEY, newer)
+    expect(writeStored(KEY, ['a'])).toBe(false)
+    expect(localStorage.getItem(KEY)).toBe(newer)
+    // An older or unreadable value is not protected.
+    localStorage.setItem(KEY, '{"v":0,"items":["old"]}')
+    expect(writeStored(KEY, ['a'])).toBe(true)
+    localStorage.setItem(KEY, '{')
+    expect(writeStored(KEY, ['b'])).toBe(true)
+    expect(stored(KEY)).toEqual({ v: 1, items: ['b'] })
   })
   it('rejects keys without the prefix in dev', () => {
     expect(STORE_PREFIX).toBe('parfait-admin:')
@@ -199,5 +212,148 @@ describe('useStored', () => {
 
     unmount()
     expect(count(add)).toBe(count(remove))
+  })
+})
+
+describe('useStored: values that were not saved', () => {
+  it('keeps an unsaved value across unmount and mount, until a write succeeds', () => {
+    store(KEY, ['old'])
+    const setItem = failWrites()
+    const first = renderHook(() => useStored(KEY, strings, []))
+    act(() => { first.result.current.update((cur) => [...cur, 'x']) })
+    first.unmount()
+
+    const second = renderHook(() => useStored(KEY, strings, []))
+    expect(second.result.current.value).toEqual(['old', 'x'])
+    expect(second.result.current.persisted).toBe(false)
+
+    setItem.mockRestore()
+    act(() => { second.result.current.update((cur) => [...cur, 'y']) })
+    expect(second.result.current.persisted).toBe(true)
+    expect(stored(KEY)).toEqual({ v: 1, items: ['old', 'x', 'y'] })
+    second.unmount()
+
+    // The entry is gone: the next mount reads storage, not the value the hook last held.
+    store(KEY, ['fresh'])
+    const third = renderHook(() => useStored(KEY, strings, []))
+    expect(third.result.current.value).toEqual(['fresh'])
+    expect(third.result.current.persisted).toBe(true)
+  })
+  it('keeps unsaved values apart by key', () => {
+    failWrites()
+    const a = renderHook(() => useStored(KEY, strings, []))
+    act(() => { a.result.current.update(() => ['a']) })
+    a.unmount()
+
+    const other = renderHook(() => useStored(OTHER_KEY, strings, []))
+    expect(other.result.current.value).toEqual([])
+    expect(other.result.current.persisted).toBe(true)
+    act(() => { other.result.current.update(() => ['o']) })
+    other.unmount()
+
+    expect(renderHook(() => useStored(KEY, strings, [])).result.current.value).toEqual(['a'])
+    expect(renderHook(() => useStored(OTHER_KEY, strings, [])).result.current.value).toEqual(['o'])
+  })
+  it('drops the unsaved value when another tab wrote, mounted or not', () => {
+    const setItem = failWrites()
+    const first = renderHook(() => useStored(KEY, strings, []))
+    act(() => { first.result.current.update(() => ['x']) })
+    setItem.mockRestore()
+    store(KEY, ['tab'])
+    storageEvent(KEY)
+    expect(first.result.current.value).toEqual(['tab'])
+    first.unmount()
+    expect(renderHook(() => useStored(KEY, strings, [])).result.current.persisted).toBe(true)
+
+    // The same while no page is mounted to hear the event.
+    const setItem2 = failWrites()
+    const second = renderHook(() => useStored(OTHER_KEY, strings, []))
+    act(() => { second.result.current.update(() => ['x']) })
+    second.unmount()
+    setItem2.mockRestore()
+    store(OTHER_KEY, ['tab'])
+    const third = renderHook(() => useStored(OTHER_KEY, strings, []))
+    expect(third.result.current.value).toEqual(['tab'])
+    expect(third.result.current.persisted).toBe(true)
+  })
+  it('forgets unsaved values on forgetUnsaved', () => {
+    failWrites()
+    const first = renderHook(() => useStored(KEY, strings, []))
+    act(() => { first.result.current.update(() => ['x']) })
+    first.unmount()
+    forgetUnsaved()
+    expect(renderHook(() => useStored(KEY, strings, [])).result.current.value).toEqual([])
+  })
+})
+
+describe('useStored: a write from another tab before the listener is on', () => {
+  it('picks it up without a storage event', () => {
+    store(KEY, ['a'])
+    let wrote = false
+    const { result } = renderHook(() => {
+      const held = useStored(KEY, strings, [])
+      // After the first read, before the effect: what another tab does in that gap.
+      if (!wrote) {
+        wrote = true
+        store(KEY, ['a', 'late'])
+      }
+      return held
+    })
+    expect(result.current.value).toEqual(['a', 'late'])
+    expect(result.current.persisted).toBe(true)
+  })
+  it('renders once when nothing changed', () => {
+    store(KEY, ['a'])
+    let renders = 0
+    renderHook(() => {
+      renders += 1
+      return useStored(KEY, strings, [])
+    })
+    expect(renders).toBe(1)
+  })
+})
+
+describe('useStored: an envelope from a newer version', () => {
+  const NEWER = '{"v":2,"items":{"shape":"new"}}'
+
+  it('is read-only: the fallback, changes on screen only, storage untouched', () => {
+    localStorage.setItem(KEY, NEWER)
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
+    const { result, unmount } = renderHook(() => useStored(KEY, strings, ['fallback']))
+    expect(result.current.value).toEqual(['fallback'])
+    expect(result.current.persisted).toBe(false)
+
+    let ok = true
+    act(() => { ok = result.current.update((cur) => [...cur, 'x']) })
+    expect(ok).toBe(false)
+    expect(result.current.value).toEqual(['fallback', 'x'])
+    expect(result.current.persisted).toBe(false)
+    expect(setItem).not.toHaveBeenCalled()
+    expect(localStorage.getItem(KEY)).toBe(NEWER)
+
+    // The newer tab writes again: what is on screen stays.
+    setItem.mockRestore()
+    localStorage.setItem(KEY, '{"v":2,"items":{"shape":"newer still"}}')
+    storageEvent(KEY)
+    expect(result.current.value).toEqual(['fallback', 'x'])
+    unmount()
+    expect(renderHook(() => useStored(KEY, strings, ['fallback'])).result.current.value).toEqual(['fallback', 'x'])
+  })
+  it('stops writing when a newer version appears after the first read', () => {
+    store(KEY, ['a'])
+    const { result } = renderHook(() => useStored(KEY, strings, []))
+    localStorage.setItem(KEY, NEWER)
+    act(() => { result.current.update((cur) => [...cur, 'x']) })
+    expect(result.current.persisted).toBe(false)
+    expect(localStorage.getItem(KEY)).toBe(NEWER)
+  })
+  it('writes again once the newer value is gone', () => {
+    localStorage.setItem(KEY, NEWER)
+    const { result } = renderHook(() => useStored(KEY, strings, []))
+    localStorage.clear()
+    storageEvent(null)
+    expect(result.current.persisted).toBe(true)
+    act(() => { result.current.update(() => ['x']) })
+    expect(stored(KEY)).toEqual({ v: 1, items: ['x'] })
   })
 })

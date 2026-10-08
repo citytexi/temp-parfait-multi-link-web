@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { campaignReferrer } from '../../../../landing/ua'
 import { CHANNELS, UTM_VALUE } from './config'
 import { addRecent, buildCampaign, normalizeUtm, parseRecent, qrFilename, recentTitle, reopenParams, utmError, type RecentLink, type UtmInput } from './link'
 
@@ -98,5 +99,65 @@ describe('campaign link rules', () => {
     expect(reopenParams(recent({ channel: 'gone', source: 's', medium: 'm' }))).toEqual({ ch: 'custom', src: 's', med: 'm', camp: 'c', content: '' })
     // 채널은 남아 있지만 규칙이 바뀐 경우
     expect(reopenParams(recent({ channel: 'instagram', source: 'ig', medium: 'social' }))).toEqual({ ch: 'custom', src: 'ig', med: 'social', camp: 'c', content: '' })
+  })
+})
+
+describe('one campaign value rule', () => {
+  // utmError('') is null on purpose: an empty field is "not typed yet" (buildCampaign's hint, the
+  // optional content), not a format error. Every other value must get the same answer from both.
+  it.each([
+    ['1 character', 'a'],
+    ['1 digit', '7'],
+    ['50 characters', 'a'.repeat(50)],
+    ['51 characters', 'a'.repeat(51)],
+    ['lower case', 'launch'],
+    ['digits', '202610'],
+    ['a hyphen inside', '202610-launch'],
+    ['an underscore inside', 'naver_blog'],
+    ['every allowed class', 'a1-_'],
+    ['a leading hyphen', '-launch'],
+    ['a leading underscore', '_launch'],
+    ['a lone hyphen', '-'],
+    ['upper case', 'Launch'],
+    ['Korean', '출시'],
+    ['a space', 'a b'],
+    ['a dot', 'a.b'],
+    ['a tilde', 'a~b'],
+    ['a trailing newline', 'a\n'],
+  ])('utmError and UTM_VALUE agree on %s', (_name, value) => {
+    expect(utmError(value) === null).toBe(UTM_VALUE.test(value))
+  })
+  it('treats the empty value as not typed, in both places', () => {
+    expect(utmError('')).toBeNull()
+    expect(UTM_VALUE.test('')).toBe(false)
+    expect(buildCampaign({ ...base, campaign: '' }).ok).toBe(false)
+  })
+  it('builds links whose whole query the landing forwards', () => {
+    const value = (lead: string) => `${lead}1-_${'z'.repeat(46)}`
+    const input = { channel: 'custom', source: value('s'), medium: value('m'), campaign: value('c'), content: value('k') }
+    for (const v of Object.values(input).slice(1)) expect(v).toHaveLength(50)
+    const result = buildCampaign(input)
+    if (!result.ok) throw new Error('expected a link')
+    const query = result.url.slice(result.url.indexOf('?') + 1)
+    expect(query.split('&')).toHaveLength(4)
+    expect(campaignReferrer(result.url)).toBe(query)
+  })
+})
+
+describe('a recent record that no longer fits its channel', () => {
+  it('is titled the way it reopens: as typed values', () => {
+    const moved = recent({ channel: 'instagram', source: 'ig', medium: 'social' })
+    expect(reopenParams(moved).ch).toBe('custom')
+    expect(recentTitle(moved)).toBe('ig / social · c')
+    const paid = recent({ channel: 'paid', source: 'google', medium: 'display', content: 'banner' })
+    expect(reopenParams(paid).ch).toBe('custom')
+    expect(recentTitle(paid)).toBe('google / display · c · banner')
+  })
+  it('keeps the channel label while the record fits', () => {
+    for (const item of [recent(), recent({ channel: 'paid', source: 'google', medium: 'cpc' }), recent({ channel: 'custom', source: 's', medium: 'm' })]) {
+      const label = CHANNELS.find((c) => c.id === item.channel)!.label
+      expect(reopenParams(item).ch).toBe(item.channel)
+      expect(recentTitle(item).startsWith(label)).toBe(true)
+    }
   })
 })

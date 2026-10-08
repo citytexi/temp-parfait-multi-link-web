@@ -303,7 +303,7 @@ it('keeps the new link on screen and says it was not saved when storage is block
   press('저장')
 
   expect(link(/^Figma /)).toHaveAttribute('href', 'https://figma.com/file/x')
-  expect(screen.getByText(NOT_SAVED)).toBeInTheDocument()
+  expect(screen.getByText(NOT_SAVED, { selector: 'p' })).toBeInTheDocument()
   expect(localStorage.getItem(PERSONAL_KEY)).toBeNull()
 
   // The page keeps working on the value it holds.
@@ -326,4 +326,24 @@ it('defines the menu', async () => {
   expect(menu.usesPeriod).toBe(false)
   expect(menu.usesGa).toBe(false)
   expect((await menu.load()).default).toBe(LinkHubPage)
+})
+
+it('keeps the not-saved sentence on screen while a search hides 내 링크, and announces it', () => {
+  renderPage()
+  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    throw new DOMException('full', 'QuotaExceededError')
+  })
+  press('내 링크 추가')
+  type('이름', 'Figma')
+  type('주소', 'https://figma.com/file/x')
+  press('저장')
+  expect(screen.getByRole('status')).toHaveTextContent(NOT_SAVED)
+
+  type('링크 검색', 'firebase')
+  expect(titles()).not.toContain('내 링크')
+  expect(screen.getByText(NOT_SAVED, { selector: 'p' })).toBeInTheDocument()
+
+  type('링크 검색', 'no such link anywhere')
+  expect(screen.getByText('찾는 링크가 없어요')).toBeInTheDocument()
+  expect(screen.getByText(NOT_SAVED, { selector: 'p' })).toBeInTheDocument()
 })

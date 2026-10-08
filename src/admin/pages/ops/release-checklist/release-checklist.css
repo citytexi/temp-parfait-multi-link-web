@@ -104,7 +104,7 @@
 
 .adm-release-checklist-item .adm-button {
   align-self: flex-start;
-  margin: 0 0 var(--adm-space-2) calc(20px + var(--adm-space-3));
+  margin: 0 0 var(--adm-space-2) calc(var(--adm-field-checkbox-size) + var(--adm-space-3));
 }
 
 /* Read-only rows of a shared release: the item text and its state at the two ends. */

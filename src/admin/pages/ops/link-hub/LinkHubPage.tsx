@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { Card } from '../../../components/Card'
 import { ConfirmButton } from '../../../components/form/ConfirmButton'
+import { NotSavedNote } from '../../../components/form/NotSavedNote'
 import { StatusRegion, useAnnounce } from '../../../components/form/StatusRegion'
 import { TextField } from '../../../components/form/TextField'
 import { newId, useStored } from '../../../lib/localStore'
@@ -294,14 +295,11 @@ function LinkHub(): ReactElement {
                 내 링크 추가
               </button>
             )}
-            {!personal.persisted && (
-              <p className="adm-link-hub-text adm-link-hub-text--warn">
-                이 브라우저에는 저장되지 않았어요. 창을 닫으면 사라져요.
-              </p>
-            )}
           </div>
         </Card>
       )}
+      {/* Outside the card: a search with no personal match hides the card. */}
+      <NotSavedNote persisted={personal.persisted} />
     </div>
   )
 }

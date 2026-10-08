@@ -59,10 +59,16 @@
   cursor: pointer;
 }
 
+/* The checkbox width. Set on the field and on what follows it, so a sibling can line up under the label text. */
+.adm-field--checkbox,
+.adm-field--checkbox ~ * {
+  --adm-field-checkbox-size: 20px;
+}
+
 .adm-field--checkbox input[type='checkbox'] {
   flex: none;
-  width: 20px;
-  height: 20px;
+  width: var(--adm-field-checkbox-size);
+  height: var(--adm-field-checkbox-size);
   margin: 0;
   accent-color: var(--adm-accent);
 }
@@ -71,6 +77,15 @@
   .adm-field__input {
     transition: none;
   }
+}
+
+/* Heavier and darker than a note, so colour is not the only cue. */
+.adm-not-saved {
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+  font-weight: var(--adm-fw-medium);
+  line-height: var(--adm-lh-body);
+  color: var(--adm-text-1);
 }
 
 .adm-copy-wrap {

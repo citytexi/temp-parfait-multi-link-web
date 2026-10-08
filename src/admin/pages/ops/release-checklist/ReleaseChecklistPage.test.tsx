@@ -309,7 +309,8 @@ it('creates a release in memory when storage is full', () => {
   expect(document.activeElement).toBe(heading('1.5.0 릴리즈'))
   expect(screen.getByText('0 / 22')).toBeInTheDocument()
   expect(screen.queryByText(LIMIT_MESSAGE)).toBeNull()
-  expect(screen.getByText(NOT_SAVED)).toBeInTheDocument()
+  expect(shown(NOT_SAVED)).toBe(1)
+  expect(status()).toHaveTextContent(NOT_SAVED)
   expect(localStorage.getItem(RELEASES_KEY)).toBeNull()
 })
 
@@ -320,7 +321,7 @@ it('keeps checks on screen and says they were not saved when storage is full', (
   fireEvent.click(field(FIRST_ITEM))
   expect(field(FIRST_ITEM)).toBeChecked()
   expect(screen.getByText('1 / 22')).toBeInTheDocument()
-  expect(screen.getByText(NOT_SAVED)).toBeInTheDocument()
+  expect(shown(NOT_SAVED)).toBe(1)
   expect(Object.keys(storedItems()[0].checked)).toEqual([])
 })
 
@@ -366,4 +367,22 @@ it('defines the menu', () => {
   expect(menu).toMatchObject({ id: 'release-checklist', group: 'ops', order: 120, label: '릴리즈 체크리스트', description: '배포 전에 확인할 것을 빠짐없이 챙겨요', keywords: ['배포', '출시', '릴리즈', '체크', 'QA'] })
   expect(menu.usesPeriod).toBe(false)
   expect(menu.usesGa).toBe(false)
+})
+
+it('still shows a release that was not saved after leaving the page and coming back', () => {
+  blockStorage()
+  const first = renderPage()
+  fireEvent.change(field('버전 이름'), { target: { value: '1.5.0' } })
+  press('만들기')
+  fireEvent.click(field(FIRST_ITEM))
+  // What a menu change or a sign-in expiry does to the page.
+  first.unmount()
+  expect(localStorage.getItem(RELEASES_KEY)).toBeNull()
+
+  renderPage()
+  expect(heading('1.5.0 릴리즈')).toBeInTheDocument()
+  expect(field(FIRST_ITEM)).toBeChecked()
+  expect(shown(NOT_SAVED)).toBe(1)
+  // Said once, when the write failed; not again on every return.
+  expect(status().textContent).toBe('')
 })

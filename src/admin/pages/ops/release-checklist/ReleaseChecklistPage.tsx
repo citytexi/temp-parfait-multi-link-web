@@ -3,6 +3,7 @@ import { Card } from '../../../components/Card'
 import { CheckboxField } from '../../../components/form/CheckboxField'
 import { ConfirmButton } from '../../../components/form/ConfirmButton'
 import { CopyButton } from '../../../components/form/CopyButton'
+import { NotSavedNote } from '../../../components/form/NotSavedNote'
 import { SelectField } from '../../../components/form/SelectField'
 import { StatusRegion, useAnnounce } from '../../../components/form/StatusRegion'
 import { TextField } from '../../../components/form/TextField'
@@ -300,8 +301,16 @@ function ReleaseChecklist(): ReactElement {
   const sections = current ? visibleSections(current) : []
   const { done, total } = progress(sections)
 
+  // Keyed so both views share one note: it must stay mounted to announce an import that was not saved.
+  const notSaved = <NotSavedNote key="not-saved" persisted={releases.persisted} />
+
   if (payload) {
-    return <SharedRelease payload={payload} actions={sharedActions} limitReached={showLimit} onClose={closeShared} />
+    return (
+      <div className="adm-release-checklist-layout">
+        <SharedRelease payload={payload} actions={sharedActions} limitReached={showLimit} onClose={closeShared} />
+        {notSaved}
+      </div>
+    )
   }
 
   return (
@@ -362,11 +371,7 @@ function ReleaseChecklist(): ReactElement {
           <p className="adm-release-checklist-text">체크한 내용은 이 브라우저에만 저장돼요.</p>
         </>
       )}
-      {!releases.persisted && (
-        <p className="adm-release-checklist-text adm-release-checklist-text--warn">
-          이 브라우저에는 저장되지 않았어요. 창을 닫으면 사라져요.
-        </p>
-      )}
+      {notSaved}
     </div>
   )
 }

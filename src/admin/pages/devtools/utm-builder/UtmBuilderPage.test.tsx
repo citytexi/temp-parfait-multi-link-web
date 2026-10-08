@@ -386,9 +386,11 @@ it('keeps the record on screen and says it was not saved when storage is full', 
   renderAt(LINK_STATE, <UtmBuilderPage />)
   expect(screen.queryByText(NOT_SAVED)).toBeNull()
   fireEvent.click(button('링크 복사'))
+  // Announced when the write fails; the copy result replaces it a moment later.
+  expect(screen.getByRole('status')).toHaveTextContent(NOT_SAVED)
   await flush()
   expect(screen.getByText('인스타그램 · 202610-launch · story')).toBeInTheDocument()
-  expect(screen.getByText(NOT_SAVED)).toBeInTheDocument()
+  expect(screen.getByText(NOT_SAVED, { selector: 'p' })).toBeInTheDocument()
   expect(localStorage.getItem(RECENT_KEY)).toBeNull()
   // The page keeps working: the copy went through and the link is still there.
   expect(button('복사했어요')).toBeInTheDocument()

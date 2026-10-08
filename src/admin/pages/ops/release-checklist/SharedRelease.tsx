@@ -6,7 +6,10 @@ import type { ReleaseActions } from './ReleaseChecklistPage'
 import { isChecked, LIMIT_MESSAGE, newRelease, platformsLabel, progress, visibleSections } from './release'
 import type { SharePayload } from './share'
 
-/** A release that came through a link: read-only, and everything in it is drawn as text. */
+/**
+ * A release that came through a link: read-only, and everything in it is drawn as text.
+ * The page draws it inside its own layout element.
+ */
 export function SharedRelease({
   payload,
   actions,
@@ -32,7 +35,7 @@ export function SharedRelease({
   }
 
   return (
-    <div className="adm-release-checklist-layout">
+    <>
       <p className="adm-release-checklist-text adm-release-checklist-text--warn">공유받은 릴리즈예요. 읽기 전용이에요.</p>
       <div className="adm-release-checklist-buttons">
         <button type="button" className="adm-button adm-button--primary" onClick={importRelease}>
@@ -71,6 +74,6 @@ export function SharedRelease({
           </ul>
         </Card>
       ))}
-    </div>
+    </>
   )
 }

@@ -589,6 +589,8 @@ export function useStored<T>(key: string, parse: Parser<T>, fallback: T): Stored
 - 쓰기: 실패하면(용량 초과, 접근 차단) `false`를 돌려주고 예외를 던지지 않는다.
 - `update`는 쓰기 직전에 저장소를 다시 읽어 그 값에 `fn`을 적용한다. 탭 두 개에서 번갈아 체크해도 한쪽의 변경이 다른 쪽을 덮어쓰지 않는다. 화면이 들고 있던 값으로 전체를 덮어쓰지 않는다.
 - 쓰기에 실패해도 화면의 값은 `fn`을 적용한 값으로 바뀌고 `persisted`가 `false`가 된다. 화면은 계속 동작하고, 각 페이지는 `persisted`가 `false`일 때 "이 브라우저에는 저장되지 않았어요. 창을 닫으면 사라져요."를 보여 준다.
+- 저장되지 않은 값은 다른 메뉴로 갔다가 돌아와도 남아 있고, 창을 새로 고치면 사라진다. 그 사이에 다른 탭이 저장에 성공했으면 저장소의 값을 따른다.
+- 저장된 `v`가 지금 버전보다 크면 그 값은 건드리지 않는다. 그 key는 읽기 전용이 된다. `value`는 `fallback`이고, `update`는 화면의 값만 바꾸고 쓰지 않으며, `persisted`는 `false`다. `writeStored`도 덮어쓰지 않고 `false`를 돌려준다. 배포로 버전이 오른 뒤에도 열려 있던 옛 탭이 새 값을 지우지 않게 한다.
 - 다른 탭의 변경은 `storage` 이벤트로 따른다. `key`가 `null`인 이벤트(저장소 전체 삭제)도 처리한다.
 - 같은 저장 문자열에는 같은 값(같은 참조)을 돌려준다. `fallback`을 호출할 때마다 새 배열로 넘겨도 다시 그리기가 반복되지 않는다.
 - 기존 `src/admin/menu/collapsed.ts`는 고치지 않는다.
@@ -624,7 +626,8 @@ export function useDebouncedPageParam(key: string, delayMs?: number): [string, (
 - `StatusRegion`: 페이지마다 하나, 처음부터 그려져 있고 화면에는 보이지 않는 `role="status"` 영역이다. `CopyButton`과 `ConfirmButton`과 페이지가 여기에 글자를 써서 알린다. 내용과 함께 새로 그려지는 상태 영역은 스크린 리더가 읽지 않는 경우가 많다.
 - `CopyButton`: 클립보드에 넣고 버튼 글자를 2초 동안 `복사했어요`로 바꾸고 `StatusRegion`에 알린다. 버튼의 역할은 바꾸지 않는다. 클립보드가 없거나 실패하면 버튼 아래에 내용이 든 읽기 전용 글상자를 보여 주고 내용을 선택한다. 이 동작은 버튼에 들어 있고 페이지가 따로 만들지 않는다.
 - `ConfirmButton`: 누르면 글자가 확인 문구(예: `정말 지울까요?`)로 바뀌고, 다시 누르면 실행한다. 확인 상태는 시간으로 풀리지 않고, 포커스를 잃거나 Escape를 누르면 풀린다. 시간 제한은 스크린 리더와 스위치 사용자에게 장벽이다. 확인 상태가 된 뒤 400ms 안의 누름은 무시한다. 더블 탭으로 지워지면 안 된다.
-- 스타일은 `form.css`에 두고 클래스는 `adm-field`, `adm-confirm`, `adm-copy`, `adm-status-region`으로 시작한다. `admin.css`는 고치지 않는다.
+- `NotSavedNote`: `persisted`를 받아 `false`일 때 "이 브라우저에는 저장되지 않았어요. 창을 닫으면 사라져요."를 보여 준다. `true`에서 `false`로 바뀔 때마다 `StatusRegion`에 한 번 알린다. 세 화면이 이것을 쓰고 문구를 따로 적지 않는다. 검색이나 화면 전환으로 가려지지 않는 자리에 둔다.
+- 스타일은 `form.css`에 두고 클래스는 `adm-field`, `adm-confirm`, `adm-copy`, `adm-status-region`, `adm-not-saved`로 시작한다. `admin.css`는 고치지 않는다.
 - 입력 글자 크기는 16px(`--adm-fs-md`) 이상, 누르는 영역은 44px(`--adm-hit`) 이상이다.
 
 묶음 2는 자기 복사 버튼과 `SearchField`를 따로 만든다. 병렬 작업이라 이 묶음에서는 쓰지 않는다. 머지된 뒤 `components/form/`으로 합치는 것을 후속 작업으로 둔다.

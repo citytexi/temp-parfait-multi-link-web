@@ -1,10 +1,11 @@
-import { createRef } from 'react'
+import { StrictMode, createRef } from 'react'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { StatusRegion, useAnnounce } from './StatusRegion'
 import { TextField } from './TextField'
 import { SelectField } from './SelectField'
 import { CheckboxField } from './CheckboxField'
+import { NotSavedNote } from './NotSavedNote'
 
 function Probe({ message }: { message: string }) {
   const announce = useAnnounce()
@@ -100,6 +101,14 @@ describe('TextField', () => {
   })
 })
 
+describe('TextField className', () => {
+  it('is refused by the type, because the field sets its own class', () => {
+    // @ts-expect-error a className would be dropped without a word
+    render(<TextField label="이름" value="" onChange={() => {}} className="mine" />)
+    expect(screen.getByLabelText('이름').className).toBe('adm-field__input')
+  })
+})
+
 describe('SelectField', () => {
   it('renders a select with a placeholder option and reports the picked value', () => {
     const onChange = vi.fn()
@@ -131,5 +140,58 @@ describe('CheckboxField', () => {
     render(<CheckboxField label="Android" checked={false} onChange={onChange} />)
     fireEvent.click(screen.getByText('Android'))
     expect(onChange).toHaveBeenCalledWith(true)
+  })
+})
+
+describe('NotSavedNote', () => {
+  const NOT_SAVED = '이 브라우저에는 저장되지 않았어요. 창을 닫으면 사라져요.'
+  const note = (persisted: boolean) => (
+    <StatusRegion>
+      <NotSavedNote persisted={persisted} />
+    </StatusRegion>
+  )
+  const onPage = () => screen.queryByText(NOT_SAVED, { selector: 'p' })
+
+  it('shows the sentence and announces it once when persisted turns false', () => {
+    const { rerender } = render(note(true))
+    const region = screen.getByRole('status')
+    expect(onPage()).toBeNull()
+    expect(region.textContent).toBe('')
+
+    rerender(note(false))
+    expect(onPage()).toBeInTheDocument()
+    expect(region.textContent).toBe(NOT_SAVED)
+    const first = region.firstChild
+    rerender(note(false))
+    rerender(note(false))
+    // Every announcement draws a new node, so the same node means nothing was announced again.
+    expect(region.firstChild).toBe(first)
+
+    rerender(note(true))
+    expect(onPage()).toBeNull()
+    expect(region.firstChild).toBe(first)
+    rerender(note(false))
+    expect(onPage()).toBeInTheDocument()
+    expect(region.firstChild).not.toBe(first)
+    expect(region).toHaveTextContent(NOT_SAVED)
+  })
+
+  it('shows the sentence without announcing when it starts unsaved', () => {
+    render(note(false))
+    expect(onPage()).toBeInTheDocument()
+    expect(screen.getByRole('status').textContent).toBe('')
+  })
+
+  it('announces once under StrictMode', () => {
+    const { rerender } = render(<StrictMode>{note(true)}</StrictMode>)
+    rerender(<StrictMode>{note(false)}</StrictMode>)
+    // A second announcement of the same text would carry a trailing no-break space.
+    expect(screen.getByRole('status').textContent).toBe(NOT_SAVED)
+  })
+
+  it('renders outside a status region', () => {
+    const { rerender } = render(<NotSavedNote persisted />)
+    rerender(<NotSavedNote persisted={false} />)
+    expect(onPage()).toBeInTheDocument()
   })
 })

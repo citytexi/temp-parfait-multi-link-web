@@ -8,7 +8,7 @@ export type Stored<T> = {
   value: T
   /** Applies fn to the latest stored value and writes the result. True when the write reached storage. */
   update(fn: (current: T) => T): boolean
-  /** Whether the last write reached storage. True when nothing was written yet. */
+  /** Whether the last write reached storage. True when nothing was written yet; false while storage holds a newer version. */
   persisted: boolean
 }
 
@@ -40,9 +40,23 @@ function parseRaw<T>(raw: string | null, parse: Parser<T>, fallback: T): T {
   }
 }
 
-/** The string that reached storage; null when serialising or writing failed. */
+/** Whether a later version of the admin wrote this string. An old tab must leave it alone. */
+function isNewer(raw: string | null): boolean {
+  if (raw === null) return false
+  try {
+    const envelope: unknown = JSON.parse(raw)
+    if (typeof envelope !== 'object' || envelope === null) return false
+    const { v } = envelope as { v?: unknown }
+    return typeof v === 'number' && v > VERSION
+  } catch {
+    return false
+  }
+}
+
+/** The string that reached storage; null when serialising or writing failed, or storage holds a newer version. */
 function writeRaw(key: string, value: unknown): string | null {
   try {
+    if (isNewer(readRaw(key))) return null
     const raw = JSON.stringify({ v: VERSION, items: value })
     localStorage.setItem(key, raw)
     return raw
@@ -56,7 +70,7 @@ export function readStored<T>(key: string, parse: Parser<T>, fallback: T): T {
   return parseRaw(readRaw(key), parse, fallback)
 }
 
-/** False when the value did not reach storage (quota, blocked access). Never throws for those. */
+/** False when the value did not reach storage (quota, blocked access, a newer stored version). Never throws for those. */
 export function writeStored(key: string, value: unknown): boolean {
   assertKey(key)
   return writeRaw(key, value) !== null
@@ -70,19 +84,42 @@ export function newId(): string {
 /** `raw` is the stored string `value` belongs to; it is stale while `persisted` is false. */
 type Snapshot<T> = { key: string; raw: string | null; value: T; persisted: boolean }
 
+/**
+ * Values whose last write did not reach storage, by key. They outlive the page that holds them,
+ * so leaving a menu and coming back shows them again. Gone when the window is reloaded.
+ */
+const unsaved = new Map<string, Snapshot<unknown>>()
+
+/** Drops every value that was kept only in memory. For tests: module state would leak between them. */
+export function forgetUnsaved(): void {
+  unsaved.clear()
+}
+
+/** A newer stored version reads as the fallback and is not persisted: the key is read-only. */
+function read<T>(key: string, raw: string | null, parse: Parser<T>, fallback: T): Snapshot<T> {
+  return { key, raw, value: parseRaw(raw, parse, fallback), persisted: !isNewer(raw) }
+}
+
 function load<T>(key: string, parse: Parser<T>, fallback: T): Snapshot<T> {
-  const raw = readRaw(key)
-  return { key, raw, value: parseRaw(raw, parse, fallback), persisted: true }
+  return (unsaved.get(key) as Snapshot<T> | undefined) ?? read(key, readRaw(key), parse, fallback)
 }
 
-/** What storage holds now. Keeps the snapshot (and its value reference) when the stored string is unchanged. */
-function reload<T>(snapshot: Snapshot<T>, parse: Parser<T>, fallback: T): Snapshot<T> {
+/**
+ * What storage holds now. Keeps the snapshot (and its value reference) when the stored string is
+ * unchanged; with `changedOnly` an unsaved snapshot is kept then too.
+ */
+function reload<T>(snapshot: Snapshot<T>, parse: Parser<T>, fallback: T, changedOnly = false): Snapshot<T> {
   const raw = readRaw(snapshot.key)
-  if (snapshot.persisted && raw === snapshot.raw) return snapshot
-  return { key: snapshot.key, raw, value: parseRaw(raw, parse, fallback), persisted: true }
+  if (raw === snapshot.raw && (snapshot.persisted || changedOnly)) return snapshot
+  const next = read(snapshot.key, raw, parse, fallback)
+  // Nothing readable replaces what is on screen while storage holds a newer version.
+  return !next.persisted && !snapshot.persisted ? snapshot : next
 }
 
-/** A stored value that follows other tabs and keeps working in memory when storage is blocked or full. */
+/**
+ * A stored value that follows other tabs and keeps working in memory when storage is blocked or full.
+ * A value that was not saved is still there after the page is left and opened again.
+ */
 export function useStored<T>(key: string, parse: Parser<T>, fallback: T): Stored<T> {
   assertKey(key)
   const [state, setState] = useState(() => load(key, parse, fallback))
@@ -103,17 +140,23 @@ export function useStored<T>(key: string, parse: Parser<T>, fallback: T): Stored
   const commit = useCallback((next: Snapshot<T>) => {
     if (next === latest.current) return
     latest.current = next
+    if (next.persisted) unsaved.delete(next.key)
+    else unsaved.set(next.key, next)
     setState(next)
   }, [])
 
   useEffect(() => {
-    const sync = (): void => {
-      if (latest.current.key === key) commit(reload(latest.current, args.current.parse, args.current.fallback))
+    const sync = (changedOnly: boolean): void => {
+      if (latest.current.key !== key) return
+      commit(reload(latest.current, args.current.parse, args.current.fallback, changedOnly))
     }
     const onStorage = (event: StorageEvent): void => {
-      if (event.key === key || event.key === null) sync()
+      if (event.key === key || event.key === null) sync(false)
     }
     window.addEventListener('storage', onStorage)
+    // A write from another tab between the first read and here raised its event before the listener
+    // was on. An unsaved value is given up only when storage really changed under it.
+    sync(true)
     return () => window.removeEventListener('storage', onStorage)
   }, [key, commit])
 
@@ -122,10 +165,10 @@ export function useStored<T>(key: string, parse: Parser<T>, fallback: T): Stored
       const { parse, fallback } = args.current
       const held = latest.current.key === key ? latest.current : load(key, parse, fallback)
       // After a failed write storage is older than the screen, so the screen's value is the base.
-      const base = held.persisted ? reload(held, parse, fallback).value : held.value
-      const value = fn(base)
+      const base = held.persisted ? reload(held, parse, fallback) : held
+      const value = fn(base.value)
       const raw = writeRaw(key, value)
-      commit({ key, raw: raw ?? held.raw, value, persisted: raw !== null })
+      commit({ key, raw: raw ?? base.raw, value, persisted: raw !== null })
       return raw !== null
     },
     [key, commit],

@@ -139,7 +139,8 @@ it('imports in memory when storage is full', () => {
   expect(heading(`${NAME} 릴리즈`)).toBeInTheDocument()
   expect(screen.queryByText(BANNER)).toBeNull()
   expect(screen.getAllByRole('checkbox')).toHaveLength(17)
-  expect(screen.getByText(NOT_SAVED)).toBeInTheDocument()
+  expect(screen.getByText(NOT_SAVED, { selector: 'p' })).toBeInTheDocument()
+  expect(status()).toHaveTextContent(NOT_SAVED)
   expect(localStorage.getItem(RELEASES_KEY)).toBeNull()
 })
 

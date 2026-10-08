@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import { Card } from '../../../components/Card'
 import { ConfirmButton } from '../../../components/form/ConfirmButton'
+import { NotSavedNote } from '../../../components/form/NotSavedNote'
 import { recentTitle, type RecentLink } from './link'
 
 const dayFormat = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' })
@@ -55,11 +56,7 @@ export function RecentLinks({
           })}
         </ul>
       )}
-      {!persisted && (
-        <p className="adm-utm-builder-text adm-utm-builder-text--warn">
-          이 브라우저에는 저장되지 않았어요. 창을 닫으면 사라져요.
-        </p>
-      )}
+      <NotSavedNote persisted={persisted} />
     </Card>
   )
 }

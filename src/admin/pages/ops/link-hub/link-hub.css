@@ -128,11 +128,6 @@
   color: var(--adm-text-2);
 }
 
-.adm-link-hub-text--warn {
-  font-weight: var(--adm-fw-medium);
-  color: var(--adm-text-1);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .adm-link-hub-link {
     transition: none;

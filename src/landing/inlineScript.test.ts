@@ -54,10 +54,48 @@ it('does nothing and does not throw without a user agent', () => {
   expect(run({}, { href: BASE, replace: vi.fn() })).toBeNull()
 })
 
-it('is written in ES5', () => {
+// What ES5 does not have, and the newer APIs the script must not lean on.
+const NOT_ES5: [string, RegExp, string][] = [
+  ['an arrow function', /=>/, 'var f = (a) => a;'],
+  ['const', /\bconst\b/, 'const a = 1;'],
+  ['let', /\blet\b/, 'let a = 1;'],
+  ['a template literal', /`/, 'var a = `x`;'],
+  ['URLSearchParams', /URLSearchParams/, 'new URLSearchParams(q);'],
+  ['URL', /new URL\b/, 'new URL(href);'],
+  ['includes', /\.includes\(/, 'keys.includes(key);'],
+  ['startsWith', /\.startsWith\(/, 'ua.startsWith("x");'],
+  ['endsWith', /\.endsWith\(/, 'ua.endsWith("x");'],
+  ['for of', /\bfor\s*\([^)]*\bof\b/, 'for (var piece of pieces) {}'],
+  ['spread or rest', /\.\.\./, 'f(...args);'],
+  ['a class', /\bclass\s/, 'class A {}'],
+  [
+    'an object-literal shorthand method',
+    /[{,]\s*(?!(?:if|for|while|switch|catch|with|function)\b)[A-Za-z_$][\w$]*\s*\([^)]*\)\s*\{/,
+    'var o = { a: 1, run(x) { return x; } };',
+  ],
+]
+
+it.each(NOT_ES5)('is written in ES5: no %s', (_name, pattern, sample) => {
   // Comments are not checked.
   const code = inlineBody()
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, '')
-  expect(code).not.toMatch(/=>|\bconst\b|\blet\b|`|URLSearchParams|new URL\b/)
+  expect(code).not.toMatch(pattern)
+  // The pattern does catch what it names.
+  expect(sample).toMatch(pattern)
+})
+
+it('does not take ES5 control flow for a shorthand method', () => {
+  const shorthand = NOT_ES5[NOT_ES5.length - 1][1]
+  expect('if (a) { if (b) { c(); } }').not.toMatch(shorthand)
+  expect('try { f(); } catch (e) { g(); }').not.toMatch(shorthand)
+  expect('var o = { run: function (x) { return x; } };').not.toMatch(shorthand)
+})
+
+// Accepted divergence (spec section 3): a user agent with both Macintosh and Android on a touch
+// device is iOS for detectPlatform(ua, touchPoints), but the script has no touch points and redirects.
+it('redirects a touch device whose user agent has both Macintosh and Android, unlike detectPlatform', () => {
+  const ua = 'Mozilla/5.0 (Macintosh; Linux; Android 14) Chrome/124.0 Mobile'
+  expect(detectPlatform(ua, 5).os).toBe('ios')
+  expect(at(ua, BASE)).toBe(playIntentUrl())
 })

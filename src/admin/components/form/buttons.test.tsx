@@ -150,7 +150,7 @@ describe('CopyButton late and throwing results', () => {
     expect(screen.queryByLabelText('복사할 내용')).not.toBeInTheDocument()
   })
 
-  it('takes the fallback path when text() throws, without a text box', async () => {
+  it('says only that the copy failed when text() throws and there is nothing to show', async () => {
     setClipboard(vi.fn().mockResolvedValue(undefined))
     const onCopy = vi.fn()
     render(
@@ -161,7 +161,9 @@ describe('CopyButton late and throwing results', () => {
     fireEvent.click(screen.getByRole('button'))
     await flush()
     expect(onCopy).toHaveBeenCalledTimes(1)
-    expect(screen.getAllByText('복사하지 못했어요. 아래 내용을 직접 복사해 주세요.').length).toBeGreaterThan(0)
+    expect(screen.getByText('복사하지 못했어요', { selector: 'p' })).toBeInTheDocument()
+    expect(screen.getByRole('status').textContent).toBe('복사하지 못했어요')
+    expect(screen.queryByText(/아래 내용을 직접 복사해 주세요/)).toBeNull()
     expect(screen.queryByLabelText('복사할 내용')).not.toBeInTheDocument()
   })
 })

@@ -6,7 +6,8 @@ type Announce = (message: string) => void
 const noop: Announce = () => {}
 const AnnounceContext = createContext<Announce>(noop)
 
-const NBSP = ' '
+// A no-break space (NBSP), written as an escape so the character is visible in the source.
+const NBSP = '\u00a0'
 
 /** Wraps a page's content and adds one permanently mounted, visually hidden status region after it. */
 export function StatusRegion({ children }: { children: ReactNode }): ReactElement {

@@ -112,7 +112,7 @@ export default defineMenu({
 ### 브라우저 저장과 입력
 
 - 브라우저에 남길 값은 `src/admin/lib/localStore.ts`의 `useStored(key, parse, fallback)`로 읽고 써요. key는 `parfait-admin:<메뉴 id>:<이름>`으로 짓고, `parse`에서 저장된 값을 다시 검사해요. 저장된 값은 믿을 수 없는 입력이에요. 토큰이나 개인 정보는 넣지 않아요.
-- 저장에 실패해도 화면은 계속 동작해요. `persisted`가 `false`면 "이 브라우저에는 저장되지 않았어요. 창을 닫으면 사라져요."를 보여 줘요.
+- 저장에 실패해도 화면은 계속 동작해요. 페이지에 `src/admin/components/form/`의 `NotSavedNote`를 두고 `persisted`를 넘기면, `false`일 때 "이 브라우저에는 저장되지 않았어요. 창을 닫으면 사라져요."를 보여 주고 스크린 리더에도 알려요. 문구를 페이지에 따로 적지 않아요.
 - 글자를 치는 칸을 URL에 둘 때는 `usePageParam` 대신 `src/admin/lib/useDebouncedPageParam.ts`를 써요. 마지막 입력 뒤 300ms에 한 번만 써요.
 - 입력 칸, 복사 버튼, 한 번 더 눌러 확인하는 버튼은 `src/admin/components/form/`의 `TextField`, `SelectField`, `CheckboxField`, `CopyButton`, `ConfirmButton`을 써요. 페이지를 `StatusRegion`으로 감싸면 버튼이 한 일을 스크린 리더에 알려요.
 - 랜딩 주소는 `src/admin/lib/siteUrls.ts`의 `LANDING_URL`을 써요.

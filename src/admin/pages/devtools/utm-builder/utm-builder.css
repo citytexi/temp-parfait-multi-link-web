@@ -49,10 +49,9 @@
   color: var(--adm-text-2);
 }
 
-.adm-utm-builder-text--warn {
+/* The not-saved sentence under the recent list. */
+.adm-utm-builder-layout__wide .adm-not-saved {
   margin-top: var(--adm-space-3);
-  font-weight: var(--adm-fw-medium);
-  color: var(--adm-text-1);
 }
 
 .adm-utm-builder-qr {

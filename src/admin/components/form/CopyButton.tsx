@@ -8,6 +8,8 @@ export const COPIED_MS = 2000
 
 const COPIED = '복사했어요'
 const FAILED = '복사하지 못했어요. 아래 내용을 직접 복사해 주세요.'
+// When there is no text to put in the box below.
+const FAILED_EMPTY = '복사하지 못했어요'
 
 export function CopyButton({
   label,
@@ -56,7 +58,7 @@ export function CopyButton({
         clearTimeout(timer.current)
         setFallback(value)
         setFailures((n) => n + 1)
-        announce(FAILED)
+        announce(value === '' ? FAILED_EMPTY : FAILED)
         return
       }
       if (token !== latest.current) return
@@ -88,7 +90,7 @@ export function CopyButton({
       </button>
       {fallback !== null && (
         <>
-          <p className="adm-copy__note">{FAILED}</p>
+          <p className="adm-copy__note">{fallback === '' ? FAILED_EMPTY : FAILED}</p>
           {fallback !== '' && (
             <textarea
               ref={box}

@@ -3,7 +3,7 @@ import './form.css'
 
 type InputRest = Omit<
   ComponentPropsWithoutRef<'input'>,
-  'value' | 'onChange' | 'id' | 'aria-describedby' | 'aria-invalid'
+  'value' | 'onChange' | 'id' | 'className' | 'aria-describedby' | 'aria-invalid'
 >
 
 export function TextField({
