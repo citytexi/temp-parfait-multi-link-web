@@ -1,6 +1,7 @@
 import { GaError, classifyStatus } from './errors'
 import type {
   BatchRunReportsResponse,
+  Metadata,
   PropertyQuota,
   RunRealtimeReportRequest,
   RunReportRequest,
@@ -19,17 +20,20 @@ type Options = {
 export function createGaClient(opts: Options) {
   const { propertyId, getToken, onQuota } = opts
 
-  async function post<T>(method: string, body: unknown): Promise<T> {
+  async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
     const token = getToken()
     if (!token) throw new GaError('auth', 'No access token')
     const doFetch = opts.fetchImpl ?? fetch
 
     let res: Response
     try {
-      res = await doFetch(`${BASE_URL}/${propertyId}:${method}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+      res = await doFetch(`${BASE_URL}/${propertyId}${path}`, {
+        method,
+        headers:
+          method === 'GET'
+            ? { Authorization: `Bearer ${token}` }
+            : { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: method === 'GET' ? undefined : JSON.stringify(body),
       })
     } catch (e) {
       throw new GaError('network', e instanceof Error ? e.message : 'Network error')
@@ -53,12 +57,12 @@ export function createGaClient(opts: Options) {
 
   return {
     async runReport(body: RunReportRequest): Promise<RunReportResponse> {
-      const res = await post<RunReportResponse>('runReport', { ...body, returnPropertyQuota: true })
+      const res = await request<RunReportResponse>('POST', ':runReport', { ...body, returnPropertyQuota: true })
       if (res.propertyQuota) onQuota?.(res.propertyQuota)
       return res
     },
     async batchRunReports(requests: RunReportRequest[]): Promise<BatchRunReportsResponse> {
-      const res = await post<BatchRunReportsResponse>('batchRunReports', {
+      const res = await request<BatchRunReportsResponse>('POST', ':batchRunReports', {
         requests: requests.map((r) => ({ ...r, returnPropertyQuota: true })),
       })
       const quota = res.reports?.[res.reports.length - 1]?.propertyQuota
@@ -66,7 +70,10 @@ export function createGaClient(opts: Options) {
       return res
     },
     runRealtimeReport(body: RunRealtimeReportRequest): Promise<RunReportResponse> {
-      return post<RunReportResponse>('runRealtimeReport', body)
+      return request<RunReportResponse>('POST', ':runRealtimeReport', { ...body, returnPropertyQuota: true })
+    },
+    getMetadata(): Promise<Metadata> {
+      return request<Metadata>('GET', '/metadata')
     },
   }
 }

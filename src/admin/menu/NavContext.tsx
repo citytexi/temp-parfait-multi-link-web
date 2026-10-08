@@ -17,7 +17,7 @@ import { REGISTRY, type MenuLookup } from './registry'
 export type NavValue = {
   menu: MenuId
   period: Period
-  setMenu(menu: MenuId): void
+  setMenu(menu: MenuId, params?: Readonly<Record<string, string>>): void
   setPeriod(period: Period): void
 }
 
@@ -61,14 +61,32 @@ export function NavProvider({
   }, [])
 
   const setMenu = useCallback(
-    (menu: MenuId) => {
+    (menu: MenuId, params?: Readonly<Record<string, string>>) => {
       if (!lookupRef.current.isMenu(menu)) {
         if (import.meta.env.DEV) console.warn(`setMenu: "${menu}" is not a registered menu; ignored`)
         return
       }
       const cur = stateRef.current
-      if (menu === cur.menu) return
-      commit({ menu, period: cur.period, pageParams: {} }, 'push')
+      let pageParams: Record<string, string> = {}
+      if (params) {
+        const entries = Object.entries(params)
+        const kept = entries.filter(([k]) => !RESERVED_PARAMS.includes(k))
+        if (import.meta.env.DEV && kept.length < entries.length) {
+          console.warn('setMenu: reserved keys are dropped from page params')
+        }
+        pageParams = Object.fromEntries(kept)
+      }
+      if (menu === cur.menu) {
+        if (!params) return
+        const curKeys = Object.keys(cur.pageParams)
+        const same =
+          curKeys.length === Object.keys(pageParams).length &&
+          curKeys.every((k) => Object.hasOwn(pageParams, k) && pageParams[k] === cur.pageParams[k])
+        if (same) return
+        commit({ ...cur, pageParams }, 'replace')
+        return
+      }
+      commit({ menu, period: cur.period, pageParams }, 'push')
     },
     [commit],
   )

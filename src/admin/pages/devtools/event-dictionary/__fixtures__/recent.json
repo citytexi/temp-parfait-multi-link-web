@@ -1,0 +1,48 @@
+{
+  "dimensionHeaders": [
+    {
+      "name": "eventName"
+    },
+    {
+      "name": "platform"
+    }
+  ],
+  "metricHeaders": [
+    {
+      "name": "eventCount"
+    }
+  ],
+  "rows": [
+    {
+      "dimensionValues": [
+        {
+          "value": "screen_view"
+        },
+        {
+          "value": "Android"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "3"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "today_only"
+        },
+        {
+          "value": "iOS"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "1"
+        }
+      ]
+    }
+  ],
+  "rowCount": 2
+}

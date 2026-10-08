@@ -1,0 +1,177 @@
+{
+  "dimensionHeaders": [
+    {
+      "name": "eventName"
+    },
+    {
+      "name": "minutesAgo"
+    },
+    {
+      "name": "platform"
+    },
+    {
+      "name": "appVersion"
+    }
+  ],
+  "metricHeaders": [
+    {
+      "name": "eventCount"
+    }
+  ],
+  "rows": [
+    {
+      "dimensionValues": [
+        {
+          "value": "screen_view"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "Android"
+        },
+        {
+          "value": "1.4.0"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "3"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "screen_view"
+        },
+        {
+          "value": "2"
+        },
+        {
+          "value": "Android"
+        },
+        {
+          "value": "1.4.0"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "4"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "screen_view"
+        },
+        {
+          "value": "10"
+        },
+        {
+          "value": "Android"
+        },
+        {
+          "value": "1.4.0"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "screen_view"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "iOS"
+        },
+        {
+          "value": "1.4.0"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "2"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "purchase_done"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "Android"
+        },
+        {
+          "value": "1.5.0"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "session_start"
+        },
+        {
+          "value": "20"
+        },
+        {
+          "value": "iOS"
+        },
+        {
+          "value": ""
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "session_start"
+        },
+        {
+          "value": "20"
+        },
+        {
+          "value": "Android"
+        },
+        {
+          "value": "(not set)"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "2"
+        }
+      ]
+    }
+  ],
+  "rowCount": 7,
+  "propertyQuota": {
+    "tokensPerHour": {
+      "consumed": 3,
+      "remaining": 39000
+    }
+  }
+}

@@ -1,0 +1,22 @@
+.adm-devtools-search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--adm-space-1);
+}
+
+.adm-devtools-search__label {
+  font-size: var(--adm-fs-sm);
+  font-weight: var(--adm-fw-medium);
+  color: var(--adm-text-2);
+}
+
+.adm-devtools-search__input {
+  min-height: var(--adm-hit);
+  padding: 0 var(--adm-space-3);
+  border: 1px solid var(--adm-border-strong);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-text-1);
+  font: inherit;
+  font-size: var(--adm-fs-md);
+}

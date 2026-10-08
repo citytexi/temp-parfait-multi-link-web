@@ -1,0 +1,194 @@
+.adm-event-dictionary-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--adm-space-3);
+  margin-bottom: var(--adm-space-4);
+}
+
+/* Same look as the period presets; the buttons wrap instead of scrolling sideways. */
+.adm-event-dictionary-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  align-self: flex-start;
+  gap: var(--adm-space-1);
+  padding: var(--adm-space-1);
+  background: var(--adm-surface-muted);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-md);
+}
+
+.adm-event-dictionary-status {
+  min-height: var(--adm-hit);
+  padding: 0 var(--adm-space-3);
+  border: 0;
+  border-radius: var(--adm-radius-sm);
+  background: transparent;
+  color: var(--adm-text-2);
+  font: inherit;
+  font-size: var(--adm-fs-sm);
+  font-weight: var(--adm-fw-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.adm-event-dictionary-status[aria-pressed='true'] {
+  background: var(--adm-surface);
+  color: var(--adm-accent);
+  font-weight: var(--adm-fw-bold);
+  box-shadow: var(--adm-shadow-card);
+}
+
+.adm-event-dictionary-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--adm-space-3) var(--adm-space-4);
+}
+
+.adm-event-dictionary-basis p {
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+/* A notice above the table is a short line, not a full-height placeholder. */
+.adm-event-dictionary-notice,
+.adm-event-dictionary-table + .adm-event-dictionary-empty {
+  min-height: 0;
+}
+
+.adm-event-dictionary-event {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--adm-space-1) var(--adm-space-2);
+}
+
+.adm-event-dictionary-toggle {
+  min-width: var(--adm-hit);
+  min-height: var(--adm-hit);
+  padding: 0;
+}
+
+.adm-event-dictionary-toggle[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+
+.adm-event-dictionary-name {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.adm-event-dictionary-label {
+  font-size: var(--adm-fs-md);
+  color: var(--adm-text-1);
+}
+
+.adm-event-dictionary-raw,
+.adm-event-dictionary-pinned {
+  font-size: var(--adm-fs-xs);
+  color: var(--adm-text-3);
+}
+
+.adm-event-dictionary-count-skeleton {
+  display: inline-block;
+  width: 56px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+.adm-table td.adm-event-dictionary-detail-cell {
+  white-space: normal;
+  background: var(--adm-surface-muted);
+}
+
+.adm-event-dictionary-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--adm-space-3);
+  padding: var(--adm-space-2);
+}
+
+.adm-event-dictionary-detail > .adm-table,
+.adm-event-dictionary-detail > .adm-state {
+  align-self: stretch;
+}
+
+.adm-event-dictionary-detail td:last-child,
+.adm-table td.adm-event-dictionary-params__desc {
+  white-space: normal;
+}
+
+.adm-event-dictionary-detail__text {
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-1);
+}
+
+/* The 구분 column is dropped on narrow screens and shown here instead. */
+.adm-event-dictionary-detail__kind {
+  display: none;
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+.adm-event-dictionary-detail__counts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--adm-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+.adm-event-dictionary-param {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--adm-space-1) var(--adm-space-2);
+}
+
+.adm-event-dictionary-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+  gap: var(--adm-space-2);
+}
+
+.adm-event-dictionary-copy__button {
+  min-height: var(--adm-hit);
+}
+
+.adm-event-dictionary-copy__box {
+  align-self: stretch;
+  padding: var(--adm-space-2) var(--adm-space-3);
+  border: 1px solid var(--adm-border-strong);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-text-1);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--adm-fs-md);
+  resize: vertical;
+}
+
+@media (max-width: 959px) {
+  .adm-event-dictionary-kind-col {
+    display: none;
+  }
+
+  .adm-event-dictionary-detail__kind {
+    display: block;
+  }
+
+  .adm-table td.adm-event-dictionary-event-cell {
+    white-space: normal;
+  }
+}
