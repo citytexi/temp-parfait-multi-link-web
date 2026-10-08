@@ -37,20 +37,53 @@ async function advance(ms: number) {
   })
 }
 
-/** Renders the page at `?menu=event-stream` plus `params`, and waits for the first response. */
-async function open(params = '') {
+/** Renders the page at `?menu=event-stream` plus `params`; the first request is still in flight. */
+function mount(params = '') {
   window.history.replaceState(null, '', `/?menu=event-stream${params ? `&${params}` : ''}`)
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  const view = render(
+  return render(
     <QueryClientProvider client={queryClient}>
       <NavProvider lookup={lookup}>
         <EventStreamPage />
       </NavProvider>
     </QueryClientProvider>,
   )
+}
+
+/** Like `mount`, and waits for the first response. */
+async function open(params = '') {
+  const view = mount(params)
   await advance(0)
   return view
 }
+
+/** Answers with the fixture plus `extra[n]` rows on the n-th request; the last entry repeats. */
+function respondWith(...extra: Parameters<typeof withExtra>[1][]) {
+  let n = 0
+  h.client.runRealtimeReport.mockImplementation(async () => {
+    const rows = extra[Math.min(n, extra.length - 1)]
+    n += 1
+    return withExtra(stream as RunReportResponse, rows)
+  })
+}
+
+/**
+ * Browsers drop focus from an element that is taken out of the document, and moving a node
+ * takes it out first. jsdom keeps the focus, so the two calls React moves rows with are made
+ * to blur like a browser does.
+ */
+function blurOnReinsert() {
+  for (const method of ['insertBefore', 'appendChild'] as const) {
+    const original = Node.prototype[method] as (this: Node, ...args: Node[]) => Node
+    vi.spyOn(Node.prototype, method).mockImplementation(function (this: Node, ...args: Node[]) {
+      const active = document.activeElement
+      if (args[0].isConnected && active instanceof HTMLElement && args[0].contains(active)) active.blur()
+      return original.apply(this, args)
+    })
+  }
+}
+
+const liveRegion = (container: HTMLElement) => container.querySelector('[aria-live="polite"]') as HTMLElement
 
 const calls = () => h.client.runRealtimeReport.mock.calls.length
 const param = (key: string) => new URLSearchParams(window.location.search).get(key)
@@ -176,6 +209,84 @@ describe('EventStreamPage', () => {
     expect(document.activeElement).toBe(star('purchase_done'))
   })
 
+  it('keeps focus on the star after the row moves down', async () => {
+    blurOnReinsert()
+    await open('watch=purchase_done')
+    const button = star('purchase_done')
+    expect(bodyRows()[0]).toBe(row('purchase_done'))
+    button.focus()
+    const onBlur = vi.fn()
+    button.addEventListener('blur', onBlur)
+    fireEvent.click(button)
+    expect(onBlur).toHaveBeenCalledTimes(1)
+    expect(bodyRows()[2]).toBe(row('purchase_done'))
+    expect(star('purchase_done')).toHaveAttribute('aria-pressed', 'false')
+    expect(document.activeElement).toBe(star('purchase_done'))
+  })
+
+  it('shows no empty state when every event is starred and no filter is set', async () => {
+    await open('watch=screen_view,purchase_done,session_start')
+    expect(bodyRows()).toHaveLength(3)
+    expect(screen.queryByText(NO_MATCH)).toBeNull()
+    expect(screen.queryByText(NOTHING_ARRIVED)).toBeNull()
+    expect(screen.queryByRole('button', { name: '필터 지우기' })).toBeNull()
+  })
+
+  it('announces a repeated arrival again in a new node', async () => {
+    const once: Parameters<typeof withExtra>[1] = [['screen_view', 0, 'iOS', '1.4.0', 1]]
+    // 1st request: fixture. 2nd: +1. 3rd to 15th (65 seconds): no change. 16th: +1 again.
+    respondWith([], ...Array<typeof once>(14).fill(once), [...once, ...once])
+    const { container } = await open('watch=screen_view')
+    const live = liveRegion(container)
+    await advance(5000)
+    const first = live.firstElementChild
+    expect(first).not.toBeNull()
+    expect(live.textContent).toBe('화면 조회 1번 더 들어왔어요')
+    for (let i = 0; i < 13; i += 1) await advance(5000)
+    expect(live.firstElementChild).toBe(first)
+    expect(screen.queryByText(/▲/)).toBeNull()
+    await advance(5000)
+    expect(within(row('screen_view')).getByText(/^▲ \+1/)).toBeInTheDocument()
+    expect(live.textContent).toBe('화면 조회 1번 더 들어왔어요')
+    expect(live.children).toHaveLength(1)
+    expect(live.firstElementChild).not.toBe(first)
+  })
+
+  it('announces the increase since the last announcement, not the running total', async () => {
+    respondWith(
+      [],
+      [['screen_view', 0, 'iOS', '1.4.0', 3]],
+      [['screen_view', 0, 'iOS', '1.4.0', 5]],
+    )
+    const { container } = await open('watch=screen_view')
+    await advance(5000)
+    expect(liveRegion(container).textContent).toBe('화면 조회 3번 더 들어왔어요')
+    await advance(5000)
+    expect(liveRegion(container).textContent).toBe('화면 조회 2번 더 들어왔어요')
+    expect(within(row('screen_view')).getByText(/^▲ \+5/)).toBeInTheDocument()
+  })
+
+  it('announces more arrivals of a new watched event as an increase', async () => {
+    respondWith([], [['first_open', 0, 'Android', '1.5.0', 1]], [['first_open', 0, 'Android', '1.5.0', 3]])
+    const { container } = await open('watch=first_open')
+    await advance(5000)
+    expect(liveRegion(container).textContent).toBe('처음 앱 열기 새로 들어왔어요')
+    await advance(5000)
+    expect(liveRegion(container).textContent).toBe('처음 앱 열기 2번 더 들어왔어요')
+  })
+
+  it('announces nothing when an event that already has a highlight is starred', async () => {
+    respondWith([], [['screen_view', 0, 'iOS', '1.4.0', 2]])
+    const { container } = await open()
+    await advance(5000)
+    expect(within(row('screen_view')).getByText(/^▲ \+2/)).toBeInTheDocument()
+    fireEvent.click(star('screen_view'))
+    expect(liveRegion(container).textContent).toBe('')
+    await advance(5000)
+    expect(star('screen_view')).toHaveAttribute('aria-pressed', 'true')
+    expect(liveRegion(container).textContent).toBe('')
+  })
+
   it('tags new and grown events and announces only watched ones', async () => {
     h.client.runRealtimeReport.mockResolvedValueOnce(stream).mockResolvedValue(
       withExtra(stream as RunReportResponse, [
@@ -238,15 +349,7 @@ describe('EventStreamPage', () => {
 
   it('leaves other first-load failures and the first load itself to the card state', async () => {
     h.client.runRealtimeReport.mockRejectedValue(new GaError('server'))
-    window.history.replaceState(null, '', '/?menu=event-stream')
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    render(
-      <QueryClientProvider client={queryClient}>
-        <NavProvider lookup={lookup}>
-          <EventStreamPage />
-        </NavProvider>
-      </QueryClientProvider>,
-    )
+    mount()
     expect(screen.getByRole('status', { name: '불러오는 중' })).toBeInTheDocument()
     await advance(0)
     expect(screen.getByText('불러오지 못했어요')).toBeInTheDocument()

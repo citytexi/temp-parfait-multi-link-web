@@ -9,7 +9,24 @@ import { StreamTable } from './StreamTable'
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
+
+/**
+ * Browsers drop focus from an element that is taken out of the document, and moving a node
+ * takes it out first. jsdom keeps the focus, so the two calls React moves rows with are made
+ * to blur like a browser does.
+ */
+function blurOnReinsert() {
+  for (const method of ['insertBefore', 'appendChild'] as const) {
+    const original = Node.prototype[method] as (this: Node, ...args: Node[]) => Node
+    vi.spyOn(Node.prototype, method).mockImplementation(function (this: Node, ...args: Node[]) {
+      const active = document.activeElement
+      if (args[0].isConnected && active instanceof HTMLElement && args[0].contains(active)) active.blur()
+      return original.apply(this, args)
+    })
+  }
+}
 
 const normal: PollDecision = { intervalMs: 5000, reason: 'normal' }
 const snapshot: StreamSnapshot = {
@@ -251,6 +268,62 @@ describe('StreamTable', () => {
     expect(screen.queryByText(/▲/)).toBeNull()
     expect(screen.getByRole('button', { name: '사전에서 보기' })).toBe(button)
     expect(document.activeElement).toBe(button)
+  })
+
+  it('keeps focus on the star when its row moves down', () => {
+    blurOnReinsert()
+    const other = line({ name: 'tap_cta', label: '버튼 탭' })
+    const { rerender } = render(<StreamTable {...tableProps({ lines: [line(), other] })} />)
+    const star = screen.getByRole('button', { name: 'screen_view 지켜보기' })
+    star.focus()
+    const onBlur = vi.fn()
+    star.addEventListener('blur', onBlur)
+    rerender(<StreamTable {...tableProps({ lines: [other, line()] })} />)
+    // The move really took the focus away; it is back by the end of the commit.
+    expect(onBlur).toHaveBeenCalledTimes(1)
+    expect(screen.getAllByRole('row')[2]).toHaveTextContent('screen_view')
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'screen_view 지켜보기' }))
+  })
+
+  it('keeps focus on the dictionary button when its row moves down', () => {
+    blurOnReinsert()
+    const outside = line({ name: 'purchase_done', label: 'purchase_done', inCatalog: false })
+    const { rerender } = render(<StreamTable {...tableProps({ lines: [outside, line()] })} />)
+    const button = screen.getByRole('button', { name: '사전에서 보기' })
+    button.focus()
+    const onBlur = vi.fn()
+    button.addEventListener('blur', onBlur)
+    rerender(<StreamTable {...tableProps({ lines: [line(), outside] })} />)
+    expect(onBlur).toHaveBeenCalledTimes(1)
+    expect(screen.getAllByRole('row')[2]).toHaveTextContent('purchase_done')
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '사전에서 보기' }))
+  })
+
+  it('leaves focus outside the table alone when rows reorder', () => {
+    blurOnReinsert()
+    const other = line({ name: 'tap_cta', label: '버튼 탭' })
+    const tree = (lines: EventLine[]) => (
+      <>
+        <button type="button">밖</button>
+        <StreamTable {...tableProps({ lines })} />
+      </>
+    )
+    const { rerender } = render(tree([line(), other]))
+    const outside = screen.getByRole('button', { name: '밖' })
+    outside.focus()
+    rerender(tree([other, line()]))
+    expect(document.activeElement).toBe(outside)
+    outside.blur()
+    rerender(tree([line(), other]))
+    expect(document.activeElement).toBe(document.body)
+  })
+
+  it('does not bring focus back to a row that is gone', () => {
+    const other = line({ name: 'tap_cta', label: '버튼 탭' })
+    const { rerender } = render(<StreamTable {...tableProps({ lines: [line(), other] })} />)
+    screen.getByRole('button', { name: 'screen_view 지켜보기' }).focus()
+    rerender(<StreamTable {...tableProps({ lines: [other] })} />)
+    expect(document.activeElement).toBe(document.body)
   })
 
   it('fills the star only when watched', () => {
