@@ -7,6 +7,8 @@ import type { EventDictionary } from './useEventDictionary'
 import './event-dictionary.css'
 
 const COPIED_MS = 2000
+// Only a valid GA event name is offered as code to paste: the name is put into the snippet as it is.
+const EVENT_NAME = /^[A-Za-z][A-Za-z0-9_]{0,39}$/
 
 /** The event named in the URL when the list does not hold it: filtered out, or a name with no entry. */
 export type PinnedRow = { kind: 'filtered'; entry: DictionaryEntry } | { kind: 'unlisted'; name: string }
@@ -151,14 +153,18 @@ function EntryDetail(props: { entry: DictionaryEntry; registeredParams: Readonly
           ))}
         </ul>
       )}
-      {entry.status === 'unknown' && <CopySnippet name={entry.name} />}
+      {entry.status === 'unknown' && EVENT_NAME.test(entry.name) && <CopySnippet name={entry.name} />}
     </>
   )
 }
 
 /** A name that is in neither the catalogue nor the observations. What can be said depends on the observation. */
-function UnlistedDetail(props: { name: string; observed: EventDictionary['observed'] }): ReactElement {
-  const { name, observed } = props
+function UnlistedDetail(props: {
+  name: string
+  observed: EventDictionary['observed']
+  recentFailed: boolean
+}): ReactElement {
+  const { name, observed, recentFailed } = props
   if (observed === 'pending') return <ListSkeleton />
   if (observed !== 'ready') {
     return (
@@ -169,8 +175,12 @@ function UnlistedDetail(props: { name: string; observed: EventDictionary['observ
   }
   return (
     <>
-      <p className="adm-event-dictionary-detail__text">이 기간과 최근 30분에 들어온 기록이 없어요</p>
-      <CopySnippet name={name} />
+      <p className="adm-event-dictionary-detail__text">
+        {recentFailed
+          ? '이 기간에 들어온 기록이 없어요. 오늘 들어온 이벤트는 확인하지 못했어요.'
+          : '이 기간과 최근 30분에 들어온 기록이 없어요'}
+      </p>
+      {EVENT_NAME.test(name) && <CopySnippet name={name} />}
     </>
   )
 }
@@ -182,10 +192,11 @@ export function DictionaryTable(props: {
   /** Name of the expanded event. */
   expanded: string | null
   observed: EventDictionary['observed']
+  recentFailed: boolean
   registeredParams: ReadonlySet<string>
   onToggle(name: string): void
 }): ReactElement {
-  const { pinned, entries, expanded, observed, registeredParams, onToggle } = props
+  const { pinned, entries, expanded, observed, recentFailed, registeredParams, onToggle } = props
   // Only one row is open at a time, so one id is enough for the open content.
   const detailId = useId()
 
@@ -282,7 +293,7 @@ export function DictionaryTable(props: {
                           {entry ? (
                             <EntryDetail entry={entry} registeredParams={registeredParams} />
                           ) : (
-                            <UnlistedDetail name={name} observed={observed} />
+                            <UnlistedDetail name={name} observed={observed} recentFailed={recentFailed} />
                           )}
                         </div>
                       </td>

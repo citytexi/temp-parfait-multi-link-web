@@ -78,6 +78,8 @@
 .adm-event-dictionary-name {
   display: inline-flex;
   flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .adm-event-dictionary-label {

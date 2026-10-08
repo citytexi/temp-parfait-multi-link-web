@@ -1,4 +1,4 @@
-import { useMemo, type ReactElement } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { Card } from '../../../components/Card'
 import { CardState } from '../../../components/CardState'
 import { CsvButton } from '../../../components/CsvButton'
@@ -80,6 +80,61 @@ export function EventDictionaryPage(): ReactElement {
     pinned = entry ? { kind: 'filtered', entry } : { kind: 'unlisted', name: expanded }
   }
 
+  // Where focus goes once a control that held it has left the page; `seq` makes each request run once.
+  const toolbar = useRef<HTMLDivElement>(null)
+  const grid = useRef<HTMLDivElement>(null)
+  const [focusRequest, setFocusRequest] = useState<{ target: 'list' | 'search'; seq: number } | null>(null)
+  const requestFocus = (target: 'list' | 'search') =>
+    setFocusRequest((prev) => ({ target, seq: (prev?.seq ?? 0) + 1 }))
+  const focusSearch = () => toolbar.current?.querySelector<HTMLElement>('input[type="search"]')?.focus()
+  useEffect(() => {
+    if (focusRequest === null) return
+    if (focusRequest.target === 'search') {
+      focusSearch()
+      return
+    }
+    // The first listed row, or the chosen status button when nothing is listed.
+    const target =
+      grid.current?.querySelector<HTMLElement>('.adm-event-dictionary-toggle') ??
+      toolbar.current?.querySelector<HTMLElement>('.adm-event-dictionary-status[aria-pressed="true"]')
+    target?.focus()
+  }, [focusRequest])
+
+  // A retry the user started keeps the notice, and the button under their focus, on the page.
+  const [retrying, setRetrying] = useState(false)
+  const [failures, setFailures] = useState(0)
+  const retryLeftError = useRef(false)
+  useEffect(() => {
+    if (!retrying) return
+    if (observed === 'pending') {
+      retryLeftError.current = true
+      return
+    }
+    // Still the failure the retry was pressed on: the request has not started yet.
+    if (!retryLeftError.current) return
+    setRetrying(false)
+    if (observed === 'error') setFailures((n) => n + 1)
+    // The notice is gone; focus is moved only if it was on the notice's button.
+    else if (document.activeElement === null || document.activeElement === document.body) focusSearch()
+  }, [observed, retrying])
+  const retry = () => {
+    if (retrying) return
+    retryLeftError.current = false
+    setRetrying(true)
+    retryObserved()
+  }
+  const showFailure = observed === 'error' || (retrying && observed === 'pending')
+
+  const toggle = (name: string) => {
+    if (name !== expanded) {
+      setEvent(name)
+      return
+    }
+    setEvent(null)
+    // A pinned row leaves with its button.
+    if (pinned !== null) requestFocus('list')
+  }
+
   const chooseStatus = (next: ProblemStatus | null) => {
     if (next === status) return
     setStatus(next)
@@ -89,11 +144,12 @@ export function EventDictionaryPage(): ReactElement {
     setQ(null)
     setStatus(null)
     setEvent(null)
+    requestFocus('search')
   }
 
   return (
     <>
-      <div className="adm-event-dictionary-toolbar">
+      <div className="adm-event-dictionary-toolbar" ref={toolbar}>
         <div className="adm-event-dictionary-statuses" role="group" aria-label="상태">
           <button
             type="button"
@@ -140,13 +196,21 @@ export function EventDictionaryPage(): ReactElement {
           </div>
         )}
       </div>
-      <div className="adm-grid">
+      <div className="adm-grid" ref={grid}>
         <Card title="이벤트">
-          {observed === 'error' && (
+          {showFailure && (
             <div className="adm-state adm-state--error adm-event-dictionary-notice" role="alert">
-              <p className="adm-state__text">수집 현황을 불러오지 못했어요</p>
-              <button type="button" className="adm-button adm-button--secondary" onClick={retryObserved}>
-                다시 시도
+              {/* A new node per failure, so a second failure is announced again. */}
+              <p key={failures} className="adm-state__text">
+                수집 현황을 불러오지 못했어요
+              </p>
+              <button
+                type="button"
+                className="adm-button adm-button--secondary"
+                aria-disabled={retrying}
+                onClick={retry}
+              >
+                {retrying ? '불러오는 중' : '다시 시도'}
               </button>
             </div>
           )}
@@ -161,8 +225,9 @@ export function EventDictionaryPage(): ReactElement {
               entries={listed}
               expanded={expanded}
               observed={observed}
+              recentFailed={recentFailed}
               registeredParams={registeredParams}
-              onToggle={(name) => setEvent(name === expanded ? null : name)}
+              onToggle={toggle}
             />
           )}
           {unjudged

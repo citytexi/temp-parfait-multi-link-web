@@ -331,6 +331,106 @@ describe('EventDictionaryPage', () => {
     expect(within(detail('today_only')).getByText('최근 30분: iOS 1번')).toBeInTheDocument()
   })
 
+  it('moves focus to the first listed row when a pinned row is collapsed', async () => {
+    await open('status=unknown&event=screen_view')
+    expander('screen_view').focus()
+    fireEvent.click(expander('screen_view'))
+    expect(param('event')).toBeNull()
+    expect(names()).toEqual(['typo_evnt', 'today_only'])
+    expect(expander('typo_evnt')).toHaveFocus()
+  })
+
+  it('moves focus to the first listed row when a placeholder row is collapsed', async () => {
+    await open('event=ghost_event')
+    expander('ghost_event').focus()
+    fireEvent.click(expander('ghost_event'))
+    expect(names()).toEqual(ALL_NAMES)
+    expect(expander('only_android')).toHaveFocus()
+  })
+
+  it('moves focus to the chosen status button when a pinned row is collapsed over an empty list', async () => {
+    await open('q=zzz&status=unknown&event=screen_view')
+    expander('screen_view').focus()
+    fireEvent.click(expander('screen_view'))
+    expect(param('event')).toBeNull()
+    expect(names()).toEqual([])
+    expect(button('사전에 없음 2')).toHaveAttribute('aria-pressed', 'true')
+    expect(button('사전에 없음 2')).toHaveFocus()
+  })
+
+  it('keeps focus in the list when a listed row is collapsed', async () => {
+    await open()
+    const toggle = expander('purchase_done')
+    toggle.focus()
+    fireEvent.click(toggle)
+    fireEvent.click(toggle)
+    expect(param('event')).toBeNull()
+    expect(toggle).toHaveFocus()
+  })
+
+  it('offers no snippet for a name that is not a valid event name', async () => {
+    await open(`event=${encodeURIComponent("x', evil")}`)
+    const content = detail("x', evil")
+    expect(within(content).getByText('이 기간과 최근 30분에 들어온 기록이 없어요')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: COPY })).toBeNull()
+  })
+
+  it('does not claim the recent check for a placeholder row when that check failed', async () => {
+    h.client.runRealtimeReport = vi.fn().mockRejectedValue(new GaError('server'))
+    await open('event=ghost_event')
+    const content = detail('ghost_event')
+    expect(
+      within(content).getByText('이 기간에 들어온 기록이 없어요. 오늘 들어온 이벤트는 확인하지 못했어요.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('이 기간과 최근 30분에 들어온 기록이 없어요')).toBeNull()
+    expect(within(content).getByRole('button', { name: COPY })).toBeInTheDocument()
+  })
+
+  it('cannot vouch for an unlisted event while the period is invalid', async () => {
+    h.ranges = null
+    await open('event=ghost_event')
+    expect(
+      within(detail('ghost_event')).getByText('수집 현황을 확인하지 못해서 이 이벤트의 기록을 알 수 없어요'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: COPY })).toBeNull()
+    expect(h.client.runReport).not.toHaveBeenCalled()
+  })
+
+  it('keeps the retry button in place while a retry is in flight and moves focus on success', async () => {
+    let settle!: { resolve(v: unknown): void; reject(e: unknown): void }
+    h.client.runReport = vi
+      .fn()
+      .mockRejectedValueOnce(new GaError('server'))
+      .mockImplementation(() => new Promise((resolve, reject) => (settle = { resolve, reject })))
+    await open()
+    const alert = within(card('이벤트')).getByRole('alert')
+    const retry = within(alert).getByRole('button', { name: '다시 시도' })
+    const firstText = within(alert).getByText('수집 현황을 불러오지 못했어요')
+    retry.focus()
+    fireEvent.click(retry)
+    await waitFor(() => expect(h.client.runReport).toHaveBeenCalledTimes(2))
+    expect(within(alert).getByRole('button', { name: '불러오는 중' })).toBe(retry)
+    expect(retry).toHaveAttribute('aria-disabled', 'true')
+    expect(retry).toHaveFocus()
+    fireEvent.click(retry)
+    expect(h.client.runReport).toHaveBeenCalledTimes(2)
+
+    await act(async () => settle.reject(new GaError('server')))
+    await waitFor(() => expect(retry).toHaveTextContent('다시 시도'))
+    expect(retry).toBeInTheDocument()
+    expect(retry).toHaveAttribute('aria-disabled', 'false')
+    expect(retry).toHaveFocus()
+    // The second failure is a new node, so it is announced again.
+    expect(within(alert).getByText('수집 현황을 불러오지 못했어요')).not.toBe(firstText)
+
+    fireEvent.click(retry)
+    await waitFor(() => expect(h.client.runReport).toHaveBeenCalledTimes(3))
+    await act(async () => settle.resolve(observedFixture))
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+    expect(await within(row('screen_view')).findByText('160번')).toBeInTheDocument()
+    expect(search()).toHaveFocus()
+  })
+
   it('drops the event param when a filter changes', async () => {
     await open('event=purchase_done')
     expect(expander('purchase_done')).toHaveAttribute('aria-expanded', 'true')
@@ -498,7 +598,9 @@ describe('EventDictionaryPage', () => {
     expect(search().value).toBe('zzz')
     expect(screen.getByText(NO_MATCH)).toBeInTheDocument()
 
+    button('필터 지우기').focus()
     fireEvent.click(button('필터 지우기'))
+    expect(search()).toHaveFocus()
     expect(param('q')).toBeNull()
     expect(param('status')).toBeNull()
     expect(param('event')).toBeNull()
