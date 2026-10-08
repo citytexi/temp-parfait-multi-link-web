@@ -1,0 +1,172 @@
+.adm-release-checklist-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--adm-space-4);
+  min-width: 0;
+  margin-bottom: var(--adm-space-4);
+}
+
+/* The picker and 새 릴리즈: stacked by wrapping below 960px, one row from there. */
+.adm-release-checklist-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--adm-space-3);
+}
+
+.adm-release-checklist-toolbar .adm-field {
+  flex: 1 1 100%;
+  max-width: 480px;
+}
+
+.adm-release-checklist-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--adm-space-3);
+  max-width: 480px;
+  min-width: 0;
+}
+
+.adm-release-checklist-platforms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--adm-space-6);
+}
+
+.adm-release-checklist-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--adm-space-2);
+}
+
+.adm-release-checklist-title {
+  margin: 0;
+  font-size: var(--adm-fs-lg);
+  font-weight: var(--adm-fw-bold);
+  line-height: var(--adm-lh-tight);
+  color: var(--adm-text-1);
+  overflow-wrap: anywhere;
+}
+
+.adm-release-checklist-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--adm-space-2) var(--adm-space-3);
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+.adm-release-checklist-progress progress {
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 120px;
+  height: 8px;
+  accent-color: var(--adm-accent);
+}
+
+.adm-release-checklist-progress__count {
+  font-weight: var(--adm-fw-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-text-1);
+}
+
+.adm-release-checklist-progress__done {
+  font-weight: var(--adm-fw-medium);
+  color: var(--adm-accent);
+}
+
+.adm-release-checklist-items {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Below 960px the 열기 button sits under the item text, in line with it. */
+.adm-release-checklist-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: var(--adm-hit);
+}
+
+/* The label fills the row, so a press anywhere beside the button checks the item. */
+.adm-release-checklist-item .adm-field {
+  flex: 1 1 auto;
+}
+
+.adm-release-checklist-item .adm-field__label {
+  overflow-wrap: anywhere;
+}
+
+.adm-release-checklist-item .adm-button {
+  align-self: flex-start;
+  margin: 0 0 var(--adm-space-2) calc(var(--adm-field-checkbox-size) + var(--adm-space-3));
+}
+
+/* Read-only rows of a shared release: the item text and its state at the two ends. */
+.adm-release-checklist-shared-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--adm-space-3);
+  min-width: 0;
+  min-height: var(--adm-hit);
+  padding: var(--adm-space-2) 0;
+  font-size: var(--adm-fs-md);
+  line-height: var(--adm-lh-body);
+  color: var(--adm-text-1);
+}
+
+.adm-release-checklist-shared-item__label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.adm-release-checklist-shared-item__state {
+  flex: none;
+}
+
+.adm-release-checklist-shared-item__state--todo {
+  font-size: var(--adm-fs-xs);
+  color: var(--adm-text-3);
+}
+
+.adm-release-checklist-text {
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+  line-height: var(--adm-lh-body);
+  color: var(--adm-text-2);
+}
+
+.adm-release-checklist-text--warn {
+  font-weight: var(--adm-fw-medium);
+  color: var(--adm-text-1);
+}
+
+@media (min-width: 960px) {
+  .adm-release-checklist-toolbar {
+    flex-wrap: nowrap;
+  }
+
+  .adm-release-checklist-toolbar .adm-field {
+    flex: 1 1 320px;
+  }
+
+  /* The checkbox and the 열기 button at the two ends of the row. */
+  .adm-release-checklist-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--adm-space-3);
+  }
+
+  .adm-release-checklist-item .adm-button {
+    flex: none;
+    align-self: center;
+    margin: 0;
+  }
+}

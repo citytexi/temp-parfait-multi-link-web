@@ -1,0 +1,124 @@
+.adm-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--adm-space-1);
+  min-width: 0;
+}
+
+.adm-field__label {
+  font-size: var(--adm-fs-sm);
+  font-weight: var(--adm-fw-medium);
+  color: var(--adm-text-1);
+}
+
+.adm-field__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--adm-hit);
+  padding: 0 var(--adm-space-3);
+  border: 1px solid var(--adm-border-strong);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-text-1);
+  font: inherit;
+  font-size: var(--adm-fs-md);
+}
+
+.adm-field__input[aria-invalid='true'] {
+  border-color: var(--adm-negative);
+}
+
+.adm-field__help,
+.adm-field__error {
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+}
+
+.adm-field__help {
+  color: var(--adm-text-2);
+}
+
+/* The error is also worded text with a leading mark, so colour is not the only cue. */
+.adm-field__error {
+  font-weight: var(--adm-fw-medium);
+  color: var(--adm-negative);
+}
+
+.adm-field__error::before {
+  content: '! ';
+  font-weight: var(--adm-fw-bold);
+}
+
+.adm-field--checkbox .adm-field__label {
+  display: flex;
+  align-items: center;
+  gap: var(--adm-space-3);
+  min-height: var(--adm-hit);
+  font-size: var(--adm-fs-md);
+  font-weight: var(--adm-fw-regular);
+  cursor: pointer;
+}
+
+/* The checkbox width. Set on the field and on what follows it, so a sibling can line up under the label text. */
+.adm-field--checkbox,
+.adm-field--checkbox ~ * {
+  --adm-field-checkbox-size: 20px;
+}
+
+.adm-field--checkbox input[type='checkbox'] {
+  flex: none;
+  width: var(--adm-field-checkbox-size);
+  height: var(--adm-field-checkbox-size);
+  margin: 0;
+  accent-color: var(--adm-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-field__input {
+    transition: none;
+  }
+}
+
+/* Heavier and darker than a note, so colour is not the only cue. */
+.adm-not-saved {
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+  font-weight: var(--adm-fw-medium);
+  line-height: var(--adm-lh-body);
+  color: var(--adm-text-1);
+}
+
+.adm-copy-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--adm-space-2);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.adm-copy__note {
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+.adm-copy__box {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: min(100%, 320px);
+  max-width: 100%;
+  padding: var(--adm-space-2) var(--adm-space-3);
+  border: 1px solid var(--adm-border-strong);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-text-1);
+  font: inherit;
+  font-size: var(--adm-fs-md);
+  overflow-wrap: anywhere;
+  resize: vertical;
+}
+
+.adm-confirm[data-armed='true'] {
+  color: var(--adm-negative);
+  border-color: var(--adm-negative);
+}

@@ -1,0 +1,135 @@
+.adm-link-hub-layout,
+.adm-link-hub-mine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--adm-space-4);
+  min-width: 0;
+}
+
+.adm-link-hub-layout {
+  margin-bottom: var(--adm-space-4);
+}
+
+.adm-link-hub-search {
+  max-width: 480px;
+}
+
+/* One column; from 960px as many 240px columns as fit. */
+.adm-link-hub-tiles {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--adm-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 960px) {
+  .adm-link-hub-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+/* A team tile is the link alone. A personal tile stacks the link over its two buttons. */
+.adm-link-hub-tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: var(--adm-hit);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-md);
+  background: var(--adm-surface);
+}
+
+.adm-link-hub-link {
+  position: relative; /* anchors the visually hidden new-tab note */
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--adm-space-1);
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: var(--adm-hit);
+  padding: var(--adm-space-3) var(--adm-space-4);
+  border-radius: inherit;
+  color: var(--adm-text-1);
+  text-decoration: none;
+  transition: background-color var(--adm-duration) ease;
+}
+
+.adm-link-hub-link:hover,
+.adm-link-hub-link:focus-visible {
+  background: var(--adm-surface-muted);
+}
+
+.adm-link-hub-link__name {
+  font-size: var(--adm-fs-md);
+  font-weight: var(--adm-fw-bold);
+  overflow-wrap: anywhere;
+}
+
+.adm-link-hub-link__description {
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+  overflow-wrap: anywhere;
+}
+
+.adm-link-hub-link__host {
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-3);
+  overflow-wrap: anywhere;
+}
+
+/* 수정 and 삭제: each at least 44px both ways, 8px apart, also when they wrap. */
+.adm-link-hub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--adm-space-2);
+  padding: var(--adm-space-2);
+  border-top: 1px solid var(--adm-border);
+}
+
+.adm-link-hub-actions .adm-button {
+  min-width: var(--adm-hit);
+  min-height: var(--adm-hit);
+}
+
+.adm-link-hub-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--adm-space-3);
+  min-width: 0;
+}
+
+.adm-link-hub-tile .adm-link-hub-form {
+  padding: var(--adm-space-3);
+}
+
+.adm-link-hub-mine > .adm-link-hub-form {
+  max-width: 480px;
+}
+
+.adm-link-hub-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--adm-space-2);
+}
+
+.adm-link-hub-add {
+  align-self: flex-start;
+}
+
+.adm-link-hub-text {
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+  line-height: var(--adm-lh-body);
+  color: var(--adm-text-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-link-hub-link {
+    transition: none;
+  }
+}
