@@ -58,11 +58,29 @@ describe('StreamStatus', () => {
     expect(screen.getByText('마지막 갱신 14:02:31')).toBeInTheDocument()
   })
 
-  it('shows neither before the first snapshot', () => {
+  it('shows neither before the first snapshot while polling normally', () => {
     render(<StreamStatus {...statusProps({ snapshot: undefined })} />)
     expect(screen.queryByRole('status')).toBeNull()
     expect(screen.queryByText(/마지막 갱신/)).toBeNull()
     expect(screen.queryByText(/갱신 중/)).toBeNull()
+  })
+
+  it('says why polling is not normal before the first snapshot, without a time', () => {
+    const paused: PollDecision = { intervalMs: null, reason: 'paused' }
+    render(<StreamStatus {...statusProps({ snapshot: undefined, decision: paused, paused: true })} />)
+    expect(screen.getByRole('status')).toHaveTextContent('일시정지했어요')
+    expect(screen.queryByText(/마지막 갱신/)).toBeNull()
+  })
+
+  it('leaves the sentence out when the card below shows it, and keeps the time', () => {
+    const stopped: PollDecision = { intervalMs: null, reason: 'quota_exhausted' }
+    const { rerender } = render(
+      <StreamStatus {...statusProps({ snapshot: undefined, decision: stopped, reasonShownBelow: true })} />,
+    )
+    expect(screen.queryByRole('status')).toBeNull()
+    rerender(<StreamStatus {...statusProps({ decision: stopped, reasonShownBelow: true })} />)
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.getByText('마지막 갱신 14:02:31')).toBeInTheDocument()
   })
 
   it('swaps the pause button and reports clicks', () => {

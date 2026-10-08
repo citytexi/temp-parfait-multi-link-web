@@ -1,12 +1,13 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GaError } from '../../../ga/errors'
 import type { CatalogEvent } from '../../../ga/eventCatalog'
 import metadata from './__fixtures__/metadata.json'
 import observedFixture from './__fixtures__/observed.json'
 import recentFixture from './__fixtures__/recent.json'
+import { parseRecent } from './report'
 import { useEventDictionary } from './useEventDictionary'
 
 const h = vi.hoisted(() => {
@@ -68,6 +69,20 @@ beforeEach(() => {
   h.client.runRealtimeReport = vi.fn().mockResolvedValue(recentFixture)
   h.client.getMetadata = vi.fn().mockResolvedValue(metadata)
 })
+
+afterEach(() => {
+  vi.useRealTimers()
+  onlineManager.setOnline(true)
+})
+
+const RECENT_KEY = ['event-dictionary', 'recent']
+/** Puts a recent check from before the mount in the cache: `screen_view` only, still fresh. */
+function seedRecent() {
+  queryClient.setQueryData(RECENT_KEY, parseRecent({ ...recentFixture, rows: recentFixture.rows.slice(0, 1), rowCount: 1 }))
+}
+/** Lets TanStack Query's zero-delay notify timers run, so a change that is due has reached the hook. */
+const settle = () => act(async () => void (await new Promise((r) => setTimeout(r, 20))))
+const hasEntry = (entries: readonly { name: string }[], name: string) => entries.some((e) => e.name === name)
 
 describe('useEventDictionary', () => {
   it('starts pending with catalogue entries only, then becomes ready with observed counts', async () => {
@@ -189,5 +204,69 @@ describe('useEventDictionary', () => {
     const first = result.current.entries
     rerender()
     expect(result.current.entries).toBe(first)
+  })
+
+  it('does not flag the recent check when a later refetch fails over data it already has', async () => {
+    const { result } = renderHook(() => useEventDictionary(), { wrapper })
+    await waitFor(() => expect(result.current.observed).toBe('ready'))
+    h.client.runRealtimeReport.mockRejectedValueOnce(new GaError('server'))
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: RECENT_KEY })
+    })
+    expect(queryClient.getQueryState(RECENT_KEY)?.status).toBe('error')
+    await settle()
+    expect(result.current.recentFailed).toBe(false)
+    expect(result.current.entries.find((e) => e.name === 'today_only')!.recentOnly).toBe(true)
+  })
+
+  it('does not run the recent check again when the browser comes back online', async () => {
+    const { result } = renderHook(() => useEventDictionary(), { wrapper })
+    await waitFor(() => expect(result.current.observed).toBe('ready'))
+    // Past the 60 s the recent check stays fresh for.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(Date.now() + 61_000)
+    act(() => onlineManager.setOnline(false))
+    act(() => onlineManager.setOnline(true))
+    // The period query has no such setting and is refetched, which shows the reconnect was handled.
+    await waitFor(() => expect(h.client.runReport).toHaveBeenCalledTimes(2))
+    expect(h.client.runRealtimeReport).toHaveBeenCalledTimes(1)
+  })
+
+  it('checks once more for an opened event that a recent check from before the mount does not hold', async () => {
+    seedRecent()
+    const { result, rerender } = renderHook(() => useEventDictionary('today_only'), { wrapper })
+    await waitFor(() => expect(result.current.observed).toBe('ready'))
+    await waitFor(() => expect(hasEntry(result.current.entries, 'today_only')).toBe(true))
+    expect(h.client.runRealtimeReport).toHaveBeenCalledTimes(1)
+    rerender()
+    expect(h.client.runRealtimeReport).toHaveBeenCalledTimes(1)
+  })
+
+  it('checks only once for an opened event that is still missing afterwards', async () => {
+    seedRecent()
+    const { result, rerender } = renderHook(() => useEventDictionary('ghost_event'), { wrapper })
+    await waitFor(() => expect(hasEntry(result.current.entries, 'today_only')).toBe(true))
+    expect(result.current.observed).toBe('ready')
+    rerender()
+    await settle()
+    expect(h.client.runRealtimeReport).toHaveBeenCalledTimes(1)
+    expect(hasEntry(result.current.entries, 'ghost_event')).toBe(false)
+  })
+
+  it('does not check again for an opened event it holds, or when the recent check ran on this mount', async () => {
+    seedRecent()
+    const held = renderHook(() => useEventDictionary('screen_view'), { wrapper })
+    await waitFor(() => expect(held.result.current.observed).toBe('ready'))
+    const none = renderHook(() => useEventDictionary(), { wrapper })
+    await waitFor(() => expect(none.result.current.observed).toBe('ready'))
+    expect(h.client.runRealtimeReport).not.toHaveBeenCalled()
+    held.unmount()
+    none.unmount()
+
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const fresh = renderHook(() => useEventDictionary('ghost_event'), { wrapper })
+    await waitFor(() => expect(fresh.result.current.observed).toBe('ready'))
+    await settle()
+    expect(h.client.runRealtimeReport).toHaveBeenCalledTimes(1)
   })
 })

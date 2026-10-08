@@ -280,17 +280,43 @@ describe('useEventStream', () => {
     expect(result.current.decision).toEqual({ intervalMs: 5000, reason: 'normal' })
   })
 
-  it('ignores forbidden errors and errors that are not GaError', async () => {
+  it('ignores forbidden errors', async () => {
     const { result } = mount()
     await advance(0)
-    h.client.runRealtimeReport.mockRejectedValueOnce(new GaError('forbidden')).mockRejectedValueOnce(new Error('boom'))
+    h.client.runRealtimeReport.mockRejectedValueOnce(new GaError('forbidden'))
     await advance(5000)
     expect(calls()).toBe(2)
     expect(result.current.decision).toEqual({ intervalMs: 5000, reason: 'normal' })
+    expect(result.current.error).toBeNull()
+  })
+
+  it('backs off after errors that are not GaError', async () => {
+    const { result } = mount()
+    await advance(0)
+    h.client.runRealtimeReport.mockRejectedValueOnce(new Error('boom')).mockRejectedValueOnce(new SyntaxError('bad json'))
+    await advance(5000)
+    expect(calls()).toBe(2)
+    expect(result.current.decision).toEqual({ intervalMs: 10_000, reason: 'retrying' })
+    await advance(5000)
+    expect(calls()).toBe(2)
     await advance(5000)
     expect(calls()).toBe(3)
-    expect(result.current.decision).toEqual({ intervalMs: 5000, reason: 'normal' })
+    expect(result.current.decision).toEqual({ intervalMs: 20_000, reason: 'retrying' })
     expect(result.current.error).toBeNull()
+
+    await advance(20_000)
+    expect(calls()).toBe(4)
+    expect(result.current.decision).toEqual({ intervalMs: 5000, reason: 'normal' })
+  })
+
+  it('hands each response over as it is, without comparing it to the one before', async () => {
+    const { result } = mount()
+    await advance(0)
+    const first = result.current.snapshot!
+    await advance(5000)
+    expect(calls()).toBe(2)
+    expect(result.current.snapshot!.rows).toEqual(first.rows)
+    expect(result.current.snapshot!.rows).not.toBe(first.rows)
   })
 
   it('slows down after 10 idle minutes and catches up on activity when the data is old', async () => {

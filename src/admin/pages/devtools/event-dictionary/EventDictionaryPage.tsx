@@ -63,10 +63,11 @@ export function EventDictionaryPage(): ReactElement {
   const [q, setQ] = usePageParam('q')
   const [statusParam, setStatus] = usePageParam('status')
   const [eventParam, setEvent] = usePageParam('event')
-  const { entries, observed, recentFailed, retryObserved, range, params, registeredParams } = useEventDictionary()
+  const expanded = eventParam || null
+  const { entries, observed, recentFailed, retryObserved, range, params, registeredParams } =
+    useEventDictionary(expanded)
 
   const status = parseStatus(statusParam)
-  const expanded = eventParam || null
   const counts = useMemo(() => statusCounts(entries, observed === 'ready'), [entries, observed])
   const filtered = useMemo(() => filterEntries(entries, { q: (q ?? '').trim(), status }), [entries, q, status])
 
@@ -100,6 +101,23 @@ export function EventDictionaryPage(): ReactElement {
     target?.focus()
   }, [focusRequest])
 
+  // The event a link or the stream opened is brought into view once it is judged, and again when its row
+  // leaves the top for its sorted place. A row the user opened in the list is already in view.
+  const linked = useRef(expanded)
+  const scrolledWhile = useRef<'pinned' | 'listed' | null>(null)
+  const placement = pinned === null ? 'listed' : 'pinned'
+  useEffect(() => {
+    if (expanded === null || expanded !== linked.current || observed !== 'ready') return
+    const before = scrolledWhile.current
+    if (before === 'listed' || before === placement) return
+    scrolledWhile.current = placement
+    // `auto` does not animate: the page sets no smooth scrolling.
+    grid.current
+      ?.querySelector('.adm-event-dictionary-toggle[aria-expanded="true"]')
+      ?.closest('tr')
+      ?.scrollIntoView({ block: 'nearest', behavior: 'auto' })
+  }, [expanded, observed, placement])
+
   // A retry the user started keeps the notice, and the button under their focus, on the page.
   const [retrying, setRetrying] = useState(false)
   const [failures, setFailures] = useState(0)
@@ -126,6 +144,7 @@ export function EventDictionaryPage(): ReactElement {
   const showFailure = observed === 'error' || (retrying && observed === 'pending')
 
   const toggle = (name: string) => {
+    linked.current = null
     if (name !== expanded) {
       setEvent(name)
       return
@@ -181,7 +200,8 @@ export function EventDictionaryPage(): ReactElement {
               setEvent(null)
             }}
           />
-          {range && (
+          {/* An unjudged list would be exported with blank counts and every entry as 정상. */}
+          {observed === 'ready' && range && (
             <CsvButton
               filename={`parfait-event-dictionary-${range.startDate}_${range.endDate}.csv`}
               headers={CSV_HEADERS}

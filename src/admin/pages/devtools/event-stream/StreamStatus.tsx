@@ -26,15 +26,19 @@ export function StreamStatus(props: {
   paused: boolean
   onPause(paused: boolean): void
   onRefresh(): void
+  /** The card below already shows the sentence; saying it here too would read it twice. */
+  reasonShownBelow?: boolean
 }): ReactElement {
-  const { decision, snapshot, paused, onPause, onRefresh } = props
+  const { decision, snapshot, paused, onPause, onRefresh, reasonShownBelow = false } = props
+  // Before the first snapshot the card's skeleton speaks for normal polling; a pause or a stop is said here.
+  const showReason = !reasonShownBelow && (snapshot !== undefined || decision.reason !== 'normal')
   return (
     <div className="adm-event-stream-status">
       <div className="adm-event-stream-status__line">
-        {snapshot && (
+        {(showReason || snapshot) && (
           <p className="adm-event-stream-status__text">
-            <span role="status">{reasonText(decision)}</span>
-            <span>{`마지막 갱신 ${updatedAt.format(snapshot.fetchedAt)}`}</span>
+            {showReason && <span role="status">{reasonText(decision)}</span>}
+            {snapshot && <span>{`마지막 갱신 ${updatedAt.format(snapshot.fetchedAt)}`}</span>}
           </p>
         )}
         <div className="adm-event-stream-status__actions">

@@ -111,7 +111,14 @@ export function EventStreamPage(): ReactElement {
 
   return (
     <>
-      <StreamStatus decision={decision} snapshot={snapshot} paused={paused} onPause={setPaused} onRefresh={refreshNow} />
+      <StreamStatus
+        decision={decision}
+        snapshot={snapshot}
+        paused={paused}
+        onPause={setPaused}
+        onRefresh={refreshNow}
+        reasonShownBelow={quotaOnFirstLoad && decision.reason === 'quota_exhausted'}
+      />
       <div className="adm-event-stream-filters">
         <SearchField label="이벤트 검색" value={q} onCommit={setQ} />
         <DimSelect label="플랫폼" value={platform} options={options.platforms} onChange={setPlatform} />

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GaError } from '../../../ga/errors'
 import type { CatalogEvent } from '../../../ga/eventCatalog'
@@ -9,6 +9,7 @@ import metadata from './__fixtures__/metadata.json'
 import observedFixture from './__fixtures__/observed.json'
 import recentFixture from './__fixtures__/recent.json'
 import { CSV_HEADERS } from './dictionary'
+import { parseRecent } from './report'
 import menu from './EventDictionaryPage.menu'
 import { EventDictionaryPage } from './EventDictionaryPage'
 
@@ -102,9 +103,8 @@ async function advance(ms: number) {
 }
 
 /** Renders the page at `?menu=event-dictionary` plus `params`; the requests are still in flight. */
-function mount(params = '') {
+function mount(params = '', queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
   window.history.replaceState(null, '', `/?menu=event-dictionary${params ? `&${params}` : ''}`)
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
       <NavProvider lookup={lookup}>
@@ -122,6 +122,9 @@ async function open(params = '') {
 }
 
 const never = () => new Promise<never>(() => {})
+// jsdom has no scrollIntoView; `mock.contexts` holds the elements it was called on.
+const scrollIntoView = vi.fn()
+const scrolledTo = () => scrollIntoView.mock.contexts as HTMLElement[]
 const param = (key: string) => new URLSearchParams(window.location.search).get(key)
 const button = (name: string) => screen.getByRole('button', { name })
 const expander = (name: string) => button(`${name} 자세히 보기`)
@@ -139,6 +142,8 @@ function commitSearch(text: string) {
 beforeEach(() => {
   h.ranges = goodRanges
   h.downloadCsv.mockReset()
+  scrollIntoView.mockReset()
+  Element.prototype.scrollIntoView = scrollIntoView
   h.client = {
     runReport: vi.fn(async () => observedFixture),
     runRealtimeReport: vi.fn(async () => recentFixture),
@@ -150,6 +155,7 @@ afterEach(() => {
   vi.useRealTimers()
   vi.restoreAllMocks()
   Reflect.deleteProperty(navigator, 'clipboard')
+  Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
   window.history.replaceState(null, '', '/')
 })
 
@@ -329,6 +335,100 @@ describe('EventDictionaryPage', () => {
     expect(expander('today_only')).toBe(toggle)
     expect(toggle).toHaveFocus()
     expect(within(detail('today_only')).getByText('최근 30분: iOS 1번')).toBeInTheDocument()
+  })
+
+  it('scrolls to an event opened by a link once the observation is in', async () => {
+    let release!: (v: unknown) => void
+    h.client.runReport = vi.fn(() => new Promise((r) => (release = r)))
+    mount('event=app_remove')
+    await within(card('GA에 등록된 파라미터')).findByText('item_id')
+    expect(expander('app_remove')).toHaveAttribute('aria-expanded', 'true')
+    expect(scrollIntoView).not.toHaveBeenCalled()
+
+    await act(async () => release(observedFixture))
+    await within(row('screen_view')).findByText('160번')
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    expect(scrolledTo()[0]).toBe(row('app_remove'))
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', behavior: 'auto' })
+  })
+
+  it('scrolls to an event seen only today when its row moves from the top into the list', async () => {
+    let release!: (v: unknown) => void
+    h.client.runReport = vi.fn(() => new Promise((r) => (release = r)))
+    h.client.runRealtimeReport = vi.fn(never)
+    mount('event=today_only')
+    await within(card('GA에 등록된 파라미터')).findByText('item_id')
+    await act(async () => release(observedFixture))
+    expect(names()[0]).toBe('today_only')
+    expect(scrollIntoView).not.toHaveBeenCalled()
+    cleanup()
+
+    h.client.runReport = vi.fn(() => new Promise((r) => (release = r)))
+    h.client.runRealtimeReport = vi.fn(async () => recentFixture)
+    mount('event=today_only')
+    await within(card('GA에 등록된 파라미터')).findByText('item_id')
+    expect(scrollIntoView).not.toHaveBeenCalled()
+    await act(async () => release(observedFixture))
+    await within(row('today_only')).findByText('오늘 들어옴')
+    expect(names()).toEqual(ALL_NAMES)
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    expect(scrolledTo()[0]).toBe(row('today_only'))
+  })
+
+  it('checks today once more for an event the earlier check missed, and scrolls to where it lands', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    queryClient.setQueryData(
+      ['event-dictionary', 'recent'],
+      parseRecent({ ...recentFixture, rows: recentFixture.rows.slice(0, 1), rowCount: 1 }),
+    )
+    mount('event=today_only', queryClient)
+    expect(await within(row('today_only')).findByText('오늘 들어옴')).toBeInTheDocument()
+    expect(h.client.runRealtimeReport).toHaveBeenCalledTimes(1)
+    expect(names()).toEqual(ALL_NAMES)
+    expect(expander('today_only')).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.queryByText('이 기간과 최근 30분에 들어온 기록이 없어요')).toBeNull()
+    expect(scrolledTo().at(-1)).toBe(row('today_only'))
+  })
+
+  it('does not scroll for an expander pressed in the list', async () => {
+    await open('event=screen_view')
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    fireEvent.click(expander('app_remove'))
+    expect(expander('app_remove')).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(expander('screen_view'))
+    expect(expander('screen_view')).toHaveAttribute('aria-expanded', 'true')
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    cleanup()
+
+    scrollIntoView.mockClear()
+    await open()
+    fireEvent.click(expander('app_remove'))
+    expect(expander('app_remove')).toHaveAttribute('aria-expanded', 'true')
+    expect(scrollIntoView).not.toHaveBeenCalled()
+  })
+
+  it('offers the CSV only once the events are judged', async () => {
+    h.client.runReport = vi.fn(never)
+    mount()
+    await within(card('GA에 등록된 파라미터')).findByText('item_id')
+    expect(screen.queryByRole('button', { name: 'CSV 받기' })).toBeNull()
+    cleanup()
+
+    h.client.runReport = vi.fn().mockRejectedValue(new GaError('server'))
+    await open()
+    expect(within(card('이벤트')).getByRole('alert')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'CSV 받기' })).toBeNull()
+    cleanup()
+
+    h.ranges = null
+    await open()
+    expect(screen.queryByRole('button', { name: 'CSV 받기' })).toBeNull()
+    cleanup()
+
+    h.ranges = goodRanges
+    h.client.runReport = vi.fn(async () => observedFixture)
+    await open()
+    expect(button('CSV 받기')).toBeInTheDocument()
   })
 
   it('moves focus to the first listed row when a pinned row is collapsed', async () => {

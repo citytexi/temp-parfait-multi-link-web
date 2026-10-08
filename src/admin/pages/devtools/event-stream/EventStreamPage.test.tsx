@@ -339,12 +339,32 @@ describe('EventStreamPage', () => {
   it('shows the realtime quota message once when the first load hits the quota', async () => {
     h.client.runRealtimeReport.mockRejectedValue(new GaError('quota'))
     await open()
-    expect(screen.getByText(QUOTA)).toBeInTheDocument()
+    expect(screen.getAllByText(QUOTA)).toHaveLength(1)
+    expect(within(screen.getByRole('alert')).getByText(QUOTA)).toBeInTheDocument()
+    expect(screen.queryByRole('status')).toBeNull()
     expect(screen.queryByText(/오늘 조회 한도/)).toBeNull()
     const before = calls()
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
     await advance(0)
     expect(calls()).toBe(before + 1)
+  })
+
+  it('announces a pause made before the first response', async () => {
+    h.client.runRealtimeReport.mockReturnValue(new Promise(() => {}))
+    mount()
+    expect(screen.queryByText('일시정지했어요')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '일시정지' }))
+    const status = screen.getAllByRole('status').find((el) => el.textContent === '일시정지했어요')
+    expect(status).toBeDefined()
+    expect(screen.queryByText(/마지막 갱신/)).toBeNull()
+  })
+
+  it('says it paused next to the quota message when the first load hit the quota', async () => {
+    h.client.runRealtimeReport.mockRejectedValue(new GaError('quota'))
+    await open()
+    fireEvent.click(screen.getByRole('button', { name: '일시정지' }))
+    expect(screen.getByRole('status')).toHaveTextContent('일시정지했어요')
+    expect(screen.getAllByText(QUOTA)).toHaveLength(1)
   })
 
   it('leaves other first-load failures and the first load itself to the card state', async () => {

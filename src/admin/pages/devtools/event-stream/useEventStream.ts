@@ -63,6 +63,8 @@ export function useEventStream(dim: DimFilter): EventStream {
     // Coming back online must not send a request the poll policy did not ask for.
     refetchOnReconnect: false,
     refetchIntervalInBackground: false,
+    // `fetchedAt` differs on every poll, so comparing a response with the last one never saves anything.
+    structuralSharing: false,
     // The quota share comes from this query's own data, so the decision is taken here.
     refetchInterval: (query) => decide(state, query.state.data).intervalMs ?? false,
   })
@@ -98,14 +100,15 @@ export function useEventStream(dim: DimFilter): EventStream {
     }
   }, [snapshot])
 
-  // Failure: only network and server errors back off; auth and forbidden are the shell's to handle.
+  // Failure: network, server and unknown errors (such as an unreadable body) back off; auth and forbidden
+  // are the shell's to handle.
   const seenErrors = useRef(errorUpdateCount)
   useEffect(() => {
     if (errorUpdateCount === seenErrors.current) return
     seenErrors.current = errorUpdateCount
     setLastError(error)
     const kind = error instanceof GaError ? error.kind : null
-    if (kind === 'network' || kind === 'server') setFailures((n) => n + 1)
+    if (kind === null || kind === 'network' || kind === 'server') setFailures((n) => n + 1)
     else if (kind === 'quota' || kind === 'bad_request') setBlocked(kind)
   }, [errorUpdateCount, error])
 
