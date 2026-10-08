@@ -1,0 +1,129 @@
+{
+  "dimensionHeaders": [
+    {
+      "name": "eventName"
+    },
+    {
+      "name": "platform"
+    }
+  ],
+  "metricHeaders": [
+    {
+      "name": "eventCount"
+    },
+    {
+      "name": "totalUsers"
+    }
+  ],
+  "rows": [
+    {
+      "dimensionValues": [
+        {
+          "value": "screen_view"
+        },
+        {
+          "value": "Android"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "100"
+        },
+        {
+          "value": "40"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "screen_view"
+        },
+        {
+          "value": "iOS"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "60"
+        },
+        {
+          "value": "25"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "purchase_done"
+        },
+        {
+          "value": "Android"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "30"
+        },
+        {
+          "value": "10"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "purchase_done"
+        },
+        {
+          "value": "iOS"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "11"
+        },
+        {
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "only_android"
+        },
+        {
+          "value": "Android"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "7"
+        },
+        {
+          "value": "3"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "typo_evnt"
+        },
+        {
+          "value": "Android"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "2"
+        },
+        {
+          "value": "1"
+        }
+      ]
+    }
+  ],
+  "rowCount": 6
+}
