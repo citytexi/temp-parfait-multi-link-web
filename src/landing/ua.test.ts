@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { detectPlatform, externalBrowserUrl, playIntentUrl, PLAY_WEB_URL } from './ua'
+import { CAMPAIGN_CASES } from './__fixtures__/campaignUrls'
+import { campaignReferrer, detectPlatform, externalBrowserUrl, playIntentUrl, playWebUrl, PLAY_WEB_URL } from './ua'
 
 const IPHONE =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1'
@@ -61,6 +62,38 @@ describe('urls', () => {
   it('카카오는 openExternal', () => {
     expect(externalBrowserUrl('https://a.b/c', true)).toBe(
       'kakaotalk://web/openExternal?url=https%3A%2F%2Fa.b%2Fc',
+    )
+  })
+})
+
+const R = 'utm_source=instagram&utm_medium=social&utm_campaign=x'
+
+describe('campaignReferrer', () => {
+  it.each(CAMPAIGN_CASES)('%s', (_name, pageUrl, referrer) => {
+    expect(campaignReferrer(pageUrl)).toBe(referrer)
+  })
+})
+describe('play urls with a referrer', () => {
+  it('keeps the old strings without a referrer', () => {
+    expect(PLAY_WEB_URL).toBe('https://play.google.com/store/apps/details?id=com.teamyg.parfait')
+    expect(playWebUrl()).toBe(PLAY_WEB_URL)
+    expect(playWebUrl('')).toBe(PLAY_WEB_URL)
+    expect(playIntentUrl('')).toBe(playIntentUrl())
+    expect(playIntentUrl()).toBe(
+      'intent://details?id=com.teamyg.parfait#Intent;scheme=market;package=com.android.vending;' +
+        'S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.teamyg.parfait;end',
+    )
+  })
+  it('adds the encoded referrer to the web url', () => {
+    expect(playWebUrl(R)).toBe(
+      'https://play.google.com/store/apps/details?id=com.teamyg.parfait&referrer=utm_source%3Dinstagram%26utm_medium%3Dsocial%26utm_campaign%3Dx',
+    )
+  })
+  it('adds the referrer to the intent and to its fallback url', () => {
+    expect(playIntentUrl(R)).toBe(
+      'intent://details?id=com.teamyg.parfait&referrer=utm_source%3Dinstagram%26utm_medium%3Dsocial%26utm_campaign%3Dx' +
+        '#Intent;scheme=market;package=com.android.vending;S.browser_fallback_url=' +
+        'https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.teamyg.parfait%26referrer%3Dutm_source%253Dinstagram%2526utm_medium%253Dsocial%2526utm_campaign%253Dx;end',
     )
   })
 })
