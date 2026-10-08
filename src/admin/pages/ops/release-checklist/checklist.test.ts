@@ -146,4 +146,27 @@ it('merges duplicate platforms and drops unknown and repeated item ids', () => {
   const param = b64url(JSON.stringify({ v: 1, name: 'x', platforms: ['ios', 'ios', 'android'], checked: ['nope', 'no-crash', 'no-crash', '__proto__'] }))
   expect(decodeShare(param)).toEqual({ name: 'x', platforms: ['android', 'ios'], checked: ['no-crash'] })
 })
+it('rejects direction-override, zero-width and ill-formed names', () => {
+  const error = '버전 이름에 줄바꿈이나 제어 문자는 쓸 수 없어요'
+  for (const bad of ['\u200b', '\u200d', '\u200f', '\u202a', '\u202e', '\u2066', '\u2069', '\ufeff']) {
+    expect(validateName(`1.5${bad}.0`)).toEqual({ ok: false, error })
+  }
+  expect(validateName('\ufeff1.5.0')).toEqual({ ok: false, error })
+  for (const bad of ['a\ud800', '\udc00a', 'a\ud800b', '\udc00\ud800']) expect(validateName(bad)).toEqual({ ok: false, error })
+  expect(validateName('1.5.0 🍨')).toEqual({ ok: true, name: '1.5.0 🍨' })
+  const good = { id: 'a', name: '1.5.0', platforms: ['android'], checked: {}, createdAt: 't' }
+  expect(parseReleases([{ ...good, name: '1.5\u202e.0' }, { ...good, id: 'b', name: 'a\ud800' }, { ...good, id: 'c' }])!.map((r) => r.id)).toEqual(['c'])
+})
+it('reads a stored checked that is an array as empty', () => {
+  const out = parseReleases([{ id: 'a', name: '1.5.0', platforms: ['android'], checked: ['version-bumped', 'a'], createdAt: 't' }])!
+  expect(out).toHaveLength(1)
+  expect(Object.keys(out[0].checked)).toEqual([])
+})
+it.each([
+  ['a direction override (U+202E)', '1.5\u202e.0'],
+  ['a zero-width space', '1.5\u200b.0'],
+  ['a lone surrogate', 'a\ud800'],
+])('rejects a shared name with %s', (_name, name) => {
+  expect(decodeShare(b64url(JSON.stringify({ v: 1, name, platforms: ['ios'], checked: [] })))).toBeNull()
+})
 })

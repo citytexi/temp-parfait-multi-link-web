@@ -16,11 +16,20 @@ export type Release = {
 }
 
 const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/
+// Direction overrides, isolates and zero-width characters: invisible, and they reorder the text around a name.
+const FORMAT = /[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/
+// In unicode mode a surrogate matches only when it is not part of a pair.
+const LONE_SURROGATE = /[\ud800-\udfff]/u
+
+function isWellFormed(text: string): boolean {
+  const native = (text as { isWellFormed?: () => boolean }).isWellFormed
+  return typeof native === 'function' ? native.call(text) : !LONE_SURROGATE.test(text)
+}
 
 export function validateName(raw: string): { ok: true; name: string } | { ok: false; error: string } {
   const name = raw.trim()
   if (name === '') return { ok: false, error: '버전 이름을 넣어 주세요' }
-  if (CONTROL.test(raw)) return { ok: false, error: '버전 이름에 줄바꿈이나 제어 문자는 쓸 수 없어요' }
+  if (CONTROL.test(raw) || FORMAT.test(raw) || !isWellFormed(raw)) return { ok: false, error: '버전 이름에 줄바꿈이나 제어 문자는 쓸 수 없어요' }
   if ([...name].length > NAME_MAX) return { ok: false, error: '버전 이름은 40자까지 쓸 수 있어요' }
   return { ok: true, name }
 }
@@ -75,7 +84,7 @@ export const parseReleases: Parser<Release[]> = (raw) => {
     const normalized = normalizePlatforms(platforms)
     if (!normalized) continue
     const safe: Record<string, string> = Object.create(null)
-    if (typeof checked === 'object' && checked !== null) {
+    if (typeof checked === 'object' && checked !== null && !Array.isArray(checked)) {
       for (const key of Object.keys(checked)) {
         const time = (checked as Record<string, unknown>)[key]
         if (typeof time === 'string') safe[key] = time
