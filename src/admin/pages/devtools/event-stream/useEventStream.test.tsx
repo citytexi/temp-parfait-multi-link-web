@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, renderHook } from '@testing-library/react'
 import { StrictMode, type ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -112,6 +112,45 @@ describe('useEventStream', () => {
     expect(calls()).toBe(4)
   })
 
+  it('fetches once on resume even when a quota error has stopped polling', async () => {
+    const { result } = mount()
+    await advance(0)
+    act(() => result.current.setPaused(true))
+    h.client.runRealtimeReport.mockRejectedValueOnce(new GaError('quota'))
+    act(() => result.current.refreshNow())
+    await advance(0)
+    expect(calls()).toBe(2)
+
+    h.client.runRealtimeReport.mockRejectedValueOnce(new GaError('quota'))
+    act(() => result.current.setPaused(false))
+    await advance(0)
+    expect(calls()).toBe(3)
+    expect(result.current.decision).toEqual({ intervalMs: null, reason: 'quota_exhausted' })
+    await advance(60_000)
+    expect(calls()).toBe(3)
+  })
+
+  it('does not fetch when the browser comes back online while paused', async () => {
+    const { result } = mount()
+    await advance(0)
+    act(() => result.current.setPaused(true))
+    act(() => onlineManager.setOnline(false))
+    act(() => onlineManager.setOnline(true))
+    await advance(10_000)
+    expect(calls()).toBe(1)
+  })
+
+  it('fetches once on refreshNow while hidden', async () => {
+    const { result } = mount()
+    await advance(0)
+    setVisibility('hidden')
+    act(() => result.current.refreshNow())
+    await advance(0)
+    expect(calls()).toBe(2)
+    await advance(30_000)
+    expect(calls()).toBe(2)
+  })
+
   it('stops while hidden and fetches at once when visible again', async () => {
     const { result } = mount()
     await advance(0)
@@ -179,6 +218,30 @@ describe('useEventStream', () => {
     expect(result.current.snapshot).toBeDefined()
   })
 
+  it('keeps the first-load error steady while a retry is in flight', async () => {
+    const failure = new GaError('server')
+    let resolve!: (res: RunReportResponse) => void
+    h.client.runRealtimeReport
+      .mockRejectedValueOnce(failure)
+      .mockReturnValueOnce(new Promise<RunReportResponse>((r) => { resolve = r }))
+    const { result } = mount()
+    expect(result.current.isPending).toBe(true)
+    await advance(0)
+    expect(result.current.isPending).toBe(false)
+    expect(result.current.error).toBe(failure)
+
+    await advance(10_000)
+    expect(calls()).toBe(2)
+    expect(result.current.isPending).toBe(false)
+    expect(result.current.error).toBe(failure)
+
+    resolve(stream)
+    await advance(0)
+    expect(result.current.error).toBeNull()
+    expect(result.current.isPending).toBe(false)
+    expect(result.current.snapshot).toBeDefined()
+  })
+
   it('stops on a quota error until a manual refresh succeeds', async () => {
     const { result } = mount()
     await advance(0)
@@ -215,6 +278,19 @@ describe('useEventStream', () => {
     await advance(5000)
     expect(calls()).toBe(2)
     expect(result.current.decision).toEqual({ intervalMs: 5000, reason: 'normal' })
+  })
+
+  it('ignores forbidden errors and errors that are not GaError', async () => {
+    const { result } = mount()
+    await advance(0)
+    h.client.runRealtimeReport.mockRejectedValueOnce(new GaError('forbidden')).mockRejectedValueOnce(new Error('boom'))
+    await advance(5000)
+    expect(calls()).toBe(2)
+    expect(result.current.decision).toEqual({ intervalMs: 5000, reason: 'normal' })
+    await advance(5000)
+    expect(calls()).toBe(3)
+    expect(result.current.decision).toEqual({ intervalMs: 5000, reason: 'normal' })
+    expect(result.current.error).toBeNull()
   })
 
   it('slows down after 10 idle minutes and catches up on activity when the data is old', async () => {
@@ -293,6 +369,27 @@ describe('useEventStream', () => {
     expect(result.current.highlights.get('new_event')).toEqual({ kind: 'new', delta: 1, at: fetchedAt })
     // The iOS rows grew, but the filter is Android.
     expect(result.current.highlights.has('screen_view')).toBe(false)
+  })
+
+  it('marks a growing event as up and adds up changes across polls', async () => {
+    const { result } = mount()
+    await advance(0)
+    h.client.runRealtimeReport.mockResolvedValue(
+      withExtra(stream, [['screen_view', 0, 'iOS', '1.4.0', 2], ['new_event', 0, 'Android', '1.5.0', 1]]),
+    )
+    await advance(5000)
+    const second = result.current.snapshot!.fetchedAt
+    expect(result.current.highlights.get('screen_view')).toEqual({ kind: 'up', delta: 2, at: second })
+    expect(result.current.highlights.get('new_event')).toEqual({ kind: 'new', delta: 1, at: second })
+
+    h.client.runRealtimeReport.mockResolvedValue(
+      withExtra(stream, [['screen_view', 0, 'iOS', '1.4.0', 5], ['new_event', 0, 'Android', '1.5.0', 3]]),
+    )
+    await advance(5000)
+    const third = result.current.snapshot!.fetchedAt
+    expect(third).toBeGreaterThan(second)
+    expect(result.current.highlights.get('screen_view')).toEqual({ kind: 'up', delta: 5, at: third })
+    expect(result.current.highlights.get('new_event')).toEqual({ kind: 'new', delta: 3, at: third })
   })
 
   it('runs one timer and one set of listeners under StrictMode and cleans up on unmount', async () => {

@@ -43,6 +43,8 @@ export function useEventStream(dim: DimFilter): EventStream {
   const [failures, setFailures] = useState(0)
   const [blocked, setBlocked] = useState<PollInput['blocked']>(null)
   const [marks, setMarks] = useState<Marks>({ ...dim, map: NO_HIGHLIGHTS })
+  // The query drops its error and goes back to pending while a retry runs; this keeps the error shown.
+  const [lastError, setLastError] = useState<unknown>(null)
   // A change found under another filter would sit next to this filter's numbers.
   if (!sameDim(marks, dim)) setMarks({ platform: dim.platform, version: dim.version, map: NO_HIGHLIGHTS })
 
@@ -58,6 +60,8 @@ export function useEventStream(dim: DimFilter): EventStream {
     gcTime: 0,
     retry: false,
     refetchOnWindowFocus: false,
+    // Coming back online must not send a request the poll policy did not ask for.
+    refetchOnReconnect: false,
     refetchIntervalInBackground: false,
     // The quota share comes from this query's own data, so the decision is taken here.
     refetchInterval: (query) => decide(state, query.state.data).intervalMs ?? false,
@@ -99,6 +103,7 @@ export function useEventStream(dim: DimFilter): EventStream {
   useEffect(() => {
     if (errorUpdateCount === seenErrors.current) return
     seenErrors.current = errorUpdateCount
+    setLastError(error)
     const kind = error instanceof GaError ? error.kind : null
     if (kind === 'network' || kind === 'server') setFailures((n) => n + 1)
     else if (kind === 'quota' || kind === 'bad_request') setBlocked(kind)
@@ -146,18 +151,18 @@ export function useEventStream(dim: DimFilter): EventStream {
   const setPaused = useCallback(
     (next: boolean) => {
       setPausedState(next)
-      // A table that sat paused must not wait another interval.
-      if (!next && latest.current.state.paused && wouldPoll({ paused: false })) fetchNow()
+      // Resuming always fetches once, even while an error keeps polling stopped.
+      if (!next && latest.current.state.paused) fetchNow()
     },
-    [fetchNow, wouldPoll],
+    [fetchNow],
   )
 
   return {
     snapshot,
     highlights: marks.map,
     decision,
-    isPending,
-    error: snapshot ? null : error,
+    isPending: isPending && lastError === null,
+    error: snapshot ? null : (error ?? lastError),
     paused,
     setPaused,
     refreshNow: fetchNow,
