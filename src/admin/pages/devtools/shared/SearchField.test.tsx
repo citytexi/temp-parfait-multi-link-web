@@ -1,16 +1,21 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SEARCH_COMMIT_DELAY_MS, SearchField } from './SearchField'
 
 const advance = (ms: number) => act(() => void vi.advanceTimersByTime(ms))
 
-function setup(value: string | null = null) {
+function setup(value: string | null = null, strict = false) {
   const onCommit = vi.fn()
-  const view = render(<SearchField label="이벤트 검색" value={value} onCommit={onCommit} />)
+  const wrap = (v: string | null) => {
+    const el = <SearchField label="이벤트 검색" value={v} onCommit={onCommit} />
+    return strict ? <StrictMode>{el}</StrictMode> : el
+  }
+  const view = render(wrap(value))
   const input = screen.getByLabelText('이벤트 검색') as HTMLInputElement
   const type = (text: string) => fireEvent.change(input, { target: { value: text } })
   const rerender = (next: string | null) =>
-    view.rerender(<SearchField label="이벤트 검색" value={next} onCommit={onCommit} />)
+    view.rerender(wrap(next))
   return { onCommit, input, type, rerender, unmount: view.unmount }
 }
 
@@ -78,6 +83,55 @@ describe('SearchField', () => {
     advance(1)
     expect(onCommit).toHaveBeenCalledTimes(1)
     expect(onCommit).toHaveBeenCalledWith('한')
+  })
+
+  it('commits an IME result when compositionend is the last event', () => {
+    const { onCommit, input, type } = setup()
+    fireEvent.compositionStart(input)
+    type('한')
+    advance(500)
+    expect(onCommit).not.toHaveBeenCalled()
+    fireEvent.compositionEnd(input)
+    advance(SEARCH_COMMIT_DELAY_MS - 1)
+    expect(onCommit).not.toHaveBeenCalled()
+    advance(1)
+    expect(onCommit).toHaveBeenCalledTimes(1)
+    expect(onCommit).toHaveBeenCalledWith('한')
+  })
+
+  it('drops a pending commit when the value changes outside', () => {
+    const { onCommit, input, type, rerender } = setup('a')
+    type('x')
+    advance(100)
+    rerender('b')
+    advance(1000)
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(input.value).toBe('b')
+  })
+
+  it('does not stay stuck in composition after an external change', () => {
+    const { onCommit, input, type, rerender } = setup('a')
+    fireEvent.compositionStart(input)
+    rerender('b')
+    type('bc')
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onCommit).toHaveBeenCalledWith('bc')
+  })
+
+  it('commits once after 300ms under StrictMode', () => {
+    const { onCommit, type } = setup(null, true)
+    type('abc')
+    advance(SEARCH_COMMIT_DELAY_MS)
+    expect(onCommit).toHaveBeenCalledTimes(1)
+    expect(onCommit).toHaveBeenCalledWith('abc')
+  })
+
+  it('clears its timer on unmount under StrictMode', () => {
+    const { onCommit, type, unmount } = setup(null, true)
+    type('abc')
+    unmount()
+    advance(1000)
+    expect(onCommit).not.toHaveBeenCalled()
   })
 
   it('takes an external value change', () => {

@@ -28,6 +28,8 @@ export function SearchField({ label, placeholder, value, onCommit }: SearchField
   useEffect(() => {
     if (value === lastCommitted.current) return
     lastCommitted.current = value
+    clearTimeout(timer.current)
+    composing.current = false
     setText(value ?? '')
   }, [value])
 
