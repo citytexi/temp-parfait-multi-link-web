@@ -123,6 +123,44 @@
 
 /* Selects in the filter row keep a 16px font so iOS does not zoom. */
 .adm-event-stream-select {
+  font: inherit;
   font-size: var(--adm-fs-md);
   min-height: var(--adm-hit);
+  padding: 0 var(--adm-space-3);
+  border: 1px solid var(--adm-border-strong);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-text-1);
+}
+
+.adm-event-stream-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--adm-space-3) var(--adm-space-4);
+  margin-bottom: var(--adm-space-4);
+}
+
+.adm-event-stream-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--adm-space-1);
+}
+
+.adm-event-stream-filter__label {
+  font-size: var(--adm-fs-sm);
+  font-weight: var(--adm-fw-medium);
+  color: var(--adm-text-2);
+}
+
+.adm-event-stream-truncated {
+  margin: var(--adm-space-3) 0 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+/* Under watched rows the empty state is a short notice, not a full-height placeholder. */
+.adm-event-stream-table + .adm-event-stream-empty,
+.adm-event-stream-truncated + .adm-event-stream-empty {
+  min-height: 0;
 }
