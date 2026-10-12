@@ -76,11 +76,6 @@ export function writeStored(key: string, value: unknown): boolean {
   return writeRaw(key, value) !== null
 }
 
-export function newId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
-}
-
 /** `raw` is the stored string `value` belongs to; it is stale while `persisted` is false. */
 type Snapshot<T> = { key: string; raw: string | null; value: T; persisted: boolean }
 

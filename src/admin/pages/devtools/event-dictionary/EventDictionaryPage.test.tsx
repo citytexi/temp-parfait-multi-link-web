@@ -559,7 +559,8 @@ describe('EventDictionaryPage', () => {
     await advance(0)
     const content = detail('today_only')
     const copy = within(content).getByRole('button', { name: COPY })
-    const status = within(content).getByRole('status')
+    // The page's own region; the list has no status element of its own once it is loaded.
+    const status = screen.getByRole('status')
     expect(status).toBeEmptyDOMElement()
 
     copy.focus()
@@ -570,21 +571,19 @@ describe('EventDictionaryPage', () => {
     expect(copy).toHaveFocus()
     expect(status).toHaveTextContent(COPIED)
     expect(within(content).queryByRole('textbox')).toBeNull()
-    const firstMessage = status.firstElementChild
+    const firstMessage = status.lastElementChild
 
     // A second copy is announced again: the same words arrive as a new node.
     await advance(1000)
     fireEvent.click(copy)
     await advance(0)
     expect(status).toHaveTextContent(COPIED)
-    expect(status.firstElementChild).not.toBe(firstMessage)
+    expect(status.lastElementChild).not.toBe(firstMessage)
 
     await advance(1500)
     expect(copy).toHaveTextContent(COPIED)
     await advance(500)
     expect(copy).toHaveTextContent(COPY)
-    expect(within(content).getByRole('status')).toBe(status)
-    expect(status).toBeEmptyDOMElement()
   })
 
   it('falls back to a selectable text box when the clipboard is missing or rejects', async () => {

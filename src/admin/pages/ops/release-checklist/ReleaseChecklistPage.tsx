@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactElement, type RefObject } from 'react'
+import { useId, useMemo, useRef, useState, type ReactElement, type RefObject } from 'react'
 import { Card } from '../../../components/Card'
 import { CheckboxField } from '../../../components/form/CheckboxField'
 import { ConfirmButton } from '../../../components/form/ConfirmButton'
@@ -7,7 +7,9 @@ import { NotSavedNote } from '../../../components/form/NotSavedNote'
 import { SelectField } from '../../../components/form/SelectField'
 import { StatusRegion, useAnnounce } from '../../../components/form/StatusRegion'
 import { TextField } from '../../../components/form/TextField'
-import { newId, useStored } from '../../../lib/localStore'
+import { newId } from '../../../lib/id'
+import { useStored } from '../../../lib/localStore'
+import { useFocusRequest } from '../../../lib/useFocusRequest'
 import { useNav, usePageParam } from '../../../menu/NavContext'
 import { REGISTRY } from '../../../menu/registry'
 import {
@@ -51,7 +53,7 @@ const ALL_DONE = '모두 확인했어요'
 const NO_PLATFORM = '플랫폼을 하나 이상 골라 주세요'
 const SHARE_UNREADABLE = '공유 링크를 읽지 못했어요'
 
-/** Where focus goes once the next render is on screen. A new object each time, so it runs again. */
+/** Where focus goes once the next render is on screen. */
 type FocusTarget = { to: 'heading' | 'picker' | 'name' | 'new' }
 
 function NewReleaseForm({
@@ -176,29 +178,23 @@ function ReleaseChecklist(): ReactElement {
   const [formOpen, setFormOpen] = useState(false)
   // Set by a refused 새 릴리즈; the message shows only while the list is still full.
   const [limitAsked, setLimitAsked] = useState(false)
-  const [focus, setFocus] = useState<FocusTarget | null>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const pickerRef = useRef<HTMLSelectElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const newRef = useRef<HTMLButtonElement>(null)
-  const focused = useRef<FocusTarget | null>(null)
 
   // Runs after the render that drew the target: a new release's heading, the picker after a delete.
   // The shared view has none of the targets, so a request made there waits until it is gone.
-  useEffect(() => {
-    if (!focus || shared || focused.current === focus) return
-    focused.current = focus
+  const setFocus = useFocusRequest<FocusTarget>((focus) => {
     const picker = pickerRef.current ?? nameRef.current
-    const target =
-      focus.to === 'heading'
-        ? (headingRef.current ?? picker)
-        : focus.to === 'name'
-          ? nameRef.current
-          : focus.to === 'new'
-            ? (newRef.current ?? picker)
-            : picker
-    target?.focus()
-  }, [focus, shared])
+    return focus.to === 'heading'
+      ? (headingRef.current ?? picker)
+      : focus.to === 'name'
+        ? nameRef.current
+        : focus.to === 'new'
+          ? (newRef.current ?? picker)
+          : picker
+  }, !shared)
 
   const list = releases.value
   const current = list.find((r) => r.id === releaseParam) ?? list[0] ?? null

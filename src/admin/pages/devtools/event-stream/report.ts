@@ -1,11 +1,13 @@
 import { findEvent } from '../../../ga/eventCatalog'
+import { labelFrom } from '../../../ga/eventLabels'
 import { toRows } from '../../../ga/reports/common'
 import type { PropertyQuota, RunRealtimeReportRequest, RunReportResponse } from '../../../ga/types'
 import { BASELINE_MAX_AGE_MS, HIGHLIGHT_TTL_MS, ROW_LIMIT } from './config'
 
 export const NOT_SET = '(not set)'
 const MINUTES = 30
-const RECENT_MINUTES = 5
+// The window of the `5분` column.
+const SHORT_WINDOW_MINUTES = 5
 
 export type StreamRow = { event: string; minutesAgo: number; platform: string; version: string; count: number }
 export type StreamSnapshot = { rows: StreamRow[]; truncated: boolean; fetchedAt: number; quota: PropertyQuota | null }
@@ -77,7 +79,7 @@ function sumByEvent(s: StreamSnapshot, dim: DimFilter): Map<string, number[]> {
 }
 
 const sum = (xs: number[]): number => xs.reduce((a, b) => a + b, 0)
-const last5Of = (buckets: number[]): number => sum(buckets.slice(MINUTES - RECENT_MINUTES))
+const last5Of = (buckets: number[]): number => sum(buckets.slice(MINUTES - SHORT_WINDOW_MINUTES))
 
 export function toLines(s: StreamSnapshot, dim: DimFilter, q: string, watch: readonly string[]): EventLine[] {
   const sums = sumByEvent(s, dim)
@@ -87,7 +89,7 @@ export function toLines(s: StreamSnapshot, dim: DimFilter, q: string, watch: rea
   const lines: EventLine[] = []
   for (const name of names) {
     const entry = findEvent(name)
-    const label = entry?.label || name
+    const { label } = labelFrom(entry, name)
     const isWatched = watched.has(name)
     if (!isWatched && needle && !name.toLowerCase().includes(needle) && !label.toLowerCase().includes(needle)) continue
     const perMinute = sums.get(name) ?? Array<number>(MINUTES).fill(0)

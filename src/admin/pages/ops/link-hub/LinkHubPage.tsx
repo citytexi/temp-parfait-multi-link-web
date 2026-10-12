@@ -4,7 +4,9 @@ import { ConfirmButton } from '../../../components/form/ConfirmButton'
 import { NotSavedNote } from '../../../components/form/NotSavedNote'
 import { StatusRegion, useAnnounce } from '../../../components/form/StatusRegion'
 import { TextField } from '../../../components/form/TextField'
-import { newId, useStored } from '../../../lib/localStore'
+import { newId } from '../../../lib/id'
+import { useStored } from '../../../lib/localStore'
+import { useFocusRequest } from '../../../lib/useFocusRequest'
 import { LINK_GROUPS, TEAM_LINKS } from './links'
 import {
   hostOf,
@@ -127,7 +129,6 @@ function LinkHub(): ReactElement {
   // A filter for this screen only; it is not part of the URL.
   const [query, setQuery] = useState('')
   const [form, setForm] = useState<OpenForm | null>(null)
-  const [focus, setFocus] = useState<FocusTarget | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const addRef = useRef<HTMLButtonElement>(null)
   const anchors = useRef(new Map<string, HTMLAnchorElement>())
@@ -135,12 +136,11 @@ function LinkHub(): ReactElement {
 
   // Runs after the list is on screen. A target that is gone (filtered out, removed in another tab,
   // the add button at the limit) falls back to the add button, then to the search field.
-  useEffect(() => {
-    if (!focus) return
+  const setFocus = useFocusRequest<FocusTarget>((focus) => {
     const own =
       focus.kind === 'link' ? anchors.current.get(focus.id) : focus.kind === 'edit' ? editButtons.current.get(focus.id) : null
-    ;(own ?? addRef.current ?? searchRef.current)?.focus()
-  }, [focus])
+    return own ?? addRef.current ?? searchRef.current
+  })
 
   const adding = form?.mode === 'add'
   // A link removed in another tab takes its edit form with it.

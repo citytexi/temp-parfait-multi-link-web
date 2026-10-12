@@ -113,8 +113,10 @@ export default defineMenu({
 
 - 브라우저에 남길 값은 `src/admin/lib/localStore.ts`의 `useStored(key, parse, fallback)`로 읽고 써요. key는 `parfait-admin:<메뉴 id>:<이름>`으로 짓고, `parse`에서 저장된 값을 다시 검사해요. 저장된 값은 믿을 수 없는 입력이에요. 토큰이나 개인 정보는 넣지 않아요.
 - 저장에 실패해도 화면은 계속 동작해요. 페이지에 `src/admin/components/form/`의 `NotSavedNote`를 두고 `persisted`를 넘기면, `false`일 때 "이 브라우저에는 저장되지 않았어요. 창을 닫으면 사라져요."를 보여 주고 스크린 리더에도 알려요. 문구를 페이지에 따로 적지 않아요.
-- 글자를 치는 칸을 URL에 둘 때는 `usePageParam` 대신 `src/admin/lib/useDebouncedPageParam.ts`를 써요. 마지막 입력 뒤 300ms에 한 번만 써요.
-- 입력 칸, 복사 버튼, 한 번 더 눌러 확인하는 버튼은 `src/admin/components/form/`의 `TextField`, `SelectField`, `CheckboxField`, `CopyButton`, `ConfirmButton`을 써요. 페이지를 `StatusRegion`으로 감싸면 버튼이 한 일을 스크린 리더에 알려요.
+- 글자를 치는 칸을 URL에 둘 때는 `usePageParam` 대신 `src/admin/lib/useDebouncedPageParam.ts`를 써요. 마지막 입력 뒤 300ms에 한 번만 써요. 검색창은 이 훅을 쓰는 `src/admin/components/form/`의 `SearchField`에 페이지 파라미터 이름만 넘기면 돼요.
+- 입력 칸, 복사 버튼, 한 번 더 눌러 확인하는 버튼은 `src/admin/components/form/`의 `TextField`, `SelectField`, `CheckboxField`, `CopyButton`, `ConfirmButton`을 써요. 페이지를 `StatusRegion`으로 감싸면 버튼이 한 일을 스크린 리더에 알려요. 1초 안에 이어진 알림은 서로 덮지 않고 함께 남아요.
+- 누른 버튼이 화면에서 사라지거나 새로 생긴 줄로 포커스를 옮겨야 할 때는 `src/admin/lib/useFocusRequest.ts`를 써요. 다음 렌더가 화면에 그려진 뒤에 포커스를 옮겨요.
+- 브라우저에서 만드는 기록의 id는 `src/admin/lib/id.ts`의 `newId()`로 만들어요. 사람이 넣는 이름은 `src/admin/lib/text.ts`의 `hasUnsafeChars`로 줄바꿈, 제어 문자, 글자 방향을 뒤집는 문자를 걸러요.
 - 랜딩 주소는 `src/admin/lib/siteUrls.ts`의 `LANDING_URL`을 써요.
 
 ### 고치지 않는 파일

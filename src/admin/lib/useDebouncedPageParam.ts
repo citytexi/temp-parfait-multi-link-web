@@ -8,10 +8,12 @@ export const PARAM_COMMIT_DELAY_MS = 300
  * The URL is written after a pause (not per keystroke) and never during IME composition.
  * An outside URL change (back button, other code) replaces the field and drops the pending
  * write; leaving the page or changing the menu drops it too. Both functions are stable.
+ * `onWrite` runs after each write this hook makes, with null for an empty field.
  */
 export function useDebouncedPageParam(
   key: string,
   delayMs: number = PARAM_COMMIT_DELAY_MS,
+  onWrite?: (value: string | null) => void,
 ): [string, (value: string) => void, () => void] {
   const [urlValue, setUrlValue] = usePageParam(key)
   const { menu } = useNav()
@@ -27,6 +29,8 @@ export function useDebouncedPageParam(
   setUrlRef.current = setUrlValue
   const delayRef = useRef(delayMs)
   delayRef.current = delayMs
+  const onWriteRef = useRef(onWrite)
+  onWriteRef.current = onWrite
   const menuRef = useRef(menu)
 
   const clearTimer = useCallback(() => {
@@ -39,7 +43,9 @@ export function useDebouncedPageParam(
     const v = valueRef.current
     if (v === knownRef.current) return
     knownRef.current = v
-    setUrlRef.current(v === '' ? null : v)
+    const written = v === '' ? null : v
+    setUrlRef.current(written)
+    onWriteRef.current?.(written)
   }, [clearTimer])
 
   const schedule = useCallback(() => {
@@ -82,6 +88,8 @@ export function useDebouncedPageParam(
     if (urlStr === knownRef.current) return
     knownRef.current = urlStr
     valueRef.current = urlStr
+    // The text being composed is gone with the old value; do not wait for its end.
+    composingRef.current = false
     clearTimer()
     setValue(urlStr)
   }, [urlStr, clearTimer])
@@ -92,6 +100,7 @@ export function useDebouncedPageParam(
     menuRef.current = menu
     knownRef.current = urlStr
     valueRef.current = urlStr
+    composingRef.current = false
     clearTimer()
     setValue(urlStr)
   }, [menu, urlStr, clearTimer])

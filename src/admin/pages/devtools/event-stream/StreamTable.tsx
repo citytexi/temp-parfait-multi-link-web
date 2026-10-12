@@ -1,6 +1,7 @@
 import { Star } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { formatNumber } from '../../../lib/format'
+import { EventName } from '../shared/EventName'
 import { HIGHLIGHT_TTL_MS } from './config'
 import type { EventLine, Highlight } from './report'
 import './event-stream.css'
@@ -97,16 +98,7 @@ export function StreamTable(props: {
                   <td>
                     <div className="adm-event-stream-event">
                       {hot && <span key={hot.at} className="adm-event-stream-flash" aria-hidden="true" />}
-                      <span className="adm-event-stream-name">
-                        {line.inCatalog && line.label !== line.name ? (
-                          <>
-                            <span className="adm-event-stream-label">{line.label}</span>
-                            <span className="adm-event-stream-raw">{line.name}</span>
-                          </>
-                        ) : (
-                          <span className="adm-event-stream-label">{line.name}</span>
-                        )}
-                      </span>
+                      <EventName name={line.name} label={line.label} />
                       <span className="adm-event-stream-marks">
                         {!line.inCatalog && (
                           <>

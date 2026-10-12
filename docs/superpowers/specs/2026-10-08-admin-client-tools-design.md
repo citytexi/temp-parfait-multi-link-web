@@ -2,7 +2,7 @@
 
 - 작성일: 2026-10-08
 - 브랜치: `feat/admin-client-tools`
-- 상태: 구현됨(2026-10-08), 브랜치 전체 리뷰 반영. 브라우저 화면 확인과 실제 기기 확인(§9)은 아직 하지 않음
+- 상태: 구현됨(2026-10-08), 브랜치 전체 리뷰 반영. 리뷰에서 남긴 문제 7개와 묶음 2와의 통합은 2026-10-12에 반영(`fix/admin-review-followups`). 브라우저 화면 확인과 실제 기기 확인(§9)은 아직 하지 않음
 
 ## 1. 목표
 
@@ -608,7 +608,7 @@ export function useDebouncedPageParam(key: string, delayMs?: number): [string, (
 - 마지막 입력 뒤 300ms에 쓴다. "지금 바로 쓰기"는 칸이 포커스를 잃을 때 부른다. 한글 조합 중에는 쓰지 않는다. 빈 값은 파라미터를 지운다.
 - URL의 값이 바깥에서 바뀌면(뒤로 가기, `다시 열기`) 칸의 값을 그것으로 바꾸고 남은 타이머를 지운다.
 - `NavContext.tsx`는 고치지 않는다.
-- 묶음 2의 `SearchField`가 같은 규칙을 컴포넌트 안에 갖고 있다. 두 묶음이 머지된 뒤 `SearchField`가 이 훅을 쓰도록 합치는 것을 후속 작업으로 둔다.
+- 묶음 2의 `SearchField`가 같은 규칙을 컴포넌트 안에 갖고 있었다. 2026-10-12에 합쳤다. `SearchField`는 `src/admin/components/form/`으로 옮겼고 이 훅으로 URL에 쓴다. 훅에는 쓴 직후에 불리는 `onWrite` 인자가 생겼다(사전이 검색할 때 열린 이벤트를 닫는 데 쓴다).
 
 ### `src/admin/lib/download.ts`
 
@@ -630,7 +630,9 @@ export function useDebouncedPageParam(key: string, delayMs?: number): [string, (
 - 스타일은 `form.css`에 두고 클래스는 `adm-field`, `adm-confirm`, `adm-copy`, `adm-status-region`, `adm-not-saved`로 시작한다. `admin.css`는 고치지 않는다.
 - 입력 글자 크기는 16px(`--adm-fs-md`) 이상, 누르는 영역은 44px(`--adm-hit`) 이상이다.
 
-묶음 2는 자기 복사 버튼과 `SearchField`를 따로 만든다. 병렬 작업이라 이 묶음에서는 쓰지 않는다. 머지된 뒤 `components/form/`으로 합치는 것을 후속 작업으로 둔다.
+묶음 2는 자기 복사 버튼과 `SearchField`를 따로 만들었다. 2026-10-12에 `components/form/`으로 합쳤다. 사전의 복사 버튼은 `CopyButton`을 쓰고, 스트림의 선택 상자는 `SelectField`를 쓴다.
+
+같은 날 `StatusRegion`은 1초 안에 이어진 알림을 함께 남기도록 바뀌었다. 저장 실패 알림이 `추가했어요`를 덮던 문제 때문이다. `NotSavedNote`는 저장되지 않은 값이 있는 화면에 들어올 때도 알린다.
 
 ### 고치는 것
 

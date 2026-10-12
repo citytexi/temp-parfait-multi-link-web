@@ -1,4 +1,5 @@
 import { targetPlatforms, type CatalogEvent, type EventPlatform } from '../../../ga/eventCatalog'
+import { labelFrom } from '../../../ga/eventLabels'
 import type { GaParam, Observed, PlatformCount, Recent } from './report'
 
 export type EventStatus = 'unknown' | 'missing' | 'partial' | 'undocumented' | 'ok'
@@ -75,7 +76,7 @@ export function buildDictionary(input: {
     }
     entries.push({
       name,
-      label: catalog?.label ? catalog.label : name,
+      label: labelFrom(catalog ?? undefined, name).label,
       catalog,
       status: observed ? judge(catalog, arrived, missingPlatforms) : judge(catalog, true, []),
       count: observed ? (seen?.count ?? 0) : null,

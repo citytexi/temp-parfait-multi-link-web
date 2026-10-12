@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { STORE_PREFIX, forgetUnsaved, newId, readStored, useStored, writeStored, type Parser } from './localStore'
+import { STORE_PREFIX, forgetUnsaved, readStored, useStored, writeStored, type Parser } from './localStore'
 
 const KEY = 'parfait-admin:test'
 const OTHER_KEY = 'parfait-admin:other'
@@ -70,22 +70,6 @@ describe('readStored and writeStored', () => {
     expect(() => readStored('other:key', strings, [])).toThrow(/parfait-admin:/)
     expect(() => writeStored('other:key', [])).toThrow(/parfait-admin:/)
     expect(() => renderHook(() => useStored('other:key', strings, []))).toThrow(/parfait-admin:/)
-  })
-})
-
-describe('newId', () => {
-  it('makes ids that differ', () => {
-    expect(newId()).not.toBe(newId())
-  })
-  it('makes ids that differ without crypto.randomUUID', () => {
-    vi.stubGlobal('crypto', {})
-    try {
-      const a = newId()
-      expect(a).not.toBe('')
-      expect(a).not.toBe(newId())
-    } finally {
-      vi.unstubAllGlobals()
-    }
   })
 })
 

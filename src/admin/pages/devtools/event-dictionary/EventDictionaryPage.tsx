@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { Card } from '../../../components/Card'
 import { CardState } from '../../../components/CardState'
 import { CsvButton } from '../../../components/CsvButton'
+import { SearchField } from '../../../components/form/SearchField'
+import { StatusRegion } from '../../../components/form/StatusRegion'
 import { EVENT_CATALOG } from '../../../ga/eventCatalog'
+import { useFocusRequest } from '../../../lib/useFocusRequest'
 import { usePageParam } from '../../../menu/NavContext'
-import { SearchField } from '../shared/SearchField'
 import {
   CSV_HEADERS,
   STATUS_LABEL,
@@ -59,7 +61,7 @@ function ParamTable({ params }: { params: readonly GaParam[] }): ReactElement {
   )
 }
 
-export function EventDictionaryPage(): ReactElement {
+function EventDictionary(): ReactElement {
   const [q, setQ] = usePageParam('q')
   const [statusParam, setStatus] = usePageParam('status')
   const [eventParam, setEvent] = usePageParam('event')
@@ -81,26 +83,17 @@ export function EventDictionaryPage(): ReactElement {
     pinned = entry ? { kind: 'filtered', entry } : { kind: 'unlisted', name: expanded }
   }
 
-  // Where focus goes once a control that held it has left the page; `seq` makes each request run once.
+  // Where focus goes once a control that held it has left the page.
   const toolbar = useRef<HTMLDivElement>(null)
   const grid = useRef<HTMLDivElement>(null)
-  const [focusRequest, setFocusRequest] = useState<{ target: 'list' | 'search'; seq: number } | null>(null)
-  const requestFocus = (target: 'list' | 'search') =>
-    setFocusRequest((prev) => ({ target, seq: (prev?.seq ?? 0) + 1 }))
-  const focusSearch = (options?: FocusOptions) =>
-    toolbar.current?.querySelector<HTMLElement>('input[type="search"]')?.focus(options)
-  useEffect(() => {
-    if (focusRequest === null) return
-    if (focusRequest.target === 'search') {
-      focusSearch()
-      return
-    }
-    // The first listed row, or the chosen status button when nothing is listed.
-    const target =
-      grid.current?.querySelector<HTMLElement>('.adm-event-dictionary-toggle') ??
-      toolbar.current?.querySelector<HTMLElement>('.adm-event-dictionary-status[aria-pressed="true"]')
-    target?.focus()
-  }, [focusRequest])
+  const searchInput = () => toolbar.current?.querySelector<HTMLElement>('input[type="search"]')
+  const requestFocus = useFocusRequest<'list' | 'search'>((target) =>
+    target === 'search'
+      ? searchInput()
+      : // The first listed row, or the chosen status button when nothing is listed.
+        (grid.current?.querySelector<HTMLElement>('.adm-event-dictionary-toggle') ??
+        toolbar.current?.querySelector<HTMLElement>('.adm-event-dictionary-status[aria-pressed="true"]')),
+  )
 
   // The event a link or the stream opened is brought into view once it is judged, and again when its row
   // leaves the top for its sorted place. A row the user opened in the list is already in view.
@@ -137,7 +130,7 @@ export function EventDictionaryPage(): ReactElement {
     // The notice is gone; focus is moved only if it was on the notice's button. The page stays where
     // it is: scrolling up to the search field would push an open event out of view.
     else if (document.activeElement === null || document.activeElement === document.body) {
-      focusSearch({ preventScroll: true })
+      searchInput()?.focus({ preventScroll: true })
     }
   }, [observed, retrying])
   const retry = () => {
@@ -196,15 +189,8 @@ export function EventDictionaryPage(): ReactElement {
           ))}
         </div>
         <div className="adm-event-dictionary-tools">
-          <SearchField
-            label="검색"
-            placeholder="이벤트 이름이나 설명"
-            value={q}
-            onCommit={(value) => {
-              setQ(value)
-              setEvent(null)
-            }}
-          />
+          {/* A new search closes the open event; it would stay on top of a list it is not part of. */}
+          <SearchField label="검색" param="q" placeholder="이벤트 이름이나 설명" onWrite={() => setEvent(null)} />
           {/* An unjudged list would be exported with blank counts and every entry as 정상. */}
           {observed === 'ready' && range && (
             <CsvButton
@@ -279,5 +265,14 @@ export function EventDictionaryPage(): ReactElement {
         </Card>
       </div>
     </>
+  )
+}
+
+export function EventDictionaryPage(): ReactElement {
+  // The region the copy button announces into.
+  return (
+    <StatusRegion>
+      <EventDictionary />
+    </StatusRegion>
   )
 }

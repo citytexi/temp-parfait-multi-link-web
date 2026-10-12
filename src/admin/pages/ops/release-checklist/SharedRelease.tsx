@@ -1,7 +1,7 @@
 import { useState, type ReactElement } from 'react'
 import { Card } from '../../../components/Card'
 import { useAnnounce } from '../../../components/form/StatusRegion'
-import { newId } from '../../../lib/localStore'
+import { newId } from '../../../lib/id'
 import type { ReleaseActions } from './ReleaseChecklistPage'
 import { isChecked, LIMIT_MESSAGE, newRelease, platformsLabel, progress, visibleSections } from './release'
 import type { SharePayload } from './share'
