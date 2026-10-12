@@ -2,6 +2,9 @@
 export const GA_PROPERTY_ID = '543897329'
 export const OAUTH_CLIENT_ID = '774115496627-cufgr2gbvvd68agic0i4ciuu09tr1itu.apps.googleusercontent.com'
 
+// Core Data API tokens a standard GA4 property may spend per day.
+export const GA_TOKENS_PER_DAY = 200_000
+
 export function isConfigured(): boolean {
   return GA_PROPERTY_ID.trim() !== '' && OAUTH_CLIENT_ID.trim() !== ''
 }

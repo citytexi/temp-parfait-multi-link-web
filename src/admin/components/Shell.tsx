@@ -1,6 +1,7 @@
 import { Search } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 import { useAuth } from '../auth/AuthContext'
+import { useQuota } from '../hooks/useGa'
 import { useNav } from '../menu/NavContext'
 import { REGISTRY, type Registry } from '../menu/registry'
 import { useIsDesktop } from '../menu/useIsDesktop'
@@ -20,6 +21,7 @@ export function Shell({ registry = REGISTRY }: { registry?: Registry }): ReactEl
   const { logout } = useAuth()
   const { menu, setMenu } = useNav()
   const isDesktop = useIsDesktop()
+  const quota = useQuota()
   const [commandOpen, setCommandOpen] = useState(false)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const focusTitle = useCallback(() => titleRef.current?.focus(), [])
@@ -49,6 +51,21 @@ export function Shell({ registry = REGISTRY }: { registry?: Registry }): ReactEl
     focusTitleOnClose.current = false
     focusTitle()
   }, [commandOpen, focusTitle])
+
+  // Crossing 960px swaps one menu for the other, and the focused button goes with the old one.
+  // Whether the menu held focus is read while rendering, before the old menu leaves the page.
+  const menuHeldFocus = useRef(false)
+  const [seenDesktop, setSeenDesktop] = useState(isDesktop)
+  if (seenDesktop !== isDesktop) {
+    setSeenDesktop(isDesktop)
+    menuHeldFocus.current = document.activeElement?.closest('.adm-menu') != null
+  }
+
+  useEffect(() => {
+    if (!menuHeldFocus.current) return
+    menuHeldFocus.current = false
+    document.querySelector<HTMLElement>('.adm-menu [aria-current="page"]')?.focus()
+  }, [isDesktop])
 
   const current = registry.findMenu(menu) ?? registry.findMenu(registry.lookup.defaultMenu)
   const Menu = isDesktop ? SideMenu : MobileMenu
@@ -86,7 +103,8 @@ export function Shell({ registry = REGISTRY }: { registry?: Registry }): ReactEl
           )}
         </main>
       </div>
-      {current?.usesGa && (
+      {/* No footer until the first response reports the quota: an empty one would only add a gap. */}
+      {current?.usesGa && quota !== null && (
         <footer className="adm-shell__footer">
           <QuotaBadge />
         </footer>

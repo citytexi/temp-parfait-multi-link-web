@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 import { groupOf, MenuItem, type MenuProps } from './MenuItem'
 
 /** Mobile menu: a group switch above a horizontally scrolling tab list. */
@@ -15,6 +15,23 @@ export function MobileMenu({ groups, active, onSelect }: MenuProps): ReactElemen
   useEffect(() => {
     activeTab.current?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
   }, [active, picked])
+
+  // Which ends of the tab list have more tabs out of view; the list fades at those ends.
+  const list = useRef<HTMLUListElement>(null)
+  const [more, setMore] = useState({ start: false, end: false })
+  const measure = useCallback(() => {
+    const el = list.current
+    if (!el) return
+    const start = el.scrollLeft > 1
+    const end = el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+    setMore((prev) => (prev.start === start && prev.end === end ? prev : { start, end }))
+  }, [])
+
+  useEffect(() => {
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [measure, picked, groups])
 
   const shown = groups.find((g) => g.id === picked) ?? groups[0]
 
@@ -37,7 +54,15 @@ export function MobileMenu({ groups, active, onSelect }: MenuProps): ReactElemen
         </div>
       )}
       {shown && (
-        <ul id="adm-mobile-tabs" className="adm-menu__list" aria-label={shown.label}>
+        <ul
+          ref={list}
+          id="adm-mobile-tabs"
+          className="adm-menu__list"
+          aria-label={shown.label}
+          data-more-start={more.start || undefined}
+          data-more-end={more.end || undefined}
+          onScroll={measure}
+        >
           {shown.menus.map((menu) => (
             <MenuItem
               key={menu.id}
