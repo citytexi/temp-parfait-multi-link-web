@@ -16,8 +16,8 @@ import {
   newRelease,
   normalizePlatforms,
   parseReleases,
-  platformsLabel,
   progress,
+  releaseOptions,
   RELEASES_KEY,
   RELEASES_MAX,
   releaseText,
@@ -316,9 +316,13 @@ function ReleaseChecklist(): ReactElement {
   return (
     <div className="adm-release-checklist-layout">
       {shareParam !== null && (
-        <p role="alert" className="adm-release-checklist-text adm-release-checklist-text--warn">
-          {SHARE_UNREADABLE}
-        </p>
+        <div role="alert" className="adm-release-checklist-notice">
+          <p className="adm-release-checklist-text adm-release-checklist-text--warn">{SHARE_UNREADABLE}</p>
+          {/* Closing also takes the unreadable value out of the URL. */}
+          <button type="button" className="adm-button adm-button--ghost" onClick={closeShared}>
+            닫기
+          </button>
+        </div>
       )}
       {current ? (
         <div className="adm-release-checklist-toolbar">
@@ -327,7 +331,7 @@ function ReleaseChecklist(): ReactElement {
             label="릴리즈"
             value={current.id}
             onChange={setReleaseParam}
-            options={list.map((r) => ({ value: r.id, label: `${r.name} · ${platformsLabel(r.platforms)}` }))}
+            options={releaseOptions(list)}
           />
           <button ref={newRef} type="button" className="adm-button adm-button--secondary" onClick={openForm}>
             새 릴리즈

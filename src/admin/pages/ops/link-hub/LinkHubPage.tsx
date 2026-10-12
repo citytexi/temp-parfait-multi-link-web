@@ -172,7 +172,12 @@ function LinkHub(): ReactElement {
       added = true
       return [...list, { id, label, url }]
     })
-    announce(added ? '추가했어요' : AT_LIMIT)
+    if (!added) {
+      // Another tab filled the list while the form was open. The form stays, with what was typed.
+      announce(AT_LIMIT)
+      return
+    }
+    announce('추가했어요')
     close({ kind: 'link', id }, { label, url })
   }
 
@@ -281,19 +286,20 @@ function LinkHub(): ReactElement {
                 ))}
               </ul>
             )}
+            {atLimit && <p className="adm-link-hub-text">{AT_LIMIT}</p>}
             {adding ? (
               <LinkForm name="내 링크 추가" initial={EMPTY} onSave={add} onCancel={() => close({ kind: 'add' })} />
-            ) : atLimit ? (
-              <p className="adm-link-hub-text">{AT_LIMIT}</p>
             ) : (
-              <button
-                ref={addRef}
-                type="button"
-                className="adm-button adm-button--secondary adm-link-hub-add"
-                onClick={() => setForm({ mode: 'add' })}
-              >
-                내 링크 추가
-              </button>
+              !atLimit && (
+                <button
+                  ref={addRef}
+                  type="button"
+                  className="adm-button adm-button--secondary adm-link-hub-add"
+                  onClick={() => setForm({ mode: 'add' })}
+                >
+                  내 링크 추가
+                </button>
+              )
             )}
           </div>
         </Card>

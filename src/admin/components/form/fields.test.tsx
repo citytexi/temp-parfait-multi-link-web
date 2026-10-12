@@ -1,7 +1,7 @@
 import { StrictMode, createRef } from 'react'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { StatusRegion, useAnnounce } from './StatusRegion'
+import { ANNOUNCE_TOGETHER_MS, StatusRegion, useAnnounce } from './StatusRegion'
 import { TextField } from './TextField'
 import { SelectField } from './SelectField'
 import { CheckboxField } from './CheckboxField'
@@ -34,11 +34,43 @@ describe('StatusRegion', () => {
     const region = screen.getByRole('status')
     fireEvent.click(screen.getByText('알리기'))
     expect(region.textContent).toBe('a')
-    const first = region.firstChild
+    const first = region.lastChild
     fireEvent.click(screen.getByText('알리기'))
-    expect(region.textContent).not.toBe('a')
-    expect(region).toHaveTextContent('a')
-    expect(region.firstChild).not.toBe(first)
+    expect(region.lastChild).not.toBe(first)
+    expect(region.lastChild?.textContent).not.toBe('a')
+    expect(region.lastChild).toHaveTextContent('a')
+  })
+
+  it('keeps announcements made close together side by side, and drops them once a later one comes', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      function Two() {
+        const announce = useAnnounce()
+        return (
+          <>
+            <button onClick={() => announce('추가했어요')}>하나</button>
+            <button onClick={() => announce('저장되지 않았어요')}>둘</button>
+          </>
+        )
+      }
+      render(
+        <StatusRegion>
+          <Two />
+        </StatusRegion>,
+      )
+      const region = screen.getByRole('status')
+      const texts = () => [...region.children].map((el) => el.textContent)
+      fireEvent.click(screen.getByText('하나'))
+      vi.advanceTimersByTime(ANNOUNCE_TOGETHER_MS - 1)
+      fireEvent.click(screen.getByText('둘'))
+      expect(texts()).toEqual(['추가했어요', '저장되지 않았어요'])
+
+      vi.advanceTimersByTime(ANNOUNCE_TOGETHER_MS)
+      fireEvent.click(screen.getByText('하나'))
+      expect(texts()).toEqual(['추가했어요'])
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('gives a no-op announcer outside a region', () => {
@@ -161,25 +193,30 @@ describe('NotSavedNote', () => {
     rerender(note(false))
     expect(onPage()).toBeInTheDocument()
     expect(region.textContent).toBe(NOT_SAVED)
-    const first = region.firstChild
+    const first = region.lastChild
     rerender(note(false))
     rerender(note(false))
     // Every announcement draws a new node, so the same node means nothing was announced again.
-    expect(region.firstChild).toBe(first)
+    expect(region.lastChild).toBe(first)
 
     rerender(note(true))
     expect(onPage()).toBeNull()
-    expect(region.firstChild).toBe(first)
+    expect(region.lastChild).toBe(first)
     rerender(note(false))
     expect(onPage()).toBeInTheDocument()
-    expect(region.firstChild).not.toBe(first)
-    expect(region).toHaveTextContent(NOT_SAVED)
+    expect(region.lastChild).not.toBe(first)
+    expect(region.lastChild).toHaveTextContent(NOT_SAVED)
   })
 
-  it('shows the sentence without announcing when it starts unsaved', () => {
+  it('announces the sentence when it starts unsaved', () => {
     render(note(false))
     expect(onPage()).toBeInTheDocument()
-    expect(screen.getByRole('status').textContent).toBe('')
+    expect(screen.getByRole('status').textContent).toBe(NOT_SAVED)
+  })
+
+  it('announces once under StrictMode when it starts unsaved', () => {
+    render(<StrictMode>{note(false)}</StrictMode>)
+    expect(screen.getByRole('status').textContent).toBe(NOT_SAVED)
   })
 
   it('announces once under StrictMode', () => {

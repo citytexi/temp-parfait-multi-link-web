@@ -1,4 +1,5 @@
 import type { Parser } from '../../../lib/localStore'
+import { hasUnsafeChars } from '../../../lib/text'
 
 export const PERSONAL_KEY = 'parfait-admin:link-hub:personal'
 export const PERSONAL_MAX = 50
@@ -45,6 +46,7 @@ export function validatePersonal(input: {
   const rawUrl = input.url.trim()
   const errors: PersonalErrors = {}
   if (label === '') errors.label = '이름을 넣어 주세요'
+  else if (hasUnsafeChars(input.label)) errors.label = '이름에 줄바꿈이나 제어 문자는 쓸 수 없어요'
   else if ([...label].length > LABEL_MAX) errors.label = `이름은 ${LABEL_MAX}자까지 쓸 수 있어요`
   let url = ''
   if (rawUrl === '') errors.url = '주소를 넣어 주세요'

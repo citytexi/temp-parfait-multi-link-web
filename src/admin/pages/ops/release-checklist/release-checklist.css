@@ -142,6 +142,13 @@
   color: var(--adm-text-2);
 }
 
+.adm-release-checklist-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--adm-space-2) var(--adm-space-3);
+}
+
 .adm-release-checklist-text--warn {
   font-weight: var(--adm-fw-medium);
   color: var(--adm-text-1);

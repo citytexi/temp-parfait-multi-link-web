@@ -291,6 +291,22 @@ it('replaces the add button with the limit at 50 links', () => {
   expect(screen.queryByRole('button', { name: '내 링크 추가' })).toBeNull()
 })
 
+it('keeps the add form and what was typed when another tab filled the list', () => {
+  renderPage()
+  press('내 링크 추가')
+  type('이름', 'Figma')
+  type('주소', 'https://figma.com/file/x')
+  // Written straight to storage, without a storage event: the form is still open.
+  store(Array.from({ length: 50 }, (_, i) => ({ id: `id-${i}`, label: `링크 ${i}`, url: `https://a.b/${i}` })))
+  press('저장')
+  expect(field('이름').value).toBe('Figma')
+  expect(field('주소').value).toBe('https://figma.com/file/x')
+  expect(screen.getByText(AT_LIMIT, { selector: 'p' })).toBeInTheDocument()
+  expect(screen.getByRole('status')).toHaveTextContent(AT_LIMIT)
+  expect(storedItems()).toHaveLength(50)
+  expect(document.activeElement).toBe(button('저장'))
+})
+
 it('keeps the new link on screen and says it was not saved when storage is blocked', () => {
   renderPage()
   expect(screen.queryByText(NOT_SAVED)).toBeNull()
@@ -337,7 +353,8 @@ it('keeps the not-saved sentence on screen while a search hides 내 링크, and 
   type('이름', 'Figma')
   type('주소', 'https://figma.com/file/x')
   press('저장')
-  expect(screen.getByRole('status')).toHaveTextContent(NOT_SAVED)
+  // Both are in the region: neither replaced the other before it could be read.
+  expect([...screen.getByRole('status').children].map((el) => el.textContent)).toEqual(['추가했어요', NOT_SAVED])
 
   type('링크 검색', 'firebase')
   expect(titles()).not.toContain('내 링크')

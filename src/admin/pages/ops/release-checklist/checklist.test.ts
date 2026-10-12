@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CHECKLIST, type ChecklistSection } from './template'
-import { isChecked, newRelease, normalizePlatforms, parseReleases, platformsLabel, progress, releaseText, toggleItem, validateName, visibleSections, type Release } from './release'
+import { isChecked, newRelease, normalizePlatforms, parseReleases, platformsLabel, progress, releaseOptions, releaseText, toggleItem, validateName, visibleSections, type Release } from './release'
 import { decodeShare, encodeShare, shareUrl } from './share'
 
 describe('release checklist', () => {
@@ -17,7 +17,7 @@ it('has 22 items with unique ids in the spec sections', () => {
   expect(CHECKLIST.find((s) => s.id === 'android')!.items.every((i) => i.platforms?.join() === 'android')).toBe(true)
   expect(CHECKLIST.find((s) => s.id === 'ios')!.items.every((i) => i.platforms?.join() === 'ios')).toBe(true)
   const withMenu = CHECKLIST.flatMap((s) => s.items).filter((i) => i.menu).map((i) => [i.id, i.menu])
-  expect(withMenu).toEqual([['landing-links', 'ua-tester'], ['version-adoption', 'tech']])
+  expect(withMenu).toEqual([['events-arrive', 'event-stream'], ['landing-links', 'ua-tester'], ['version-adoption', 'tech']])
   expect(CHECKLIST[0].items[0]).toMatchObject({ id: 'version-bumped', label: '버전 이름과 빌드 번호를 올렸어요' })
 })
 it('validates a version name', () => {
@@ -177,5 +177,30 @@ it.each([
   ['a lone surrogate', 'a\ud800'],
 ])('rejects a shared name with %s', (_name, name) => {
   expect(decodeShare(b64url(JSON.stringify({ v: 1, name, platforms: ['ios'], checked: [] })))).toBeNull()
+})
+
+it('labels the picker options, with the time made only where name and platforms read the same', () => {
+  expect(releaseOptions([rel({ id: 'a' }), rel({ id: 'b', name: '1.6.0' }), rel({ id: 'c', platforms: ['ios'] })])).toEqual([
+    { value: 'a', label: '1.5.0 · Android, iOS' },
+    { value: 'b', label: '1.6.0 · Android, iOS' },
+    { value: 'c', label: '1.5.0 · iOS' },
+  ])
+  expect(
+    releaseOptions([rel({ id: 'a' }), rel({ id: 'b', now: '2026-10-09T05:30:00.000Z' }), rel({ id: 'c', name: '1.6.0' })]),
+  ).toEqual([
+    { value: 'a', label: '1.5.0 · Android, iOS · 10월 8일 09:00' },
+    { value: 'b', label: '1.5.0 · Android, iOS · 10월 9일 14:30' },
+    { value: 'c', label: '1.6.0 · Android, iOS' },
+  ])
+})
+
+it('numbers the picker options that the time made cannot tell apart', () => {
+  const unreadable = { ...rel({ id: 'c' }), createdAt: 'not a date' }
+  expect(releaseOptions([rel({ id: 'a' }), rel({ id: 'b' }), unreadable, { ...unreadable, id: 'd' }])).toEqual([
+    { value: 'a', label: '1.5.0 · Android, iOS · 10월 8일 09:00' },
+    { value: 'b', label: '1.5.0 · Android, iOS · 10월 8일 09:00 (2)' },
+    { value: 'c', label: '1.5.0 · Android, iOS' },
+    { value: 'd', label: '1.5.0 · Android, iOS (2)' },
+  ])
 })
 })

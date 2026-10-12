@@ -1,4 +1,5 @@
 import type { Parser } from '../../../lib/localStore'
+import { hasUnsafeChars } from '../../../lib/text'
 import { CHECKLIST, PLATFORMS, PLATFORM_LABEL, type ChecklistItem, type ChecklistSection, type ReleasePlatform } from './template'
 
 export const RELEASES_KEY = 'parfait-admin:release-checklist:releases'
@@ -15,17 +16,10 @@ export type Release = {
   createdAt: string
 }
 
-const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/
-// Direction marks, overrides, isolates and invisible characters: they reorder or hide the text around a name.
-// U+200C and U+200D stay allowed: they join emoji and letters and reorder nothing.
-const FORMAT = /[\u061c\u200b\u200e\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/
-// In unicode mode a surrogate matches only when it is not part of a pair.
-const LONE_SURROGATE = /[\ud800-\udfff]/u
-
 export function validateName(raw: string): { ok: true; name: string } | { ok: false; error: string } {
   const name = raw.trim()
   if (name === '') return { ok: false, error: '버전 이름을 넣어 주세요' }
-  if (CONTROL.test(raw) || FORMAT.test(raw) || LONE_SURROGATE.test(raw)) return { ok: false, error: '버전 이름에 줄바꿈이나 제어 문자는 쓸 수 없어요' }
+  if (hasUnsafeChars(raw)) return { ok: false, error: '버전 이름에 줄바꿈이나 제어 문자는 쓸 수 없어요' }
   if ([...name].length > NAME_MAX) return { ok: false, error: '버전 이름은 40자까지 쓸 수 있어요' }
   return { ok: true, name }
 }
@@ -39,6 +33,44 @@ export function normalizePlatforms(raw: unknown): ReleasePlatform[] | null {
 
 export function platformsLabel(platforms: readonly ReleasePlatform[]): string {
   return platforms.map((p) => PLATFORM_LABEL[p]).join(', ')
+}
+
+const madeAt = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  month: 'long',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
+/**
+ * The picker's options. Releases whose name and platforms read the same (the same link imported
+ * twice) also say when they were made, and a number where even that is the same.
+ */
+export function releaseOptions(list: readonly Release[]): { value: string; label: string }[] {
+  const count = (labels: readonly string[]) => {
+    const counts = new Map<string, number>()
+    for (const label of labels) counts.set(label, (counts.get(label) ?? 0) + 1)
+    return counts
+  }
+  const plain = list.map((r) => `${r.name} · ${platformsLabel(r.platforms)}`)
+  const plainCounts = count(plain)
+  const dated = list.map((r, i) => {
+    if (plainCounts.get(plain[i]) === 1) return plain[i]
+    // createdAt comes from storage and may be any string.
+    const time = Date.parse(r.createdAt)
+    return Number.isNaN(time) ? plain[i] : `${plain[i]} · ${madeAt.format(time)}`
+  })
+  const datedCounts = count(dated)
+  const seen = new Map<string, number>()
+  return list.map((r, i) => {
+    const label = dated[i]
+    if (datedCounts.get(label) === 1) return { value: r.id, label }
+    const nth = (seen.get(label) ?? 0) + 1
+    seen.set(label, nth)
+    return { value: r.id, label: nth === 1 ? label : `${label} (${nth})` }
+  })
 }
 
 export function newRelease(input: {

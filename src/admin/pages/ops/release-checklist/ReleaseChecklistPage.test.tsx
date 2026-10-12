@@ -383,6 +383,6 @@ it('still shows a release that was not saved after leaving the page and coming b
   expect(heading('1.5.0 릴리즈')).toBeInTheDocument()
   expect(field(FIRST_ITEM)).toBeChecked()
   expect(shown(NOT_SAVED)).toBe(1)
-  // Said once, when the write failed; not again on every return.
-  expect(status().textContent).toBe('')
+  // Said again on the return: the value is still only in this window.
+  expect(status().textContent).toBe(NOT_SAVED)
 })
