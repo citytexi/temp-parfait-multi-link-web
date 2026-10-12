@@ -87,7 +87,8 @@ export function EventDictionaryPage(): ReactElement {
   const [focusRequest, setFocusRequest] = useState<{ target: 'list' | 'search'; seq: number } | null>(null)
   const requestFocus = (target: 'list' | 'search') =>
     setFocusRequest((prev) => ({ target, seq: (prev?.seq ?? 0) + 1 }))
-  const focusSearch = () => toolbar.current?.querySelector<HTMLElement>('input[type="search"]')?.focus()
+  const focusSearch = (options?: FocusOptions) =>
+    toolbar.current?.querySelector<HTMLElement>('input[type="search"]')?.focus(options)
   useEffect(() => {
     if (focusRequest === null) return
     if (focusRequest.target === 'search') {
@@ -111,11 +112,12 @@ export function EventDictionaryPage(): ReactElement {
     const before = scrolledWhile.current
     if (before === 'listed' || before === placement) return
     scrolledWhile.current = placement
+    const title = grid.current?.querySelector('.adm-event-dictionary-toggle[aria-expanded="true"]')?.closest('tr')
     // `auto` does not animate: the page sets no smooth scrolling.
-    grid.current
-      ?.querySelector('.adm-event-dictionary-toggle[aria-expanded="true"]')
-      ?.closest('tr')
-      ?.scrollIntoView({ block: 'nearest', behavior: 'auto' })
+    const options: ScrollIntoViewOptions = { block: 'nearest', behavior: 'auto' }
+    // The open content in the next row first, then the title row: where both do not fit, the title stays in view.
+    title?.nextElementSibling?.scrollIntoView(options)
+    title?.scrollIntoView(options)
   }, [expanded, observed, placement])
 
   // A retry the user started keeps the notice, and the button under their focus, on the page.
@@ -132,8 +134,11 @@ export function EventDictionaryPage(): ReactElement {
     if (!retryLeftError.current) return
     setRetrying(false)
     if (observed === 'error') setFailures((n) => n + 1)
-    // The notice is gone; focus is moved only if it was on the notice's button.
-    else if (document.activeElement === null || document.activeElement === document.body) focusSearch()
+    // The notice is gone; focus is moved only if it was on the notice's button. The page stays where
+    // it is: scrolling up to the search field would push an open event out of view.
+    else if (document.activeElement === null || document.activeElement === document.body) {
+      focusSearch({ preventScroll: true })
+    }
   }, [observed, retrying])
   const retry = () => {
     if (retrying) return

@@ -347,9 +347,10 @@ describe('EventDictionaryPage', () => {
 
     await act(async () => release(observedFixture))
     await within(row('screen_view')).findByText('160번')
-    expect(scrollIntoView).toHaveBeenCalledTimes(1)
-    expect(scrolledTo()[0]).toBe(row('app_remove'))
-    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', behavior: 'auto' })
+    // The row with the open content, then the title row, which wins where both do not fit.
+    expect(scrolledTo()).toEqual([row('app_remove').nextElementSibling, row('app_remove')])
+    expect(scrollIntoView).toHaveBeenNthCalledWith(1, { block: 'nearest', behavior: 'auto' })
+    expect(scrollIntoView).toHaveBeenNthCalledWith(2, { block: 'nearest', behavior: 'auto' })
   })
 
   it('scrolls to an event seen only today when its row moves from the top into the list', async () => {
@@ -371,8 +372,7 @@ describe('EventDictionaryPage', () => {
     await act(async () => release(observedFixture))
     await within(row('today_only')).findByText('오늘 들어옴')
     expect(names()).toEqual(ALL_NAMES)
-    expect(scrollIntoView).toHaveBeenCalledTimes(1)
-    expect(scrolledTo()[0]).toBe(row('today_only'))
+    expect(scrolledTo()).toEqual([row('today_only').nextElementSibling, row('today_only')])
   })
 
   it('checks today once more for an event the earlier check missed, and scrolls to where it lands', async () => {
@@ -392,12 +392,12 @@ describe('EventDictionaryPage', () => {
 
   it('does not scroll for an expander pressed in the list', async () => {
     await open('event=screen_view')
-    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    expect(scrollIntoView).toHaveBeenCalledTimes(2)
     fireEvent.click(expander('app_remove'))
     expect(expander('app_remove')).toHaveAttribute('aria-expanded', 'true')
     fireEvent.click(expander('screen_view'))
     expect(expander('screen_view')).toHaveAttribute('aria-expanded', 'true')
-    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    expect(scrollIntoView).toHaveBeenCalledTimes(2)
     cleanup()
 
     scrollIntoView.mockClear()
@@ -525,10 +525,14 @@ describe('EventDictionaryPage', () => {
 
     fireEvent.click(retry)
     await waitFor(() => expect(h.client.runReport).toHaveBeenCalledTimes(3))
+    const focus = vi.spyOn(HTMLElement.prototype, 'focus')
     await act(async () => settle.resolve(observedFixture))
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
     expect(await within(row('screen_view')).findByText('160번')).toBeInTheDocument()
     expect(search()).toHaveFocus()
+    // Without scrolling: an event the user has open must not be pushed out of view.
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true })
+    focus.mockRestore()
   })
 
   it('drops the event param when a filter changes', async () => {

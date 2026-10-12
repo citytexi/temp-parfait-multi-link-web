@@ -35,12 +35,11 @@ export function StreamStatus(props: {
   return (
     <div className="adm-event-stream-status">
       <div className="adm-event-stream-status__line">
-        {(showReason || snapshot) && (
-          <p className="adm-event-stream-status__text">
-            {showReason && <span role="status">{reasonText(decision)}</span>}
-            {snapshot && <span>{`마지막 갱신 ${updatedAt.format(snapshot.fetchedAt)}`}</span>}
-          </p>
-        )}
+        <p className="adm-event-stream-status__text">
+          {/* Always on the page, empty or not: a status element drawn together with its first sentence may go unread. */}
+          <span role="status">{showReason ? reasonText(decision) : ''}</span>
+          {snapshot && <span>{`마지막 갱신 ${updatedAt.format(snapshot.fetchedAt)}`}</span>}
+        </p>
         <div className="adm-event-stream-status__actions">
           <button type="button" className="adm-button adm-button--secondary" onClick={() => onPause(!paused)}>
             {paused ? '다시 시작' : '일시정지'}

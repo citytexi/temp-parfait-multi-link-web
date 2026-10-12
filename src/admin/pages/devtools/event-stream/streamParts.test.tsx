@@ -60,7 +60,7 @@ describe('StreamStatus', () => {
 
   it('shows neither before the first snapshot while polling normally', () => {
     render(<StreamStatus {...statusProps({ snapshot: undefined })} />)
-    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
     expect(screen.queryByText(/마지막 갱신/)).toBeNull()
     expect(screen.queryByText(/갱신 중/)).toBeNull()
   })
@@ -72,14 +72,29 @@ describe('StreamStatus', () => {
     expect(screen.queryByText(/마지막 갱신/)).toBeNull()
   })
 
+  it('writes a pause made before the first snapshot into the status element that was already there', () => {
+    const paused: PollDecision = { intervalMs: null, reason: 'paused' }
+    const { rerender } = render(<StreamStatus {...statusProps({ snapshot: undefined })} />)
+    const status = screen.getByRole('status')
+    rerender(<StreamStatus {...statusProps({ snapshot: undefined, decision: paused, paused: true })} />)
+    expect(screen.getByRole('status')).toBe(status)
+    expect(status).toHaveTextContent('일시정지했어요')
+  })
+
+  it('keeps the status element empty while the tab is hidden', () => {
+    const hidden: PollDecision = { intervalMs: null, reason: 'hidden' }
+    render(<StreamStatus {...statusProps({ snapshot: undefined, decision: hidden })} />)
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+  })
+
   it('leaves the sentence out when the card below shows it, and keeps the time', () => {
     const stopped: PollDecision = { intervalMs: null, reason: 'quota_exhausted' }
     const { rerender } = render(
       <StreamStatus {...statusProps({ snapshot: undefined, decision: stopped, reasonShownBelow: true })} />,
     )
-    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
     rerender(<StreamStatus {...statusProps({ decision: stopped, reasonShownBelow: true })} />)
-    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
     expect(screen.getByText('마지막 갱신 14:02:31')).toBeInTheDocument()
   })
 

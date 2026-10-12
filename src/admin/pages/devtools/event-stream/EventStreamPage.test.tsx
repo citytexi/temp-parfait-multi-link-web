@@ -341,7 +341,7 @@ describe('EventStreamPage', () => {
     await open()
     expect(screen.getAllByText(QUOTA)).toHaveLength(1)
     expect(within(screen.getByRole('alert')).getByText(QUOTA)).toBeInTheDocument()
-    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
     expect(screen.queryByText(/오늘 조회 한도/)).toBeNull()
     const before = calls()
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))

@@ -13,10 +13,15 @@
 .adm-event-stream-status__text {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--adm-space-1) var(--adm-space-3);
+  row-gap: var(--adm-space-1);
   margin: 0;
   font-size: var(--adm-fs-sm);
   color: var(--adm-text-2);
+}
+
+/* The status element is there while empty too, so the space after it belongs to its sentence. */
+.adm-event-stream-status__text > [role='status']:not(:empty) {
+  margin-inline-end: var(--adm-space-3);
 }
 
 .adm-event-stream-status__actions {
