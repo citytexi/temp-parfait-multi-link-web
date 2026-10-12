@@ -42,8 +42,12 @@ export function CopyButton({
     }
   }, [])
 
+  // Focus goes to the box so the selection shows and the copy shortcut works at once:
+  // select() alone does not focus it in every browser.
   useEffect(() => {
-    if (failures > 0) box.current?.select()
+    if (failures === 0) return
+    box.current?.focus()
+    box.current?.select()
   }, [failures])
 
   const copy = useCallback(
