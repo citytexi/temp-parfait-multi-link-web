@@ -79,6 +79,11 @@
   }
 }
 
+/* Announcements kept side by side are separate lines, not one run of text. */
+.adm-status-region > span {
+  display: block;
+}
+
 /* Heavier and darker than a note, so colour is not the only cue. */
 .adm-not-saved {
   margin: 0;

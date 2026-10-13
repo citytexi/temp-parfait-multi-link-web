@@ -3,18 +3,10 @@ import { Card } from '../components/Card'
 import { CardState } from '../components/CardState'
 import { ChartFrame, chartTheme } from '../components/ChartFrame'
 import { cardQuery, useRealtime } from '../hooks/useReports'
-import { formatNumber } from '../lib/format'
+import { formatNumber, formatSeoulTime } from '../lib/format'
 
 const CHART_TITLE = '1분마다 앱을 쓴 사람'
 const OLDEST = 29
-
-const updatedAt = new Intl.DateTimeFormat('en-GB', {
-  timeZone: 'Asia/Seoul',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-  hourCycle: 'h23',
-})
 
 /** Only the two ends of the axis are labelled. */
 function axisTick(minutesAgo: number): string {
@@ -65,7 +57,7 @@ export function RealtimePage() {
       </div>
       <p className="adm-page__note">
         <span>1분마다 자동으로 새로고침돼요</span>
-        {realtime.dataUpdatedAt > 0 && <span>{`마지막 갱신 ${updatedAt.format(realtime.dataUpdatedAt)}`}</span>}
+        {realtime.dataUpdatedAt > 0 && <span>{`마지막 갱신 ${formatSeoulTime(realtime.dataUpdatedAt)}`}</span>}
       </p>
     </>
   )

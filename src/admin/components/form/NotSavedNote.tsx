@@ -6,11 +6,13 @@ const NOT_SAVED = '이 브라우저에는 저장되지 않았어요. 창을 닫�
 
 /**
  * Says that a stored value lives only in this window. Takes `persisted` from useStored.
- * Keep it mounted while `persisted` is true: it announces the sentence when that turns false.
+ * Keep it mounted while `persisted` is true: it announces the sentence when that turns false,
+ * and also when the page is opened with a value that was not saved.
  */
 export function NotSavedNote({ persisted }: { persisted: boolean }): ReactElement | null {
   const announce = useAnnounce()
-  const was = useRef(persisted)
+  // Starts as saved, so a page opened while unsaved announces on its first render.
+  const was = useRef(true)
 
   useEffect(() => {
     if (was.current && !persisted) announce(NOT_SAVED)

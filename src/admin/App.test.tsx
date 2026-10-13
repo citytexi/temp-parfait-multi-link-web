@@ -31,6 +31,7 @@ const h = vi.hoisted(() => ({
 vi.mock('./config', () => ({
   GA_PROPERTY_ID: '123',
   OAUTH_CLIENT_ID: 'cid',
+  GA_TOKENS_PER_DAY: 200_000,
   isConfigured: () => h.configured,
 }))
 
@@ -251,8 +252,8 @@ describe('Signed-in shell', () => {
   it('shows remaining daily quota once the client reports it', () => {
     render(<App />)
     expect(screen.queryByText(/오늘 조회 가능량/)).not.toBeInTheDocument()
-    act(() => h.onQuota?.({ tokensPerDay: { consumed: 500, remaining: 24500 } }))
-    expect(screen.getByText('오늘 조회 가능량 98% 남음')).toBeInTheDocument()
+    act(() => h.onQuota?.({ tokensPerDay: { consumed: 12, remaining: 150_000 } }))
+    expect(screen.getByText('오늘 조회 가능량 75% 남음')).toBeInTheDocument()
   })
 })
 

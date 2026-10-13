@@ -1,12 +1,13 @@
 import { ChevronRight } from 'lucide-react'
-import { Fragment, useEffect, useId, useRef, useState, type ReactElement } from 'react'
+import { Fragment, useId, type ReactElement } from 'react'
+import { CopyButton } from '../../../components/form/CopyButton'
 import { displayDim } from '../../../ga/reports/common'
 import { formatNumber } from '../../../lib/format'
+import { EventName } from '../shared/EventName'
 import { STATUS_LABEL, catalogSnippet, type DictionaryEntry } from './dictionary'
 import type { EventDictionary } from './useEventDictionary'
 import './event-dictionary.css'
 
-const COPIED_MS = 2000
 // Only a valid GA event name is offered as code to paste: the name is put into the snippet as it is.
 const EVENT_NAME = /^[A-Za-z][A-Za-z0-9_]{0,39}$/
 
@@ -29,72 +30,9 @@ const kindText = (entry: DictionaryEntry | null): string =>
   entry?.catalog ? (entry.catalog.kind === 'auto' ? '자동 수집' : '앱 정의') : '—'
 
 function CopySnippet({ name }: { name: string }): ReactElement {
-  const snippet = catalogSnippet(name)
-  // `seq` gives each confirmation its own node: the same words twice must be announced twice.
-  const [copied, setCopied] = useState({ on: false, seq: 0 })
-  // Counts the failed copies; each one selects the text box again.
-  const [failures, setFailures] = useState(0)
-  const box = useRef<HTMLTextAreaElement>(null)
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const mounted = useRef(false)
-
-  useEffect(() => {
-    mounted.current = true
-    return () => {
-      mounted.current = false
-      clearTimeout(timer.current)
-    }
-  }, [])
-
-  // Focus goes to the box so the selection shows and the copy shortcut works at once.
-  useEffect(() => {
-    if (failures === 0) return
-    box.current?.focus()
-    box.current?.select()
-  }, [failures])
-
-  const copy = async () => {
-    let ok = false
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(snippet)
-        ok = true
-      }
-    } catch {
-      ok = false
-    }
-    if (!mounted.current) return
-    if (!ok) {
-      setFailures((n) => n + 1)
-      return
-    }
-    clearTimeout(timer.current)
-    setCopied((prev) => ({ on: true, seq: prev.seq + 1 }))
-    timer.current = setTimeout(() => setCopied((prev) => ({ ...prev, on: false })), COPIED_MS)
-  }
-
   return (
     <div className="adm-event-dictionary-copy">
-      <button
-        type="button"
-        className="adm-button adm-button--secondary adm-event-dictionary-copy__button"
-        onClick={() => void copy()}
-      >
-        {copied.on ? '복사했어요' : '카탈로그 항목 복사'}
-      </button>
-      <span className="adm-sr-only" role="status">
-        {copied.on && <span key={copied.seq}>복사했어요</span>}
-      </span>
-      {failures > 0 && (
-        <textarea
-          ref={box}
-          className="adm-event-dictionary-copy__box"
-          aria-label="카탈로그 항목 코드"
-          readOnly
-          rows={2}
-          value={snippet}
-        />
-      )}
+      <CopyButton label="카탈로그 항목 복사" text={catalogSnippet(name)} />
     </div>
   )
 }
@@ -247,16 +185,7 @@ export function DictionaryTable(props: {
                         >
                           <ChevronRight size={18} aria-hidden="true" />
                         </button>
-                        <span className="adm-event-dictionary-name">
-                          {label !== name ? (
-                            <>
-                              <span className="adm-event-dictionary-label">{label}</span>
-                              <span className="adm-event-dictionary-raw">{name}</span>
-                            </>
-                          ) : (
-                            <span className="adm-event-dictionary-label">{name}</span>
-                          )}
-                        </span>
+                        <EventName name={name} label={label} />
                         {entry?.recentOnly && <span className="adm-tag">오늘 들어옴</span>}
                         {isPinned && entry && (
                           <span className="adm-event-dictionary-pinned">필터와 상관없이 보여요</span>

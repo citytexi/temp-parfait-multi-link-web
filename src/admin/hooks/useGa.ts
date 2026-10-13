@@ -1,6 +1,6 @@
 import { createContext, createElement, useContext, useMemo, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth/AuthContext'
-import { GA_PROPERTY_ID } from '../config'
+import { GA_PROPERTY_ID, GA_TOKENS_PER_DAY } from '../config'
 import { createGaClient, type GaClient } from '../ga/client'
 import { isRetryable } from '../ga/errors'
 import type { PropertyQuota } from '../ga/types'
@@ -41,8 +41,8 @@ const QuotaContext = createContext<number | null>(null)
 function quotaPercent(q: PropertyQuota): number | null {
   const t = q.tokensPerDay
   if (!t) return null
-  const total = t.consumed + t.remaining
-  return total > 0 ? Math.round((t.remaining / total) * 100) : null
+  // `consumed` is what one request spent, not the day's total, so the share is taken of the daily limit.
+  return Math.round(Math.min(1, Math.max(0, t.remaining / GA_TOKENS_PER_DAY)) * 100)
 }
 
 export function GaProvider({ children }: { children: ReactNode }) {

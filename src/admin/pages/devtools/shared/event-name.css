@@ -1,0 +1,16 @@
+.adm-devtools-event-name {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.adm-devtools-event-name__label {
+  font-size: var(--adm-fs-md);
+  color: var(--adm-text-1);
+}
+
+.adm-devtools-event-name__raw {
+  font-size: var(--adm-fs-xs);
+  color: var(--adm-text-3);
+}

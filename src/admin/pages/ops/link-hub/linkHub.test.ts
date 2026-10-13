@@ -90,6 +90,17 @@ describe('link hub rules', () => {
     expect(() => matchesQuery(link, '([\\.')).not.toThrow()
     expect(matchesQuery(link, '.*')).toBe(false)
   })
+  it('refuses a name with line breaks, control characters or characters that reorder text', () => {
+    const error = { label: '이름에 줄바꿈이나 제어 문자는 쓸 수 없어요' }
+    for (const label of ['Fig\nma', 'Fig\u0007ma', 'Fig\u202ema', 'Fig\u200bma', '\nFigma']) {
+      expect(validatePersonal({ label, url: 'https://a.b' })).toEqual({ ok: false, errors: error })
+    }
+    expect(validatePersonal({ label: '디자인 🍨', url: 'https://a.b' })).toMatchObject({ ok: true })
+    // A stored link with such a name is dropped when it is read back.
+    expect(parsePersonal([{ id: 'x', label: 'Fig\u202ema', url: 'https://a.b/' }, { id: 'y', label: 'ok', url: 'https://a.b/' }])).toEqual([
+      { id: 'y', label: 'ok', url: 'https://a.b/' },
+    ])
+  })
   it('reads the host name', () => {
     expect(hostOf('https://console.firebase.google.com/project/x')).toBe('console.firebase.google.com')
     expect(hostOf('nope')).toBe('')

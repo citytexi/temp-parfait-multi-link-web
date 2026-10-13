@@ -13,10 +13,15 @@
 .adm-event-stream-status__text {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--adm-space-1) var(--adm-space-3);
+  row-gap: var(--adm-space-1);
   margin: 0;
   font-size: var(--adm-fs-sm);
   color: var(--adm-text-2);
+}
+
+/* The status element is there while empty too, so the space after it belongs to its sentence. */
+.adm-event-stream-status__text > [role='status']:not(:empty) {
+  margin-inline-end: var(--adm-space-3);
 }
 
 .adm-event-stream-status__actions {
@@ -43,21 +48,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--adm-space-1) var(--adm-space-2);
-}
-
-.adm-event-stream-name {
-  display: inline-flex;
-  flex-direction: column;
-}
-
-.adm-event-stream-label {
-  font-size: var(--adm-fs-md);
-  color: var(--adm-text-1);
-}
-
-.adm-event-stream-raw {
-  font-size: var(--adm-fs-xs);
-  color: var(--adm-text-3);
 }
 
 .adm-event-stream-marks {
@@ -121,36 +111,12 @@
   }
 }
 
-/* Selects in the filter row keep a 16px font so iOS does not zoom. */
-.adm-event-stream-select {
-  font: inherit;
-  font-size: var(--adm-fs-md);
-  min-height: var(--adm-hit);
-  padding: 0 var(--adm-space-3);
-  border: 1px solid var(--adm-border-strong);
-  border-radius: var(--adm-radius-sm);
-  background: var(--adm-surface);
-  color: var(--adm-text-1);
-}
-
 .adm-event-stream-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--adm-space-3) var(--adm-space-4);
   margin-bottom: var(--adm-space-4);
-}
-
-.adm-event-stream-filter {
-  display: flex;
-  flex-direction: column;
-  gap: var(--adm-space-1);
-}
-
-.adm-event-stream-filter__label {
-  font-size: var(--adm-fs-sm);
-  font-weight: var(--adm-fw-medium);
-  color: var(--adm-text-2);
 }
 
 .adm-event-stream-truncated {

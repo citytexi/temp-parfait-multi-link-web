@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Circle } from 'lucide-react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -169,5 +169,31 @@ describe('MobileMenu', () => {
     const spy = vi.spyOn(Element.prototype, 'scrollIntoView')
     render(<MobileMenu groups={groups} active="users" onSelect={() => {}} />)
     expect(spy).toHaveBeenCalledWith({ inline: 'nearest', block: 'nearest' })
+  })
+
+  it('marks the ends of the tab list that have more tabs out of view', () => {
+    render(<MobileMenu groups={groups} active="users" onSelect={() => {}} />)
+    const list = screen.getByRole('list', { name: '지표' })
+    // Nothing overflows in jsdom, where every size is 0.
+    expect(list).not.toHaveAttribute('data-more-start')
+    expect(list).not.toHaveAttribute('data-more-end')
+
+    Object.defineProperties(list, {
+      scrollWidth: { value: 600, configurable: true },
+      clientWidth: { value: 300, configurable: true },
+    })
+    fireEvent(window, new Event('resize'))
+    expect(list).not.toHaveAttribute('data-more-start')
+    expect(list).toHaveAttribute('data-more-end')
+
+    list.scrollLeft = 150
+    fireEvent.scroll(list)
+    expect(list).toHaveAttribute('data-more-start')
+    expect(list).toHaveAttribute('data-more-end')
+
+    list.scrollLeft = 300
+    fireEvent.scroll(list)
+    expect(list).toHaveAttribute('data-more-start')
+    expect(list).not.toHaveAttribute('data-more-end')
   })
 })

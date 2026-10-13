@@ -125,16 +125,18 @@ describe('Shell', () => {
 
   it('shows the quota badge only for usesGa menus', async () => {
     render(tree())
-    act(() => h.onQuota?.({ tokensPerDay: { consumed: 500, remaining: 24500 } }))
-    expect(screen.getByText('오늘 조회 가능량 98% 남음')).toBeInTheDocument()
+    act(() => h.onQuota?.({ tokensPerDay: { consumed: 12, remaining: 150_000 } }))
+    expect(screen.getByText('오늘 조회 가능량 75% 남음')).toBeInTheDocument()
 
     await userEvent.click(menuButton('비'))
     expect(screen.queryByText(/오늘 조회 가능량/)).not.toBeInTheDocument()
     expect(await screen.findByText('비 내용')).toBeInTheDocument()
   })
 
-  it('renders the footer only for usesGa menus', async () => {
+  it('renders the footer only for usesGa menus, once the quota is known', async () => {
     render(tree())
+    expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument()
+    act(() => h.onQuota?.({ tokensPerDay: { consumed: 12, remaining: 150_000 } }))
     expect(screen.getByRole('contentinfo')).toBeInTheDocument()
     expect(await screen.findByText('에이 내용')).toBeInTheDocument()
 
@@ -192,6 +194,43 @@ describe('Shell', () => {
     expect(screen.getByRole('button', { name: '다시 시도' })).toBeInTheDocument()
     expect(screen.getByText('새로고침하면 다시 로그인해야 해요.')).toBeInTheDocument()
     expect(b.load).toHaveBeenCalledTimes(2)
+  })
+
+  it('says a page that threw while rendering failed to show, and offers the reload at once', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    let broken = true
+    const Flaky = () => {
+      if (broken) throw new Error('render failed')
+      return <p>비 내용</p>
+    }
+    b.load.mockImplementation(async () => ({ default: Flaky }))
+    render(tree())
+    await userEvent.click(menuButton('비'))
+    expect(await screen.findByText('화면을 보여 주다가 문제가 생겼어요')).toBeInTheDocument()
+    expect(screen.queryByText('화면을 불러오지 못했어요')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '새로고침' })).toBeInTheDocument()
+    expect(screen.getByText('새로고침하면 다시 로그인해야 해요.')).toBeInTheDocument()
+
+    broken = false
+    await userEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+    expect(await screen.findByText('비 내용')).toBeInTheDocument()
+  })
+
+  it('shows the loading status for a page that suspends after its chunk arrived', async () => {
+    const pending = new Promise<never>(() => {})
+    const Suspending = () => {
+      throw pending
+    }
+    b.load.mockImplementation(async () => ({ default: Suspending }))
+    render(tree())
+    // The chunk is in before the page is opened, as after the idle prefetch.
+    await act(async () => {
+      prefetchPages(registry.menus)
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+    await userEvent.click(menuButton('비'))
+    expect(screen.getByRole('status')).toHaveTextContent('불러오는 중이에요')
+    expect(screen.getByRole('heading', { level: 1, name: '비' })).toBeInTheDocument()
   })
 
   it('tries again after leaving a failed menu and coming back', async () => {
@@ -255,6 +294,39 @@ describe('Shell', () => {
     expect(screen.getAllByRole('navigation', { name: '메뉴' })).toHaveLength(1)
     expect(screen.getByRole('group', { name: '메뉴 그룹' })).toBeInTheDocument()
     expect(await screen.findByText('에이 내용')).toBeInTheDocument()
+  })
+
+  it('keeps focus in the menu when the window crosses 960px', async () => {
+    let matches = true
+    const listeners = new Set<() => void>()
+    vi.spyOn(window, 'matchMedia').mockImplementation(
+      (media: string) =>
+        ({
+          get matches() {
+            return matches
+          },
+          media,
+          addEventListener: (_: string, fn: () => void) => listeners.add(fn),
+          removeEventListener: (_: string, fn: () => void) => listeners.delete(fn),
+        }) as unknown as MediaQueryList,
+    )
+    const resize = (desktop: boolean) =>
+      act(() => {
+        matches = desktop
+        listeners.forEach((fn) => fn())
+      })
+    render(<StrictMode>{tree()}</StrictMode>)
+    expect(await screen.findByText('에이 내용')).toBeInTheDocument()
+
+    menuButton('비').focus()
+    resize(false)
+    expect(screen.getByRole('group', { name: '메뉴 그룹' })).toBeInTheDocument()
+    expect(menuButton('에이')).toHaveFocus()
+
+    // Focus outside the menu is left alone.
+    screen.getByRole('button', { name: '로그아웃' }).focus()
+    resize(true)
+    expect(screen.getByRole('button', { name: '로그아웃' })).toHaveFocus()
   })
 
   it('opens the command menu from the top bar and navigates', async () => {

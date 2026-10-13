@@ -1,7 +1,7 @@
-import type { ReactElement } from 'react'
+import { useState, type ReactElement } from 'react'
 import { Card } from '../../../components/Card'
 import { useAnnounce } from '../../../components/form/StatusRegion'
-import { newId } from '../../../lib/localStore'
+import { newId } from '../../../lib/id'
 import type { ReleaseActions } from './ReleaseChecklistPage'
 import { isChecked, LIMIT_MESSAGE, newRelease, platformsLabel, progress, visibleSections } from './release'
 import type { SharePayload } from './share'
@@ -28,10 +28,14 @@ export function SharedRelease({
   const sections = visibleSections(shared)
   const { done, total } = progress(sections)
 
+  // Counts the refused imports: each one draws the message as a new node, so it is announced again.
+  const [refusals, setRefusals] = useState(0)
+
   const importRelease = () => {
     // A new id every time: a release of mine with the same name stays as it is.
     const release = newRelease({ id: newId(), name, platforms, now: new Date().toISOString(), checked })
     if (actions.addRelease(release)) announce('가져왔어요')
+    else setRefusals((n) => n + 1)
   }
 
   return (
@@ -46,9 +50,11 @@ export function SharedRelease({
         </button>
       </div>
       {limitReached && (
-        <p role="alert" className="adm-release-checklist-text adm-release-checklist-text--warn">
-          {LIMIT_MESSAGE}
-        </p>
+        <div role="alert">
+          <p key={refusals} className="adm-release-checklist-text adm-release-checklist-text--warn">
+            {LIMIT_MESSAGE}
+          </p>
+        </div>
       )}
       <h2 className="adm-release-checklist-title">{`${name} 릴리즈`}</h2>
       <p className="adm-release-checklist-text">{platformsLabel(platforms)}</p>

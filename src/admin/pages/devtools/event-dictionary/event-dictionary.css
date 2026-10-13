@@ -75,19 +75,6 @@
   transform: rotate(90deg);
 }
 
-.adm-event-dictionary-name {
-  display: inline-flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.adm-event-dictionary-label {
-  font-size: var(--adm-fs-md);
-  color: var(--adm-text-1);
-}
-
-.adm-event-dictionary-raw,
 .adm-event-dictionary-pinned {
   font-size: var(--adm-fs-xs);
   color: var(--adm-text-3);
@@ -155,28 +142,19 @@
   gap: var(--adm-space-1) var(--adm-space-2);
 }
 
+/* The shared copy button, laid out for a line of code: the fallback box spans the row and is monospace. */
 .adm-event-dictionary-copy {
+  align-self: stretch;
+}
+
+.adm-event-dictionary-copy .adm-copy-wrap {
   display: flex;
-  flex-direction: column;
   align-items: flex-start;
-  align-self: stretch;
-  gap: var(--adm-space-2);
 }
 
-.adm-event-dictionary-copy__button {
-  min-height: var(--adm-hit);
-}
-
-.adm-event-dictionary-copy__box {
+.adm-event-dictionary-copy .adm-copy__box {
   align-self: stretch;
-  padding: var(--adm-space-2) var(--adm-space-3);
-  border: 1px solid var(--adm-border-strong);
-  border-radius: var(--adm-radius-sm);
-  background: var(--adm-surface);
-  color: var(--adm-text-1);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: var(--adm-fs-md);
-  resize: vertical;
 }
 
 @media (max-width: 959px) {

@@ -1,10 +1,11 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { Card } from '../../../components/Card'
 import { CardState } from '../../../components/CardState'
+import { SearchField } from '../../../components/form/SearchField'
+import { SelectField } from '../../../components/form/SelectField'
 import { GaError } from '../../../ga/errors'
 import { displayDim } from '../../../ga/reports/common'
 import { useNav, usePageParam } from '../../../menu/NavContext'
-import { SearchField } from '../shared/SearchField'
 import { HIGHLIGHT_TTL_MS } from './config'
 import { reasonText } from './pollPolicy'
 import { filterOptions, parseWatch, toLines, toggleWatch, type DimFilter, type Highlight } from './report'
@@ -23,26 +24,14 @@ function DimSelect(props: {
   onChange(value: string | null): void
 }): ReactElement {
   const { label, value, options, onChange } = props
-  const id = useId()
   return (
-    <div className="adm-event-stream-filter">
-      <label className="adm-event-stream-filter__label" htmlFor={id}>
-        {label}
-      </label>
-      <select
-        id={id}
-        className="adm-event-stream-select"
-        value={value ?? ALL}
-        onChange={(e) => onChange(e.target.value === ALL ? null : e.target.value)}
-      >
-        <option value={ALL}>전체</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {displayDim(option)}
-          </option>
-        ))}
-      </select>
-    </div>
+    <SelectField
+      label={label}
+      value={value ?? ALL}
+      onChange={(next) => onChange(next === ALL ? null : next)}
+      placeholder="전체"
+      options={options.map((option) => ({ value: option, label: displayDim(option) }))}
+    />
   )
 }
 
@@ -120,7 +109,7 @@ export function EventStreamPage(): ReactElement {
         reasonShownBelow={quotaOnFirstLoad && decision.reason === 'quota_exhausted'}
       />
       <div className="adm-event-stream-filters">
-        <SearchField label="이벤트 검색" value={q} onCommit={setQ} />
+        <SearchField label="이벤트 검색" param="q" />
         <DimSelect label="플랫폼" value={platform} options={options.platforms} onChange={setPlatform} />
         <DimSelect label="앱 버전" value={version} options={options.versions} onChange={setVersion} />
       </div>

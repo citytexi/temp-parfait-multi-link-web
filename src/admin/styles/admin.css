@@ -688,8 +688,12 @@ body {
   transition: background-color var(--adm-duration) ease;
 }
 
-.adm-menu__segment:not([aria-pressed='true']):hover {
-  background: var(--adm-surface);
+/* Only where a pointer can hover: after a tap the hover would stay on. The text darkens and the
+   background stays, so a hovered segment does not read as the pressed one. */
+@media (hover: hover) {
+  .adm-menu__segment:not([aria-pressed='true']):hover {
+    color: var(--adm-text-1);
+  }
 }
 
 .adm-menu__segment[aria-pressed='true'] {
@@ -700,10 +704,31 @@ body {
 }
 
 .adm-menu--mobile .adm-menu__list {
+  --adm-menu-fade: var(--adm-space-6);
+  --adm-menu-fade-start: #000;
+  --adm-menu-fade-end: #000;
   display: flex;
   gap: var(--adm-space-1);
   overflow-x: auto;
   scrollbar-width: none;
+  /* A tab scrolled into view stops short of the faded edge. */
+  scroll-padding-inline: var(--adm-menu-fade);
+  mask-image: linear-gradient(
+    to right,
+    var(--adm-menu-fade-start),
+    #000 var(--adm-menu-fade),
+    #000 calc(100% - var(--adm-menu-fade)),
+    var(--adm-menu-fade-end)
+  );
+}
+
+/* More tabs are out of view on that side. */
+.adm-menu--mobile .adm-menu__list[data-more-start] {
+  --adm-menu-fade-start: transparent;
+}
+
+.adm-menu--mobile .adm-menu__list[data-more-end] {
+  --adm-menu-fade-end: transparent;
 }
 
 .adm-menu--mobile .adm-menu__list::-webkit-scrollbar {

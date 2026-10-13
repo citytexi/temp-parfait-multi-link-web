@@ -17,6 +17,8 @@ const PREFETCH_DELAY_MS = 1500
 const resolvedPages = new WeakMap<MenuDef, ComponentType>()
 // Lazy wrappers for chunks still on their way. A wrapper whose load failed is dropped.
 const lazyPages = new WeakMap<MenuDef, LazyExoticComponent<ComponentType>>()
+// Errors a chunk load ended with. Any other error the boundary catches was thrown by a page while rendering.
+const loadErrors = new WeakSet<object>()
 
 function loadPage(menu: MenuDef): Promise<{ default: ComponentType }> {
   return menu.load().then((mod) => {
@@ -33,6 +35,7 @@ function lazyPage(menu: MenuDef): LazyExoticComponent<ComponentType> {
       // A failed load must not stay cached, whether or not anything is mounted to see it fail.
       // Compare first: a rejection that arrives late must not drop a newer wrapper.
       if (lazyPages.get(menu) === page) lazyPages.delete(menu)
+      if (typeof error === 'object' && error !== null) loadErrors.add(error)
       throw error
     }),
   )
@@ -40,11 +43,10 @@ function lazyPage(menu: MenuDef): LazyExoticComponent<ComponentType> {
   return page
 }
 
-type Picked = { menu: MenuDef; Page: ComponentType; ready: boolean }
+type Picked = { menu: MenuDef; Page: ComponentType }
 
 function pickPage(menu: MenuDef): Picked {
-  const Ready = resolvedPages.get(menu)
-  return Ready ? { menu, Page: Ready, ready: true } : { menu, Page: lazyPage(menu), ready: false }
+  return { menu, Page: resolvedPages.get(menu) ?? lazyPage(menu) }
 }
 
 /**
@@ -66,29 +68,35 @@ export function prefetchPages(menus: readonly MenuDef[]): () => void {
   return () => window.clearTimeout(timer)
 }
 
-type BoundaryProps = { fallback: ReactNode; children: ReactNode }
+/** `load`: the chunk did not arrive. `render`: the page arrived and threw. */
+type Failure = 'load' | 'render'
+type BoundaryProps = { fallback(kind: Failure): ReactNode; children: ReactNode }
+type BoundaryState = { failed: Failure | null }
 
-class PageErrorBoundary extends Component<BoundaryProps, { failed: boolean }> {
-  state = { failed: false }
+class PageErrorBoundary extends Component<BoundaryProps, BoundaryState> {
+  state: BoundaryState = { failed: null }
 
-  static getDerivedStateFromError(): { failed: boolean } {
-    return { failed: true }
+  static getDerivedStateFromError(error: unknown): BoundaryState {
+    const load = typeof error === 'object' && error !== null && loadErrors.has(error)
+    return { failed: load ? 'load' : 'render' }
   }
 
   render(): ReactNode {
-    return this.state.failed ? this.props.fallback : this.props.children
+    return this.state.failed ? this.props.fallback(this.state.failed) : this.props.children
   }
 }
 
-/** The page itself: at once when its chunk has already arrived, behind a loading status otherwise. */
+/**
+ * The page itself, behind a loading status until its chunk has arrived. A page whose chunk is
+ * already here sits under the same Suspense, so one that suspends on its own shows the status too.
+ */
 function PageBody({ menu }: { menu: MenuDef }): ReactElement {
   // Chosen once per mount. Swapping the lazy wrapper for the resolved component on a later
   // render would change the element type and remount the page, losing its state.
   const [picked, setPicked] = useState(() => pickPage(menu))
   if (picked.menu !== menu) setPicked(pickPage(menu))
-  const { Page, ready } = picked.menu === menu ? picked : pickPage(menu)
+  const { Page } = picked.menu === menu ? picked : pickPage(menu)
 
-  if (ready) return <Page />
   return (
     <Suspense
       fallback={
@@ -117,22 +125,29 @@ export function PageOutlet({ menu, onRetry }: { menu: MenuDef; onRetry?: () => v
     onRetry?.()
   }
 
-  const failure = (
-    <div className="adm-state adm-state--error adm-page__failure" role="alert">
-      <p className="adm-state__text">화면을 불러오지 못했어요</p>
-      <div className="adm-page__failure-actions">
-        <button type="button" className="adm-button adm-button--secondary" onClick={retry}>
-          다시 시도
-        </button>
-        {attempt >= 1 && (
-          <button type="button" className="adm-button adm-button--ghost" onClick={() => window.location.reload()}>
-            새로고침
+  const failure = (kind: Failure) => {
+    // Another try can fetch a chunk again. A page that threw will most likely throw again, so the
+    // reload is offered at once.
+    const offerReload = kind === 'render' || attempt >= 1
+    return (
+      <div className="adm-state adm-state--error adm-page__failure" role="alert">
+        <p className="adm-state__text">
+          {kind === 'load' ? '화면을 불러오지 못했어요' : '화면을 보여 주다가 문제가 생겼어요'}
+        </p>
+        <div className="adm-page__failure-actions">
+          <button type="button" className="adm-button adm-button--secondary" onClick={retry}>
+            다시 시도
           </button>
-        )}
+          {offerReload && (
+            <button type="button" className="adm-button adm-button--ghost" onClick={() => window.location.reload()}>
+              새로고침
+            </button>
+          )}
+        </div>
+        {offerReload && <p className="adm-page__failure-note">새로고침하면 다시 로그인해야 해요.</p>}
       </div>
-      {attempt >= 1 && <p className="adm-page__failure-note">새로고침하면 다시 로그인해야 해요.</p>}
-    </div>
-  )
+    )
+  }
 
   return (
     // A new key remounts the boundary and the page, which then loads a failed chunk again.

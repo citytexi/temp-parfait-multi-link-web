@@ -30,7 +30,7 @@ export const CHECKLIST: readonly ChecklistSection[] = [
     title: '확인',
     items: [
       { id: 'core-flows', label: '가입, 로그인, 사진 올리기, 캔버스 공유, 알림을 직접 해 봤어요' },
-      { id: 'events-arrive', label: '새로 넣은 이벤트가 GA에 들어오는지 봤어요' },
+      { id: 'events-arrive', label: '새로 넣은 이벤트가 GA에 들어오는지 봤어요', menu: 'event-stream' },
       { id: 'no-crash', label: '테스트 빌드에서 크래시가 없었어요' },
       { id: 'landing-links', label: '랜딩에서 스토어로 잘 넘어가는지 봤어요', menu: 'ua-tester' },
     ],

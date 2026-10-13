@@ -156,6 +156,19 @@ it('keeps the share link and shows the limit when 30 releases exist', () => {
   expect(status()).not.toHaveTextContent('가져왔어요')
 })
 
+it('draws the limit message again for a second refused import, so it is announced again', () => {
+  store(Array.from({ length: 30 }, (_, i) => rel(`r${i}`, `1.0.${i}`)))
+  renderShared()
+  press(IMPORT)
+  const alert = screen.getByRole('alert')
+  const first = alert.firstElementChild
+  expect(first).toHaveTextContent(LIMIT_MESSAGE)
+  press(IMPORT)
+  expect(screen.getByRole('alert')).toBe(alert)
+  expect(alert.firstElementChild).not.toBe(first)
+  expect(alert).toHaveTextContent(LIMIT_MESSAGE)
+})
+
 it('closes back to my releases and focuses the picker', () => {
   store([rel('a', 'A')])
   const before = localStorage.getItem(RELEASES_KEY)
@@ -191,6 +204,34 @@ it('falls back to the normal screen for a broken share link', () => {
   expect(screen.getByRole('alert')).toHaveTextContent(BROKEN)
   expect(heading('A 릴리즈')).toBeInTheDocument()
   expect(screen.getAllByRole('checkbox')).toHaveLength(22)
+})
+
+it('closes the broken-link message, takes the value out of the URL and moves focus on', () => {
+  store([rel('a', 'A')])
+  renderShared('not*base64')
+  press('닫기')
+  expect(screen.queryByRole('alert')).toBeNull()
+  expect(urlParam('share')).toBeNull()
+  expect(document.activeElement).toBe(screen.getByLabelText('릴리즈'))
+  cleanup()
+
+  localStorage.clear()
+  renderShared('not*base64')
+  press('닫기')
+  expect(screen.queryByRole('alert')).toBeNull()
+  expect(urlParam('share')).toBeNull()
+  expect(document.activeElement).toBe(screen.getByLabelText('버전 이름'))
+})
+
+it('tells same-named releases apart in the picker', () => {
+  store([rel('a', 'A'), { ...rel('b', 'A'), createdAt: '2026-10-09T05:30:00.000Z' }, rel('c', 'B')])
+  renderAt('?menu=release-checklist', <ReleaseChecklistPage />)
+  const picker = screen.getByLabelText<HTMLSelectElement>('릴리즈')
+  expect([...picker.options].map((o) => o.textContent)).toEqual([
+    'A · Android, iOS · 10월 8일 09:00',
+    'A · Android, iOS · 10월 9일 14:30',
+    'B · Android, iOS',
+  ])
 })
 
 it('drops unknown item ids from the link', () => {

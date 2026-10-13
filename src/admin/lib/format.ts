@@ -36,3 +36,16 @@ export function computeDelta(current: number, previous: number): Delta {
 export function formatShortDate(gaDate: string): string {
   return /^\d{8}$/.test(gaDate) ? `${gaDate.slice(4, 6)}.${gaDate.slice(6, 8)}` : gaDate
 }
+
+const seoulClock = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Seoul',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+})
+
+/** A moment as Seoul wall-clock time, 'HH:mm:ss'. */
+export function formatSeoulTime(at: number | Date): string {
+  return seoulClock.format(at)
+}
