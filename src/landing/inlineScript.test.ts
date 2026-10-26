@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest'
 import html from '../../index.html?raw'
-import { UA_PRESETS } from '../admin/pages/devtools/ua-tester/config'
+import { UA_PRESETS } from './uaPresets'
 import { BASE, CAMPAIGN_CASES } from './__fixtures__/campaignUrls'
 import { detectPlatform, landingView, playIntentUrl } from './ua'
 
