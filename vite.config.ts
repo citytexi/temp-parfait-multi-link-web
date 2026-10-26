@@ -37,7 +37,7 @@ export default defineConfig({
   plugins: [react(), adminCsp()],
   build: {
     rollupOptions: {
-      input: { main: 'index.html', admin: 'admin/index.html' },
+      input: { main: 'index.html', admin: 'admin/index.html', oss: 'oss/index.html' },
     },
   },
   test: {
