@@ -47,7 +47,6 @@ export function EventsPage() {
 
   return (
     <>
-      <h1 className="adm-page__title">많이 한 행동</h1>
       <div className="adm-grid">
         <Card title={CHART_TITLE} subtitle="이벤트">
           <CardState query={query} isEmpty={isEmpty}>

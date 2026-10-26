@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeDelta, formatDuration, formatNumber, formatShortDate } from './format'
+import { computeDelta, formatDuration, formatNumber, formatShortDate, formatSeoulTime } from './format'
 
 describe('formatNumber', () => {
   it('adds thousands separators', () => {
@@ -55,5 +55,12 @@ describe('formatShortDate', () => {
   it('turns a GA date into MM.DD', () => {
     expect(formatShortDate('20260928')).toBe('09.28')
     expect(formatShortDate('(other)')).toBe('(other)')
+  })
+})
+
+describe('formatSeoulTime', () => {
+  it('shows Seoul wall-clock time on a 24-hour clock', () => {
+    expect(formatSeoulTime(Date.UTC(2026, 9, 8, 5, 2, 31))).toBe('14:02:31')
+    expect(formatSeoulTime(new Date(Date.UTC(2026, 9, 8, 15, 0, 5)))).toBe('00:00:05')
   })
 })

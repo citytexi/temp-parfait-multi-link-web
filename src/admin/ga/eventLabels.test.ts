@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { eventLabel } from './eventLabels'
+import { eventLabel, labelFrom } from './eventLabels'
 
 describe('eventLabel', () => {
   it('translates registered events', () => {
@@ -9,5 +9,9 @@ describe('eventLabel', () => {
   it('passes unregistered names through', () => {
     expect(eventLabel('custom_x')).toEqual({ label: 'custom_x', registered: false })
     expect(eventLabel('toString')).toEqual({ label: 'toString', registered: false })
+  })
+  it('treats an empty label as unregistered', () => {
+    expect(labelFrom({ name: 'x_y', label: '', description: '', kind: 'app', params: [] }, 'x_y'))
+      .toEqual({ label: 'x_y', registered: false })
   })
 })

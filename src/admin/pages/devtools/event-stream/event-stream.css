@@ -1,0 +1,132 @@
+.adm-event-stream-status {
+  margin-bottom: var(--adm-space-4);
+}
+
+.adm-event-stream-status__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--adm-space-2) var(--adm-space-4);
+}
+
+.adm-event-stream-status__text {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: var(--adm-space-1);
+  margin: 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+/* The status element is there while empty too, so the space after it belongs to its sentence. */
+.adm-event-stream-status__text > [role='status']:not(:empty) {
+  margin-inline-end: var(--adm-space-3);
+}
+
+.adm-event-stream-status__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--adm-space-2);
+}
+
+.adm-event-stream-status__actions .adm-button {
+  min-height: var(--adm-hit);
+  min-width: var(--adm-hit);
+}
+
+.adm-event-stream-star,
+.adm-event-stream-dict {
+  min-width: var(--adm-hit);
+  min-height: var(--adm-hit);
+}
+
+.adm-event-stream-event {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--adm-space-1) var(--adm-space-2);
+}
+
+.adm-event-stream-marks {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--adm-space-1) var(--adm-space-2);
+}
+
+.adm-event-stream-up {
+  font-size: var(--adm-fs-sm);
+  font-weight: var(--adm-fw-medium);
+  color: var(--adm-accent);
+}
+
+.adm-event-stream-trend {
+  display: block;
+  width: 90px;
+  height: 24px;
+  fill: var(--adm-accent);
+}
+
+.adm-event-stream-flash {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  animation: adm-event-stream-flash 2s ease-out forwards;
+}
+
+@keyframes adm-event-stream-flash {
+  from {
+    background: var(--adm-accent-soft);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-event-stream-flash {
+    animation: none;
+    display: none;
+  }
+}
+
+@media (max-width: 959px) {
+  .adm-event-stream-trend-col {
+    display: none;
+  }
+
+  .adm-event-stream-event {
+    flex-direction: column;
+    align-items: flex-start;
+    white-space: normal;
+  }
+
+  .adm-event-stream-marks {
+    display: flex;
+    margin-top: var(--adm-space-1);
+  }
+}
+
+.adm-event-stream-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--adm-space-3) var(--adm-space-4);
+  margin-bottom: var(--adm-space-4);
+}
+
+.adm-event-stream-truncated {
+  margin: var(--adm-space-3) 0 0;
+  font-size: var(--adm-fs-sm);
+  color: var(--adm-text-2);
+}
+
+/* Under watched rows the empty state is a short notice, not a full-height placeholder. */
+.adm-event-stream-table + .adm-event-stream-empty,
+.adm-event-stream-truncated + .adm-event-stream-empty {
+  min-height: 0;
+}

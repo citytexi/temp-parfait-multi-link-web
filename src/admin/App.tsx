@@ -6,6 +6,7 @@ import { Shell } from './components/Shell'
 import { isConfigured } from './config'
 import { GaError } from './ga/errors'
 import { GaProvider, gaQueryDefaults } from './hooks/useGa'
+import { NavProvider } from './menu/NavContext'
 
 const SETUP_BODY =
   'src/admin/config.ts에 GA 속성 ID와 OAuth 클라이언트 ID를 넣어 주세요.\n자세한 방법은 README의 "어드민 대시보드 설정"을 봐 주세요.'
@@ -77,9 +78,11 @@ function SignedInApp() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GaProvider>
-        <Shell />
-      </GaProvider>
+      <NavProvider>
+        <GaProvider>
+          <Shell />
+        </GaProvider>
+      </NavProvider>
     </QueryClientProvider>
   )
 }

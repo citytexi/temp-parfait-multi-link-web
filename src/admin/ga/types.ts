@@ -35,12 +35,31 @@ export type RunRealtimeReportRequest = {
   dimensions?: { name: string }[]
   metrics?: { name: string }[]
   minuteRanges?: { name?: string; startMinutesAgo?: number; endMinutesAgo?: number }[]
+  orderBys?: OrderBy[]
   limit?: number
+  returnPropertyQuota?: boolean
 }
 
+type QuotaStatus = { consumed: number; remaining: number }
+
 export type PropertyQuota = {
-  tokensPerDay?: { consumed: number; remaining: number }
+  tokensPerDay?: QuotaStatus
+  tokensPerHour?: QuotaStatus
+  tokensPerProjectPerHour?: QuotaStatus
+  concurrentRequests?: QuotaStatus
+  serverErrorsPerProjectPerHour?: QuotaStatus
 }
+
+export type DimensionMetadata = {
+  apiName: string
+  uiName?: string
+  description?: string
+  customDefinition?: boolean
+}
+
+export type MetricMetadata = DimensionMetadata
+
+export type Metadata = { dimensions?: DimensionMetadata[]; metrics?: MetricMetadata[] }
 
 export type RunReportResponse = {
   dimensionHeaders?: { name: string }[]

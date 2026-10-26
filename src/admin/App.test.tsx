@@ -31,6 +31,7 @@ const h = vi.hoisted(() => ({
 vi.mock('./config', () => ({
   GA_PROPERTY_ID: '123',
   OAUTH_CLIENT_ID: 'cid',
+  GA_TOKENS_PER_DAY: 200_000,
   isConfigured: () => h.configured,
 }))
 
@@ -164,6 +165,7 @@ describe('App gates', () => {
 describe('Signed-in shell', () => {
   it('restores menu and period from the URL and writes menu changes back', async () => {
     window.history.replaceState(null, '', '/admin/?menu=events&period=28d')
+    const pushSpy = vi.spyOn(window.history, 'pushState')
     const replaceSpy = vi.spyOn(window.history, 'replaceState')
     render(<App />)
 
@@ -176,7 +178,7 @@ describe('Signed-in shell', () => {
     expect(screen.getByText('기준: 어제까지, 한국 시간')).toBeInTheDocument()
 
     await userEvent.click(within(nav).getByRole('button', { name: '다시 찾아온 사람' }))
-    expect(replaceSpy).toHaveBeenLastCalledWith(null, '', '/admin/?menu=retention&period=28d')
+    expect(pushSpy).toHaveBeenLastCalledWith(null, '', '/admin/?menu=retention&period=28d')
     expect(within(nav).getByRole('button', { name: '다시 찾아온 사람' })).toHaveAttribute('aria-current', 'page')
 
     await userEvent.click(screen.getByRole('button', { name: '최근 90일' }))
@@ -186,14 +188,11 @@ describe('Signed-in shell', () => {
   it('lists all six menus', () => {
     render(<App />)
     const nav = screen.getByRole('navigation', { name: '메뉴' })
-    expect(within(nav).getAllByRole('button').map((b) => b.textContent)).toEqual([
-      '한눈에 보기',
-      '사용자',
-      '많이 한 행동',
-      '다시 찾아온 사람',
-      '기기·지역',
-      '지금 접속 중',
-    ])
+    expect(
+      within(within(nav).getByRole('list', { name: '지표' }))
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['한눈에 보기', '사용자', '많이 한 행동', '다시 찾아온 사람', '기기·지역', '지금 접속 중'])
   })
 
   it('shows a reason and does not query when the custom start is after the end', async () => {
@@ -253,8 +252,8 @@ describe('Signed-in shell', () => {
   it('shows remaining daily quota once the client reports it', () => {
     render(<App />)
     expect(screen.queryByText(/오늘 조회 가능량/)).not.toBeInTheDocument()
-    act(() => h.onQuota?.({ tokensPerDay: { consumed: 500, remaining: 24500 } }))
-    expect(screen.getByText('오늘 조회 가능량 98% 남음')).toBeInTheDocument()
+    act(() => h.onQuota?.({ tokensPerDay: { consumed: 12, remaining: 150_000 } }))
+    expect(screen.getByText('오늘 조회 가능량 75% 남음')).toBeInTheDocument()
   })
 })
 

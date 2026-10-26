@@ -1,0 +1,24 @@
+{
+  "dimensions": [
+    {
+      "apiName": "customEvent:item_id",
+      "uiName": "상품 ID",
+      "customDefinition": true
+    },
+    {
+      "apiName": "eventName",
+      "uiName": "Event name"
+    }
+  ],
+  "metrics": [
+    {
+      "apiName": "customEvent:price",
+      "uiName": "가격",
+      "customDefinition": true
+    },
+    {
+      "apiName": "eventCount",
+      "uiName": "Event count"
+    }
+  ]
+}

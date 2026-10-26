@@ -74,7 +74,6 @@ export function RetentionPage() {
 
   return (
     <>
-      <h1 className="adm-page__title">다시 찾아온 사람</h1>
       <p className="adm-page__note">{NOTE}</p>
       <div className="adm-grid adm-grid--stats">
         <StatSlot
